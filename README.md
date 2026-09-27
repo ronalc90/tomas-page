@@ -1,0 +1,119 @@
+# Plan de Tomás · Python y SQL
+
+Plataforma para que Tomás aprenda Python y SQL entre el **27 de septiembre y el 30 de diciembre de 2026**: un taller por día, una evaluación al final de cada taller y un entregable cada sábado. Incluye un panel de administración para seguir el avance, revisar entregas, editar el contenido y gestionar cuentas.
+
+| | |
+|---|---|
+| **Contenido** | 62 talleres (concepto, ejemplo verificado, 3 tareas y 4 preguntas), 15 entregables con criterios, 5 fases: Fundamentos → Datos en Python → SQL → Python + SQL |
+| **Estudiante** | Tablero de avance, calendario por colores, taller del día, evaluación calificada en el servidor, entregables con evidencia y comentarios del revisor |
+| **Administración** | Resumen con métricas y actividad, detalle por estudiante, cola de revisión (aprobar o pedir cambios), editor de talleres y preguntas, usuarios y ajustes |
+| **Stack** | React 19 + Vite + TypeScript · Fastify 5 + Drizzle ORM · PostgreSQL 16 · Railway |
+
+## Arquitectura
+
+```
+apps/
+  web/        React + React Router + TanStack Query (la interfaz)
+  api/        Fastify + Drizzle: API REST, sesiones, reglas de avance; sirve la web compilada
+    drizzle/  migraciones SQL versionadas
+    src/db/seed-data/plan.json   contenido inicial del plan
+packages/
+  shared/     tipos, validaciones (zod), reglas de avance y fechas, usados por web y API
+e2e/          pruebas de punta a punta con Playwright
+```
+
+Un solo servicio sirve la API (`/api/*`) y la aplicación web, así no hay problemas de CORS ni cookies entre dominios. Al arrancar, el servidor aplica las migraciones pendientes y carga el contenido y las cuentas iniciales si no existen.
+
+### Decisiones importantes
+
+- **Las evaluaciones se califican en el servidor.** Las respuestas correctas nunca viajan al navegador antes de presentar; después de cada intento llega la revisión con explicaciones. Se guardan todos los intentos: el panel muestra la mejor nota y la del primer intento.
+- **Un taller está completo** cuando las tres tareas están marcadas y la evaluación está aprobada (nota mínima configurable, por defecto 3 de 4). Lo que tiene fecha anterior a hoy y no está completo queda **atrasado**. "Hoy" se calcula en la zona horaria de Bogotá.
+- **Las reglas de avance viven en `packages/shared/src/progress.ts`**, así el estudiante y el administrador ven exactamente lo mismo.
+- **Sesiones con cookie `httpOnly`, `SameSite=Lax` y `Secure`** en producción; en la base solo se guarda el hash del token. Contraseñas con bcrypt. Límite de intentos de inicio de sesión por IP y usuario. Cabeceras de seguridad con Helmet (CSP estricta).
+- **Las ediciones del administrador se respetan:** el contenido inicial solo se carga si la base está vacía. Para recargarlo a propósito: `npm run db:seed -- --reset-content`.
+
+## Cuentas iniciales
+
+Se crean la primera vez que arranca el servidor, con las variables `SEED_*`:
+
+| Usuario | Rol | Contraseña |
+|---|---|---|
+| `tomas` | Estudiante | `SEED_STUDENT_PASSWORD` (en producción: `1234`) |
+| `admin` | Administrador | `SEED_ADMIN_PASSWORD` (variable secreta en Railway) |
+
+Si una cuenta ya existe, su contraseña no se toca. Las contraseñas se cambian desde **Mi cuenta** o desde **Administración → Usuarios**.
+
+## Desarrollo local
+
+Requisitos: Node 22 y PostgreSQL 16.
+
+```bash
+npm install
+cp .env.example .env            # ajusta DATABASE_URL
+createdb tomas_dev
+export $(grep -v '^#' .env | xargs)
+npm run dev                      # migra, carga datos y abre API (3000) + web (5173)
+```
+
+Abre http://localhost:5173. Para ver el plan como si fuera otro día, define `FAKE_TODAY=2026-10-15` (se ignora en producción).
+
+## Pruebas
+
+```bash
+createdb tomas_test && createdb tomas_e2e
+npm run lint        # ESLint
+npm run typecheck   # TypeScript en los tres paquetes
+npm test            # Vitest: API contra PostgreSQL real + componentes de la web
+npm run build
+npm run e2e         # Playwright: flujos completos de estudiante y administrador (escritorio y celular)
+```
+
+Las pruebas de la API crean una base limpia (`tomas_test`) con las migraciones reales. Las de punta a punta levantan el servidor compilado con una base propia (`tomas_e2e`).
+
+## CI/CD
+
+`.github/workflows/ci-cd.yml` corre en cada push y pull request:
+
+1. **Calidad y pruebas:** lint, tipos, pruebas con PostgreSQL 16, compilación y Playwright.
+2. **Imagen Docker:** construye la imagen de producción, la arranca contra PostgreSQL y verifica `/api/health`.
+3. **Desplegar en Railway:** solo en `main` y solo si los dos trabajos anteriores pasan. Sube el código con `railway up`, espera la compilación y comprueba que `/api/health` responde con la versión (commit) recién desplegada.
+
+Configuración que usa el despliegue (en GitHub → Settings):
+
+| Tipo | Nombre | Valor |
+|---|---|---|
+| Secret | `RAILWAY_TOKEN` | Token de proyecto de Railway (entorno `production`) |
+| Variable | `RAILWAY_SERVICE` | Nombre del servicio de la app en Railway |
+| Variable | `APP_URL` | URL pública, por ejemplo `https://tomas-page-production.up.railway.app` |
+
+## Railway
+
+Proyecto con dos servicios: **PostgreSQL** y la **app** (compilada con el `Dockerfile`; `railway.json` define la verificación de salud en `/api/health`).
+
+Variables de la app:
+
+| Variable | Valor |
+|---|---|
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (referencia a la base) |
+| `NODE_ENV` | `production` |
+| `SEED_STUDENT_PASSWORD` | `1234` |
+| `SEED_ADMIN_PASSWORD` | una contraseña larga y secreta |
+
+## API
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/auth/login` · `/logout` · `/password` | Sesión y cambio de contraseña |
+| GET | `/api/auth/me` | Usuario actual (204 si no hay sesión) |
+| GET | `/api/plan` · `/api/progress` | Estructura del plan y avance calculado |
+| GET | `/api/days/:fecha` | Taller, entregable o festivo de una fecha |
+| PUT | `/api/days/:fecha/progress` | Tareas y evidencia |
+| POST | `/api/days/:fecha/quiz` | Presentar la evaluación |
+| GET/PUT | `/api/deliverables[/:id]` | Entregables y borrador |
+| POST | `/api/deliverables/:id/submit` · `/withdraw` | Enviar o retirar |
+| GET | `/api/admin/overview` · `/students[/:id]` | Resumen y detalle |
+| GET/POST | `/api/admin/reviews[/:userId/:id]` | Cola y decisión de revisión |
+| GET/PUT | `/api/admin/content` · `/days/:fecha` · `/deliverables/:id` | Editar contenido |
+| GET/POST/PATCH | `/api/admin/users[/:id][/password]` | Cuentas |
+| GET/PUT | `/api/admin/settings` | Nota mínima y nombre del programa |
+| GET | `/api/health` | Estado del servidor y la base, con la versión |

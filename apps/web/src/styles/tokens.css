@@ -1,0 +1,132 @@
+/* Tokens de diseño. Tema claro por defecto; oscuro por preferencia del sistema o por elección. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef2f5;
+  --surface-3: #e4e9ee;
+  --ink: #16202b;
+  --ink-2: #2d3947;
+  --muted: #566273;
+  --rule: #d8dee5;
+  --rule-strong: #b9c2cd;
+  --code-bg: #e9eef2;
+
+  --accent: #1d6b59;
+  --accent-strong: #15523f;
+  --accent-soft: #dcefe9;
+  --on-accent: #ffffff;
+
+  --ok: #1d6b59;
+  --warn: #b4541a;
+  --warn-soft: #fbe9dd;
+  --bad: #b42d3a;
+  --bad-soft: #f8e1e4;
+  --info: #2c6aa8;
+  --info-soft: #e0ecf7;
+
+  --c0: #6a55a0;
+  --c1: #2c6aa8;
+  --c2: #1d6b59;
+  --c3: #a66d12;
+  --c4: #963a58;
+  --on-phase: #ffffff;
+
+  /* Serie de gráficas (validadas: separación para daltonismo y contraste) */
+  --viz-1: #12876a;
+  --viz-2: #b8690a;
+
+  --shadow-sm: 0 1px 2px rgba(22, 32, 43, 0.06);
+  --shadow-md: 0 6px 24px rgba(22, 32, 43, 0.1);
+  --shadow-lg: 0 18px 48px rgba(22, 32, 43, 0.18);
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --font-display: "Bricolage Grotesque Variable", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --sidebar-w: 256px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f151c;
+    --surface: #161f29;
+    --surface-2: #1b2631;
+    --surface-3: #22303d;
+    --ink: #e4eaf0;
+    --ink-2: #c8d1db;
+    --muted: #97a3b2;
+    --rule: #273340;
+    --rule-strong: #3a4856;
+    --code-bg: #0b1117;
+    --accent: #4cb597;
+    --accent-strong: #6fd0b3;
+    --accent-soft: #173b32;
+    --on-accent: #0f151c;
+    --ok: #4cb597;
+    --warn: #e48a4e;
+    --warn-soft: #3a2518;
+    --bad: #ee6b77;
+    --bad-soft: #3b1c22;
+    --info: #6da5de;
+    --info-soft: #182c40;
+    --c0: #a996d8;
+    --c1: #6da5de;
+    --c2: #4cb597;
+    --c3: #dda64d;
+    --c4: #d97c9b;
+    --on-phase: #0f151c;
+    --viz-1: #2fa184;
+    --viz-2: #ba7a1c;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f151c;
+  --surface: #161f29;
+  --surface-2: #1b2631;
+  --surface-3: #22303d;
+  --ink: #e4eaf0;
+  --ink-2: #c8d1db;
+  --muted: #97a3b2;
+  --rule: #273340;
+  --rule-strong: #3a4856;
+  --code-bg: #0b1117;
+  --accent: #4cb597;
+  --accent-strong: #6fd0b3;
+  --accent-soft: #173b32;
+  --on-accent: #0f151c;
+  --ok: #4cb597;
+  --warn: #e48a4e;
+  --warn-soft: #3a2518;
+  --bad: #ee6b77;
+  --bad-soft: #3b1c22;
+  --info: #6da5de;
+  --info-soft: #182c40;
+  --c0: #a996d8;
+  --c1: #6da5de;
+  --c2: #4cb597;
+  --c3: #dda64d;
+  --c4: #d97c9b;
+  --on-phase: #0f151c;
+  --viz-1: #2fa184;
+  --viz-2: #ba7a1c;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+.p0 { --p: var(--c0); }
+.p1 { --p: var(--c1); }
+.p2 { --p: var(--c2); }
+.p3 { --p: var(--c3); }
+.p4 { --p: var(--c4); }

@@ -1,0 +1,100 @@
+import { expect, test } from "@playwright/test";
+import { ADMIN, correctAnswers, login, STUDENT } from "./helpers";
+
+test.describe.configure({ mode: "serial" });
+
+test("un visitante sin sesión llega al inicio de sesión", async ({ page }) => {
+  await page.goto("/entregables");
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole("heading", { name: "Inicia sesión" })).toBeVisible();
+});
+
+test("una contraseña incorrecta muestra un error claro", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Usuario").fill("tomas");
+  await page.getByLabel("Contraseña", { exact: true }).fill("mala");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("alert")).toHaveText("Usuario o contraseña incorrectos.");
+});
+
+test("Tomás completa el taller del día: tareas y evaluación", async ({ page, request }) => {
+  const answers = await correctAnswers(request, "2026-10-07");
+  await login(page, STUDENT);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Tomás");
+
+  await page.getByRole("link", { name: "Empezar" }).click();
+  await expect(page).toHaveURL(/\/dia\/2026-10-07/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("and, or, not");
+
+  const tasks = page.locator(".checklist input[type=checkbox]");
+  for (let i = 0; i < (await tasks.count()); i++) await tasks.nth(i).check();
+
+  // Primer intento con una respuesta mala: no aprueba (3 de 4 es suficiente, 2 no).
+  const wrong = answers.map((a, i) => (i < 2 ? (a + 1) % 4 : a));
+  for (const [i, a] of wrong.entries()) await page.locator(`input[name="q${i}"][value="${a}"]`).check();
+  await page.getByRole("button", { name: "Calificar" }).click();
+  await expect(page.locator(".result .score")).toHaveText("2 / 4");
+  await expect(page.getByText("Incorrecto.").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Intentar de nuevo" }).click();
+  for (const [i, a] of answers.entries()) await page.locator(`input[name="q${i}"][value="${a}"]`).check();
+  await page.getByRole("button", { name: "Calificar" }).click();
+  await expect(page.locator(".result .score")).toHaveText("4 / 4");
+  await expect(page.getByText("Taller completo")).toBeVisible();
+
+  await page.goto("/");
+  const workshops = page.locator(".stat").filter({ has: page.locator("dt", { hasText: /^Talleres$/ }) });
+  await expect(workshops.locator("dd")).toContainText("1 / 62");
+});
+
+test("la evidencia del taller se guarda sola", async ({ page }) => {
+  await login(page, STUDENT);
+  await page.goto("/dia/2026-10-07");
+  await page.getByLabel("Evidencia (opcional)").fill("print(True and False)");
+  await expect(page.getByText("Guardado")).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Evidencia (opcional)")).toHaveValue("print(True and False)");
+});
+
+test("Tomás envía el entregable de la semana 1", async ({ page }) => {
+  await login(page, STUDENT);
+  await page.goto("/dia/2026-10-03");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Entregable de la semana 1");
+  const send = page.getByRole("button", { name: "Enviar entregable" });
+  await expect(send).toBeDisabled();
+  const criteria = page.locator(".checklist input[type=checkbox]");
+  for (let i = 0; i < (await criteria.count()); i++) await criteria.nth(i).check();
+  await page.getByLabel(/Enlace a tu código/).fill("https://github.com/tomas/curso-python/tree/main/semana-01");
+  await expect(send).toBeEnabled();
+  await send.click();
+  await expect(page.locator(".pill.submitted")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retirar para editar" })).toBeVisible();
+});
+
+test("el administrador revisa y aprueba el entregable", async ({ page }) => {
+  await login(page, ADMIN);
+  await expect(page).toHaveURL(/\/admin$/);
+  await page.getByRole("link", { name: /Revisar 1 entregable/ }).click();
+  await page.locator(".deliverable-list a").first().click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Tomás · Entregable de la semana 1");
+  await expect(page.getByRole("link", { name: /github.com\/tomas/ })).toBeVisible();
+  await page.getByLabel("Comentario para el estudiante").fill("Muy bien. Agrega un caso con 7 personas.");
+  await page.getByRole("button", { name: "Aprobar" }).click();
+  await expect(page).toHaveURL(/\/admin\/revisiones$/);
+  await expect(page.getByText("No hay nada por revisar")).toBeVisible();
+});
+
+test("Tomás ve la aprobación y el comentario", async ({ page }) => {
+  await login(page, STUDENT);
+  await page.goto("/entregables");
+  await expect(page.locator(".pill.approved").first()).toBeVisible();
+  await page.goto("/dia/2026-10-03");
+  await expect(page.getByText("Muy bien. Agrega un caso con 7 personas.")).toBeVisible();
+});
+
+test("un estudiante no puede entrar al panel de administración", async ({ page }) => {
+  await login(page, STUDENT);
+  await page.goto("/admin/usuarios");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Tomás");
+});

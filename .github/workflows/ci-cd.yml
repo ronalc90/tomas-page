@@ -1,0 +1,135 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Calidad y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tomas_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/tomas_test
+      E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tomas_e2e
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Pruebas unitarias y de API (con PostgreSQL)
+        run: npm test
+
+      - name: Compilar
+        run: npm run build
+
+      - name: Crear la base de pruebas end-to-end
+        run: PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE tomas_e2e;"
+
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas end-to-end
+        run: npm run e2e
+
+      - name: Guardar el reporte de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
+
+  docker:
+    name: Imagen Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir la imagen de producción
+        run: docker build --tag tomas-page:${{ github.sha }} .
+      - name: Arrancar la imagen contra PostgreSQL y probar la salud
+        run: |
+          docker network create ci
+          docker run -d --name db --network ci -e POSTGRES_PASSWORD=postgres postgres:16
+          for i in $(seq 1 30); do docker exec db pg_isready -U postgres && break; sleep 1; done
+          docker run -d --name app --network ci -p 3000:3000 \
+            -e DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres \
+            -e SEED_ADMIN_PASSWORD=ci-admin-password -e SEED_STUDENT_PASSWORD=1234 \
+            tomas-page:${{ github.sha }}
+          for i in $(seq 1 30); do curl -fsS localhost:3000/api/health && exit 0; sleep 2; done
+          docker logs app
+          exit 1
+
+  deploy:
+    name: Desplegar en Railway
+    needs: [verify, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Marcar la versión
+        run: echo "${GITHUB_SHA::7}" > VERSION
+
+      - name: Instalar Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Desplegar
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --ci --service "${{ vars.RAILWAY_SERVICE }}" --environment production
+
+      - name: Verificar que la versión nueva responde
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          expected="${GITHUB_SHA::7}"
+          for i in $(seq 1 40); do
+            body=$(curl -fsS "$APP_URL/api/health" || true)
+            echo "$body"
+            if echo "$body" | grep -q "\"version\":\"$expected\""; then
+              echo "Versión $expected en línea."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "La versión $expected no respondió a tiempo."
+          exit 1
