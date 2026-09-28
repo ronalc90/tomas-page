@@ -118,6 +118,10 @@ export function StudentDetailPage() {
                     <th className="num">Intentos</th>
                     <th className="num">1er intento</th>
                     <th className="num">Mejor</th>
+                    <th className="num" title="Pistas destapadas en el último intento">
+                      Pistas
+                    </th>
+                    <th>Reto</th>
                     <th>Evidencia</th>
                   </tr>
                 </thead>
@@ -143,6 +147,8 @@ export function StudentDetailPage() {
                         <td className="num">{row.state.attempts || "–"}</td>
                         <td className="num">{row.firstScore === null ? "–" : `${row.firstScore}/${row.state.total}`}</td>
                         <td className="num">{row.state.attempts ? `${row.state.best}/${row.state.total}` : "–"}</td>
+                        <td className="num">{row.state.attempts ? row.hintsUsed : "–"}</td>
+                        <td>{row.challengeDone ? <span className="pill done">Hecho</span> : <span className="muted">–</span>}</td>
                         <td>
                           {row.evidence.trim() ? (
                             <button type="button" className="btn ghost small" onClick={() => setOpen(open === row.date ? null : row.date)} aria-expanded={open === row.date}>
@@ -155,7 +161,7 @@ export function StudentDetailPage() {
                       </tr>
                       {open === row.date && (
                         <tr>
-                          <td colSpan={8}>
+                          <td colSpan={10}>
                             <pre className="evidence-view">{row.evidence}</pre>
                           </td>
                         </tr>

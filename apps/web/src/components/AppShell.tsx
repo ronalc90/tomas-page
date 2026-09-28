@@ -52,6 +52,7 @@ export function AppShell({ me }: { me: MeResponse }) {
     { to: "/", label: "Inicio", icon: "home", end: true },
     { to: "/hoy", label: "Hoy", icon: "today" },
     { to: "/entregables", label: "Entregables", icon: "inbox" },
+    { to: "/guias", label: "Guías", icon: "compass" },
   ];
   const admin: NavItem[] = [
     { to: "/admin", label: "Resumen", icon: "chart", end: true },

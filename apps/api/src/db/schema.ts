@@ -14,6 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { Answer, Challenge, CommonError, GlossaryItem, QuestionType, Resource, TutorialStep } from "@tomas/shared";
 
 export const roleEnum = pgEnum("role", ["student", "admin"]);
 export const dayKindEnum = pgEnum("day_kind", ["workshop", "holiday", "free"]);
@@ -98,6 +99,13 @@ export const days = pgTable(
     language: text("language").notNull().default("python"),
     exampleOutput: text("example_output").notNull().default(""),
     tasks: jsonb("tasks").$type<string[]>().notNull().default([]),
+    objectives: jsonb("objectives").$type<string[]>().notNull().default([]),
+    steps: jsonb("steps").$type<TutorialStep[]>().notNull().default([]),
+    commonErrors: jsonb("common_errors").$type<CommonError[]>().notNull().default([]),
+    taskHints: jsonb("task_hints").$type<string[]>().notNull().default([]),
+    challenge: jsonb("challenge").$type<Challenge | null>(),
+    glossary: jsonb("glossary").$type<GlossaryItem[]>().notNull().default([]),
+    resources: jsonb("resources").$type<Resource[]>().notNull().default([]),
     updatedAt: updatedAt(),
   },
   (t) => [index("days_week_idx").on(t.weekId)],
@@ -111,11 +119,15 @@ export const questions = pgTable(
       .notNull()
       .references(() => days.date, { onDelete: "cascade" }),
     position: integer("position").notNull(),
+    type: text("type").$type<QuestionType>().notNull().default("choice"),
     prompt: text("prompt").notNull(),
     code: text("code").notNull().default(""),
     options: jsonb("options").$type<string[]>().notNull(),
     correctIndex: integer("correct_index").notNull(),
+    accepted: jsonb("accepted").$type<string[]>().notNull().default([]),
+    optionFeedback: jsonb("option_feedback").$type<string[]>().notNull().default([]),
     explanation: text("explanation").notNull(),
+    hint: text("hint").notNull().default(""),
   },
   (t) => [uniqueIndex("questions_date_position_idx").on(t.date, t.position)],
 );
@@ -131,6 +143,10 @@ export const deliverables = pgTable("deliverables", {
   path: text("path").notNull(),
   description: text("description").notNull(),
   criteria: jsonb("criteria").$type<string[]>().notNull().default([]),
+  steps: jsonb("steps").$type<string[]>().notNull().default([]),
+  tips: jsonb("tips").$type<string[]>().notNull().default([]),
+  stretch: text("stretch").notNull().default(""),
+  checklist: jsonb("checklist").$type<string[]>().notNull().default([]),
 });
 
 // ---------- Avance de cada estudiante ----------
@@ -146,6 +162,7 @@ export const dayProgress = pgTable(
       .references(() => days.date, { onDelete: "cascade" }),
     tasks: jsonb("tasks").$type<boolean[]>().notNull().default([]),
     evidence: text("evidence").notNull().default(""),
+    challengeDone: boolean("challenge_done").notNull().default(false),
     completedAt: isoTimestamp("completed_at"),
     updatedAt: updatedAt(),
   },
@@ -162,7 +179,8 @@ export const quizAttempts = pgTable(
     date: date("date", { mode: "string" })
       .notNull()
       .references(() => days.date, { onDelete: "cascade" }),
-    answers: jsonb("answers").$type<number[]>().notNull(),
+    answers: jsonb("answers").$type<Answer[]>().notNull(),
+    hintsUsed: jsonb("hints_used").$type<number[]>().notNull().default([]),
     score: integer("score").notNull(),
     total: integer("total").notNull(),
     createdAt: createdAt(),

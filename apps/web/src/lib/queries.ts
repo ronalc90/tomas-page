@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
+  Answer,
   AdminDay,
   AdminDeliverableInput,
   AdminDayInput,
@@ -113,7 +114,7 @@ export const useDeliverables = () =>
 export function useSaveDayProgress(date: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { tasks?: boolean[]; evidence?: string }) =>
+    mutationFn: (input: { tasks?: boolean[]; evidence?: string; challengeDone?: boolean }) =>
       serial(`day:${date}`, () => api.put(`/api/days/${date}/progress`, input)),
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: keys.day(date) });
@@ -141,8 +142,8 @@ export function useSaveDayProgress(date: string) {
 export function useSubmitQuiz(date: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (answers: number[]) =>
-      serial(`day:${date}`, () => api.post<QuizResult>(`/api/days/${date}/quiz`, { answers })),
+    mutationFn: (input: { answers: Answer[]; hints: number[] }) =>
+      serial(`day:${date}`, () => api.post<QuizResult>(`/api/days/${date}/quiz`, input)),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: keys.day(date) });
       void qc.invalidateQueries({ queryKey: keys.progress });

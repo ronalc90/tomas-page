@@ -34,7 +34,7 @@ test("el administrador edita un taller y el cambio se ve en la vista del estudia
   await page.goto("/admin/contenido");
   await page.getByText("Variables, tipos y operaciones").click();
   await page.getByRole("link", { name: /Variables y print/ }).click();
-  await page.getByLabel("Título").fill("Variables y print (actualizado)");
+  await page.getByLabel("Título del día").fill("Variables y print (actualizado)");
   await page.getByRole("button", { name: "Guardar cambios" }).click();
   await expect(page.getByText("Cambios guardados.")).toBeVisible();
   await page.getByRole("link", { name: "Ver como estudiante" }).click();

@@ -31,11 +31,16 @@ export const dayProgressSchema = z
   .object({
     tasks: z.array(z.boolean()).max(20).optional(),
     evidence: z.string().max(EVIDENCE_MAX, "La evidencia es demasiado larga").optional(),
+    challengeDone: z.boolean().optional(),
   })
-  .refine((v) => v.tasks !== undefined || v.evidence !== undefined, "No hay cambios para guardar");
+  .refine((v) => v.tasks !== undefined || v.evidence !== undefined || v.challengeDone !== undefined, "No hay cambios para guardar");
+
+export const ANSWER_MAX = 500;
 
 export const quizAttemptSchema = z.object({
-  answers: z.array(z.number().int().min(0).max(9)).min(1).max(20),
+  answers: z.array(z.union([z.number().int().min(0).max(9), z.string().max(ANSWER_MAX)])).min(1).max(20),
+  /** Posiciones de las preguntas en las que se destapó la pista. */
+  hints: z.array(z.number().int().min(0).max(19)).max(20).default([]),
 });
 
 export const submissionDraftSchema = z
@@ -78,26 +83,76 @@ export const resetPasswordSchema = z.object({
   password: z.string().min(STUDENT_MIN_PASSWORD, `Usa al menos ${STUDENT_MIN_PASSWORD} caracteres`).max(200),
 });
 
+export const questionTypeSchema = z.enum(["choice", "boolean", "output", "fill"]);
+export const languageSchema = z.enum(["python", "sql", "bash"]);
+
 export const adminQuestionSchema = z
   .object({
+    type: questionTypeSchema.default("choice"),
     prompt: z.string().trim().min(1, "La pregunta no puede estar vacía").max(1_000),
     code: z.string().max(4_000).default(""),
-    options: z.array(z.string().trim().min(1, "Ninguna opción puede estar vacía").max(500)).min(2).max(6),
-    correctIndex: z.number().int().min(0),
+    options: z.array(z.string().trim().min(1, "Ninguna opción puede estar vacía").max(500)).max(6).default([]),
+    correctIndex: z.number().int().min(0).default(0),
+    accepted: z.array(z.string().trim().min(1, "Ninguna respuesta puede estar vacía").max(300)).max(8).default([]),
+    optionFeedback: z.array(z.string().trim().max(500)).max(6).default([]),
     explanation: z.string().trim().min(1, "Escribe la explicación").max(2_000),
+    hint: z.string().trim().max(400).default(""),
   })
-  .refine((q) => q.correctIndex < q.options.length, { message: "La respuesta correcta no existe", path: ["correctIndex"] })
-  .refine((q) => new Set(q.options).size === q.options.length, { message: "Hay opciones repetidas", path: ["options"] });
+  .superRefine((q, ctx) => {
+    if (q.type === "choice" || q.type === "boolean") {
+      if (q.options.length < 2) ctx.addIssue({ code: "custom", path: ["options"], message: "Escribe al menos dos opciones" });
+      if (q.type === "boolean" && q.options.length !== 2) ctx.addIssue({ code: "custom", path: ["options"], message: "Verdadero/falso tiene dos opciones" });
+      if (q.correctIndex >= q.options.length) ctx.addIssue({ code: "custom", path: ["correctIndex"], message: "La respuesta correcta no existe" });
+      if (new Set(q.options).size !== q.options.length) ctx.addIssue({ code: "custom", path: ["options"], message: "Hay opciones repetidas" });
+      if (q.optionFeedback.length > 0 && q.optionFeedback.length !== q.options.length) {
+        ctx.addIssue({ code: "custom", path: ["optionFeedback"], message: "Escribe un comentario por opción (o ninguno)" });
+      }
+    } else {
+      if (q.accepted.length === 0) ctx.addIssue({ code: "custom", path: ["accepted"], message: "Escribe al menos una respuesta aceptada" });
+      if (!q.code.trim()) ctx.addIssue({ code: "custom", path: ["code"], message: "Esta pregunta necesita código" });
+      if (q.type === "fill" && q.code.split("____").length !== 2) {
+        ctx.addIssue({ code: "custom", path: ["code"], message: "Marca el hueco con ____ (una sola vez)" });
+      }
+    }
+  });
+
+export const tutorialStepSchema = z.object({
+  title: z.string().trim().min(1, "El paso necesita un título").max(120),
+  body: z.string().trim().min(1, "Explica el paso").max(3_000),
+  code: z.string().max(6_000).default(""),
+  language: languageSchema.default("python"),
+});
+
+export const commonErrorSchema = z.object({
+  error: z.string().trim().min(1).max(300),
+  cause: z.string().trim().min(1).max(1_000),
+  fix: z.string().trim().min(1).max(1_000),
+});
+
+export const challengeSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  description: z.string().trim().min(1).max(3_000),
+  hint: z.string().trim().max(1_000).default(""),
+  solution: z.string().max(8_000).default(""),
+  language: languageSchema.default("python"),
+});
 
 export const adminDaySchema = z.object({
   title: z.string().trim().min(1).max(200),
   summary: z.string().trim().max(2_000).default(""),
+  objectives: z.array(z.string().trim().min(1).max(300)).max(6).default([]),
   concept: z.string().trim().max(5_000).default(""),
   tip: z.string().trim().max(1_000).default(""),
   example: z.string().max(10_000).default(""),
-  language: z.enum(["python", "sql", "bash"]),
+  language: languageSchema,
   exampleOutput: z.string().max(10_000).default(""),
+  steps: z.array(tutorialStepSchema).max(10).default([]),
+  commonErrors: z.array(commonErrorSchema).max(8).default([]),
   tasks: z.array(z.string().trim().min(1).max(1_000)).max(10),
+  taskHints: z.array(z.string().trim().max(1_000)).max(10).default([]),
+  challenge: challengeSchema.nullable().default(null),
+  glossary: z.array(z.object({ term: z.string().trim().min(1).max(80), definition: z.string().trim().min(1).max(800) })).max(10).default([]),
+  resources: z.array(z.object({ title: z.string().trim().min(1).max(150), url: z.string().trim().url("Escribe una dirección válida").max(400) })).max(6).default([]),
   questions: z.array(adminQuestionSchema).max(10),
 });
 
@@ -105,6 +160,10 @@ export const adminDeliverableSchema = z.object({
   path: z.string().trim().min(1).max(300),
   description: z.string().trim().min(1).max(3_000),
   criteria: z.array(z.string().trim().min(1).max(500)).min(1).max(10),
+  steps: z.array(z.string().trim().min(1).max(1_000)).max(10).default([]),
+  tips: z.array(z.string().trim().min(1).max(800)).max(6).default([]),
+  stretch: z.string().trim().max(1_000).default(""),
+  checklist: z.array(z.string().trim().min(1).max(400)).max(8).default([]),
 });
 
 export const settingsSchema = z.object({

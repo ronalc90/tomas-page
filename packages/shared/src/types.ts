@@ -5,6 +5,10 @@ export type DayKind = "workshop" | "holiday" | "free";
 export type Language = "python" | "sql" | "bash";
 export type DeliverableKind = "weekly" | "mini-project" | "final";
 export type SubmissionStatus = "draft" | "submitted" | "approved" | "changes_requested";
+/** Tipos de pregunta: opción múltiple, verdadero/falso, escribir la salida y completar código. */
+export type QuestionType = "choice" | "boolean" | "output" | "fill";
+/** Respuesta a una pregunta: índice de la opción elegida o texto escrito. */
+export type Answer = number | string;
 
 /** Estado visible de un día o entregable para un estudiante. */
 export type ItemStatus = "done" | "in_progress" | "pending" | "overdue" | "rest";
@@ -136,17 +140,23 @@ export interface ProgressView {
 
 export interface QuestionView {
   position: number;
+  type: QuestionType;
   prompt: string;
   code: string;
   options: string[];
+  /** Pista que el estudiante puede destapar antes de responder. No revela la respuesta. */
+  hint: string;
 }
 
 export interface QuestionReview {
   position: number;
-  chosen: number;
-  correct: number;
+  chosen: Answer;
+  /** Índice de la opción correcta o, en preguntas de texto, la respuesta canónica. */
+  correct: Answer;
   isCorrect: boolean;
   explanation: string;
+  /** Por qué la opción elegida está bien o mal (solo en opción múltiple y verdadero/falso). */
+  feedback: string;
 }
 
 export interface QuizResult {
@@ -156,7 +166,54 @@ export interface QuizResult {
   best: number;
   attempts: number;
   createdAt: string;
+  hintsUsed: number[];
   review: QuestionReview[];
+}
+
+export interface TutorialStep {
+  title: string;
+  body: string;
+  code: string;
+  language: Language;
+}
+
+export interface CommonError {
+  error: string;
+  cause: string;
+  fix: string;
+}
+
+export interface Challenge {
+  title: string;
+  description: string;
+  hint: string;
+  solution: string;
+  language: Language;
+}
+
+export interface GlossaryItem {
+  term: string;
+  definition: string;
+}
+
+export interface Resource {
+  title: string;
+  url: string;
+}
+
+export interface GuideSection {
+  heading: string;
+  body: string;
+  code: string;
+  language: Language;
+}
+
+export interface Guide {
+  slug: string;
+  title: string;
+  summary: string;
+  minutes: number;
+  sections: GuideSection[];
 }
 
 export interface DayContent {
@@ -169,13 +226,23 @@ export interface DayContent {
   kind: DayKind;
   title: string;
   summary: string;
+  /** Lo que el estudiante va a poder hacer al terminar. */
+  objectives: string[];
   concept: string;
   /** Consejo práctico del día (errores comunes, cómo estudiar o depurar). */
   tip: string;
   example: string;
   language: Language;
   exampleOutput: string;
+  /** Guía paso a paso para construir el programa del día. */
+  steps: TutorialStep[];
+  commonErrors: CommonError[];
   tasks: string[];
+  /** Una pista por tarea, en el mismo orden. */
+  taskHints: string[];
+  challenge: Challenge | null;
+  glossary: GlossaryItem[];
+  resources: Resource[];
 }
 
 /** Un "día" del calendario: puede tener taller, entregable, ambos, o ser festivo. */
@@ -183,7 +250,7 @@ export interface DayResponse {
   date: string;
   day: DayContent | null;
   questions: QuestionView[];
-  progress: { tasks: boolean[]; evidence: string; completedAt: string | null };
+  progress: { tasks: boolean[]; evidence: string; challengeDone: boolean; completedAt: string | null };
   quiz: { attempts: number; best: number; last: QuizResult | null };
   state: DayState;
   deliverable: DeliverableView | null;
@@ -202,6 +269,11 @@ export interface DeliverableView {
   path: string;
   description: string;
   criteria: string[];
+  /** Cómo abordarlo, consejos, reto opcional y lista de revisión antes de enviar. */
+  steps: string[];
+  tips: string[];
+  stretch: string;
+  checklist: string[];
   state: DeliverableState;
   submission: {
     status: SubmissionStatus;
@@ -253,6 +325,9 @@ export interface StudentDayRow {
   state: DayState;
   firstScore: number | null;
   evidence: string;
+  challengeDone: boolean;
+  /** Pistas de la evaluación destapadas en el mejor intento más reciente. */
+  hintsUsed: number;
 }
 
 export interface StudentDetail {
@@ -282,11 +357,17 @@ export interface ReviewDetail {
 }
 
 export interface AdminQuestion {
+  type: QuestionType;
   prompt: string;
   code: string;
   options: string[];
   correctIndex: number;
+  /** Respuestas aceptadas en preguntas de texto (la primera es la canónica). */
+  accepted: string[];
+  /** Comentario por opción, en el mismo orden que options. */
+  optionFeedback: string[];
   explanation: string;
+  hint: string;
 }
 
 export interface AdminDay extends DayContent {
@@ -302,6 +383,10 @@ export interface AdminDeliverable {
   path: string;
   description: string;
   criteria: string[];
+  steps: string[];
+  tips: string[];
+  stretch: string;
+  checklist: string[];
 }
 
 export interface ContentWeek {

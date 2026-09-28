@@ -145,13 +145,13 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
       progressFor(ctx, student.id),
       quizStatsByDate(ctx, student.id),
       ctx.db
-        .select({ date: dayProgress.date, evidence: dayProgress.evidence })
+        .select({ date: dayProgress.date, evidence: dayProgress.evidence, challengeDone: dayProgress.challengeDone })
         .from(dayProgress)
         .where(eq(dayProgress.userId, student.id)),
       deliverableViews(ctx, student.id),
       recentActivity(ctx, { userId: student.id, limit: 40 }),
     ]);
-    const evidence = new Map(evidenceRows.map((r) => [r.date, r.evidence]));
+    const evidence = new Map(evidenceRows.map((r) => [r.date, r]));
     return {
       student,
       progress,
@@ -164,7 +164,9 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
           kind: d.kind,
           state: progress.days[d.date],
           firstScore: quizStats[d.date]?.first ?? null,
-          evidence: evidence.get(d.date) ?? "",
+          evidence: evidence.get(d.date)?.evidence ?? "",
+          challengeDone: evidence.get(d.date)?.challengeDone ?? false,
+          hintsUsed: quizStats[d.date]?.hints ?? 0,
         })),
       deliverables: deliverablesList,
       activity: activityItems,
@@ -286,6 +288,10 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
               path: d.path,
               description: d.description,
               criteria: d.criteria,
+              steps: d.steps,
+              tips: d.tips,
+              stretch: d.stretch,
+              checklist: d.checklist,
             }
           : null,
       };
@@ -310,18 +316,29 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
       kind: day.kind,
       title: day.title,
       summary: day.summary,
+      objectives: day.objectives,
       concept: day.concept,
       tip: day.tip,
       example: day.example,
       language: day.language as Language,
       exampleOutput: day.exampleOutput,
+      steps: day.steps,
+      commonErrors: day.commonErrors,
       tasks: day.tasks,
+      taskHints: day.taskHints,
+      challenge: day.challenge,
+      glossary: day.glossary,
+      resources: day.resources,
       questions: qs.map((q) => ({
+        type: q.type,
         prompt: q.prompt,
         code: q.code,
         options: q.options,
         correctIndex: q.correctIndex,
+        accepted: q.accepted,
+        optionFeedback: q.optionFeedback,
         explanation: q.explanation,
+        hint: q.hint,
       })),
       updatedAt: day.updatedAt,
     };
@@ -340,12 +357,19 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
         .set({
           title: input.title,
           summary: input.summary,
+          objectives: input.objectives,
           concept: input.concept,
           tip: input.tip,
           example: input.example,
           language: input.language,
           exampleOutput: input.exampleOutput,
+          steps: input.steps,
+          commonErrors: input.commonErrors,
           tasks: input.tasks,
+          taskHints: input.taskHints,
+          challenge: input.challenge,
+          glossary: input.glossary,
+          resources: input.resources,
           updatedAt: sql`now()`,
         })
         .where(eq(days.date, day.date));

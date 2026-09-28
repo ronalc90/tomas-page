@@ -7,6 +7,7 @@ import { ErrorState, Field, Loading, Modal, PageHeader } from "../../components/
 import { ApiError, errorMessage } from "../../lib/api";
 import { relativeTime } from "../../lib/format";
 import { useContent, useSaveAdminDeliverable } from "../../lib/queries";
+import { TextList } from "./LessonEditors";
 
 function DeliverableEditor({ deliverable, onClose }: { deliverable: AdminDeliverable; onClose: () => void }) {
   const save = useSaveAdminDeliverable(deliverable.id);
@@ -14,12 +15,17 @@ function DeliverableEditor({ deliverable, onClose }: { deliverable: AdminDeliver
   const [path, setPath] = useState(deliverable.path);
   const [description, setDescription] = useState(deliverable.description);
   const [criteria, setCriteria] = useState(deliverable.criteria);
+  const [steps, setSteps] = useState(deliverable.steps);
+  const [tips, setTips] = useState(deliverable.tips);
+  const [stretch, setStretch] = useState(deliverable.stretch);
+  const [checklist, setChecklist] = useState(deliverable.checklist);
   const fields = save.error instanceof ApiError ? save.error.fields : {};
+  const clean = (list: string[]) => list.map((c) => c.trim()).filter(Boolean);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     try {
-      await save.mutateAsync({ path, description, criteria: criteria.map((c) => c.trim()).filter(Boolean) });
+      await save.mutateAsync({ path, description, criteria: clean(criteria), steps: clean(steps), tips: clean(tips), stretch: stretch.trim(), checklist: clean(checklist) });
       toast("Entregable actualizado.");
       onClose();
     } catch (err) {
@@ -55,6 +61,12 @@ function DeliverableEditor({ deliverable, onClose }: { deliverable: AdminDeliver
           <Icon name="plus" size={16} /> Agregar criterio
         </button>
       </div>
+      <TextList label="Cómo abordarlo" hint="Pasos en orden para planear, escribir y probar el entregable." items={steps} onChange={setSteps} addLabel="Agregar paso" error={fields.steps} />
+      <TextList label="Lo que mira el revisor" items={tips} onChange={setTips} max={6} addLabel="Agregar consejo" error={fields.tips} />
+      <Field id="d-stretch" label="Si quiere ir más allá (reto opcional)" error={fields.stretch}>
+        <textarea id="d-stretch" className="textarea" rows={2} value={stretch} onChange={(e) => setStretch(e.target.value)} />
+      </Field>
+      <TextList label="Revisar antes de enviar" items={checklist} onChange={setChecklist} max={8} rows={1} addLabel="Agregar punto" error={fields.checklist} />
       <div className="row end">
         <button type="button" className="btn secondary" onClick={onClose}>
           Cancelar

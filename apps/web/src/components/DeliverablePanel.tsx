@@ -5,6 +5,7 @@ import { dateTime } from "../lib/format";
 import { useSaveSubmission, useSubmissionAction } from "../lib/queries";
 import { useAutosave } from "../lib/useAutosave";
 import { RichText } from "./CodeBlock";
+import { Icon } from "./Icon";
 import { useToast } from "./Toast";
 import { SaveIndicator, SubmissionPill } from "./ui";
 
@@ -80,11 +81,66 @@ export function DeliverablePanel({ deliverable, startStep = 1 }: { deliverable: 
         )}
       </section>
 
+      {(deliverable.steps.length > 0 || deliverable.tips.length > 0 || deliverable.stretch) && (
+        <section className="section">
+          <h2>
+            <span className="step">{startStep + 1}</span>
+            Cómo abordarlo
+          </h2>
+          {deliverable.steps.length > 0 && (
+            <ol className="how-to">
+              {deliverable.steps.map((s, i) => (
+                <li key={i}>
+                  <RichText text={s} />
+                </li>
+              ))}
+            </ol>
+          )}
+          {deliverable.tips.length > 0 && (
+            <aside className="tip" aria-label="Consejos para el entregable">
+              <Icon name="bulb" size={22} />
+              <div>
+                <strong>Lo que mira el revisor</strong>
+                <ul className="plain">
+                  {deliverable.tips.map((t, i) => (
+                    <li key={i}>
+                      <RichText text={t} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </aside>
+          )}
+          {deliverable.stretch && (
+            <div className="challenge small">
+              <div className="challenge-head">
+                <Icon name="flame" size={20} />
+                <h3>Si quieres ir más allá</h3>
+                <span className="tag">Opcional</span>
+              </div>
+              <p>
+                <RichText text={deliverable.stretch} />
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="section">
         <h2>
-          <span className="step">{startStep + 1}</span>
+          <span className="step">{startStep + 2}</span>
           Revisa antes de entregar
         </h2>
+        {deliverable.checklist.length > 0 && (
+          <ul className="plain checklist-plain">
+            {deliverable.checklist.map((c, i) => (
+              <li key={i}>
+                <Icon name="check" size={16} /> <RichText text={c} />
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="muted">Marca cada criterio solo cuando lo hayas comprobado en tu programa.</p>
         <ul className="checklist">
           {deliverable.criteria.map((c, i) => (
             <li key={i}>
@@ -101,7 +157,7 @@ export function DeliverablePanel({ deliverable, startStep = 1 }: { deliverable: 
 
       <section className="section">
         <h2>
-          <span className="step">{startStep + 2}</span>
+          <span className="step">{startStep + 3}</span>
           Tu evidencia
         </h2>
         <div className="field">

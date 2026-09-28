@@ -4,6 +4,7 @@ import { capitalize, formatLong, type DayResponse } from "@tomas/shared";
 import { CodeBlock, RichText } from "../../components/CodeBlock";
 import { DeliverablePanel } from "../../components/DeliverablePanel";
 import { Icon } from "../../components/Icon";
+import { Lesson } from "../../components/Lesson";
 import { Quiz } from "../../components/Quiz";
 import { useToast } from "../../components/Toast";
 import { ErrorState, Loading, SaveIndicator, StatusPill } from "../../components/ui";
@@ -32,6 +33,12 @@ function Workshop({ data }: { data: DayResponse }) {
   const submitQuiz = useSubmitQuiz(data.date);
   const [tasks, setTasks] = useState<boolean[]>(data.progress.tasks);
   const [evidence, setEvidence] = useState(data.progress.evidence);
+  const [openHints, setOpenHints] = useState<number[]>([]);
+  const [challengeDone, setChallengeDoneState] = useState(data.progress.challengeDone);
+  const challengePending = useRef(0);
+  useEffect(() => {
+    if (challengePending.current === 0) setChallengeDoneState(data.progress.challengeDone);
+  }, [data.progress.challengeDone]);
   const autosave = useAutosave((value) => saveProgress.mutateAsync({ evidence: value }));
 
   // Igual que en los entregables: no se pisa lo marcado mientras haya guardados en camino.
@@ -55,6 +62,21 @@ function Workshop({ data }: { data: DayResponse }) {
     );
   };
 
+  const setChallengeDone = (checked: boolean) => {
+    setChallengeDoneState(checked);
+    challengePending.current += 1;
+    saveProgress.mutate(
+      { challengeDone: checked },
+      {
+        onError: (err) => toast(errorMessage(err), "error"),
+        onSuccess: () => checked && toast("Reto marcado como hecho. ¡Bien!"),
+        onSettled: () => {
+          challengePending.current -= 1;
+        },
+      },
+    );
+  };
+
   const done = data.state.status === "done";
 
   return (
@@ -64,6 +86,18 @@ function Workshop({ data }: { data: DayResponse }) {
           <span className="step">1</span>
           Concepto
         </h2>
+        {day.objectives.length > 0 && (
+          <div className="objectives">
+            <b>Al terminar hoy vas a poder:</b>
+            <ul>
+              {day.objectives.map((o, i) => (
+                <li key={i}>
+                  <RichText text={o} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <p className="concept">
           <RichText text={day.concept} />
         </p>
@@ -81,12 +115,23 @@ function Workshop({ data }: { data: DayResponse }) {
         )}
       </section>
 
+      {day.steps.length > 0 && (
+        <section className="section">
+          <h2>
+            <span className="step">2</span>
+            Guía paso a paso
+          </h2>
+          <p className="muted">Sigue los pasos en orden. Cada uno se puede abrir y cerrar; el código lo puedes copiar.</p>
+          <Lesson.Steps steps={day.steps} />
+        </section>
+      )}
+
       <section className="section">
         <h2>
-          <span className="step">2</span>
+          <span className="step">3</span>
           Taller
         </h2>
-        <p className="muted">Haz cada tarea en tu computador y márcala cuando la termines.</p>
+        <p className="muted">Haz cada tarea en tu computador y márcala cuando la termines. Si te atascas, abre la pista.</p>
         <ul className="checklist">
           {day.tasks.map((task, i) => (
             <li key={i}>
@@ -96,9 +141,26 @@ function Workshop({ data }: { data: DayResponse }) {
                   <RichText text={task} />
                 </span>
               </label>
+              {day.taskHints[i] && (
+                <div className="hint-row">
+                  {openHints.includes(i) ? (
+                    <p className="hint-text" role="status">
+                      <Icon name="bulb" size={16} />
+                      <span>
+                        <RichText text={day.taskHints[i]} />
+                      </span>
+                    </p>
+                  ) : (
+                    <button type="button" className="btn ghost small" onClick={() => setOpenHints((h) => [...h, i])}>
+                      <Icon name="bulb" size={16} /> Ver pista
+                    </button>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>
+        {day.commonErrors.length > 0 && <Lesson.CommonErrors errors={day.commonErrors} />}
         <div className="field">
           <div className="row between">
             <label htmlFor="evidence">Evidencia (opcional)</label>
@@ -119,10 +181,20 @@ function Workshop({ data }: { data: DayResponse }) {
         </div>
       </section>
 
+      {day.challenge && (
+        <section className="section" id="reto">
+          <h2>
+            <span className="step">4</span>
+            Reto extra
+          </h2>
+          <Lesson.Challenge challenge={day.challenge} done={challengeDone} onDone={setChallengeDone} />
+        </section>
+      )}
+
       {data.questions.length > 0 && (
         <section className="section" id="evaluacion">
           <h2>
-            <span className="step">3</span>
+            <span className="step">5</span>
             Evaluación del día
           </h2>
           <Quiz
@@ -132,8 +204,8 @@ function Workshop({ data }: { data: DayResponse }) {
             attempts={data.quiz.attempts}
             best={data.quiz.best}
             last={data.quiz.last}
-            onSubmit={async (answers) => {
-              const result = await submitQuiz.mutateAsync(answers);
+            onSubmit={async (input) => {
+              const result = await submitQuiz.mutateAsync(input);
               toast(
                 result.passed
                   ? `Evaluación aprobada: ${result.score} de ${result.total}.`
@@ -150,6 +222,16 @@ function Workshop({ data }: { data: DayResponse }) {
           <b>Taller completo</b>
           <p>Hiciste las {day.tasks.length} tareas y aprobaste la evaluación.</p>
         </div>
+      )}
+
+      {(day.glossary.length > 0 || day.resources.length > 0) && (
+        <section className="section">
+          <h2>
+            <span className="step">6</span>
+            Para profundizar
+          </h2>
+          <Lesson.Glossary items={day.glossary} resources={day.resources} />
+        </section>
       )}
     </>
   );
@@ -251,7 +333,7 @@ export function DayPage() {
       {deliverable && (
         <div className="stack" style={isWorkshop ? { borderTop: "1px solid var(--rule)", paddingTop: 28 } : undefined}>
           {isWorkshop && <h2 style={{ fontSize: "1.6rem", fontWeight: 800 }}>{deliverable.title}</h2>}
-          <DeliverablePanel deliverable={deliverable} startStep={isWorkshop ? 4 : 1} />
+          <DeliverablePanel deliverable={deliverable} startStep={isWorkshop ? 7 : 1} />
         </div>
       )}
     </div>

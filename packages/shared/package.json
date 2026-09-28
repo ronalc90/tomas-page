@@ -16,6 +16,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./plan.json": "./src/data/plan.json"
+    "./plan.json": "./src/data/plan.json",
+    "./guides.json": "./src/data/guides.json"
   }
 }

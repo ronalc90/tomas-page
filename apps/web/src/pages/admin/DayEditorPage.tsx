@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
-import { capitalize, formatLong, type AdminDay, type AdminQuestion, type Language } from "@tomas/shared";
+import { capitalize, formatLong, type AdminDay } from "@tomas/shared";
 import { CodeBlock } from "../../components/CodeBlock";
 import { Icon } from "../../components/Icon";
 import { useToast } from "../../components/Toast";
@@ -8,86 +8,7 @@ import { ErrorState, Field, Loading, PageHeader } from "../../components/ui";
 import { ApiError, errorMessage } from "../../lib/api";
 import { relativeTime } from "../../lib/format";
 import { useAdminDay, useSaveAdminDay } from "../../lib/queries";
-
-const emptyQuestion = (): AdminQuestion => ({ prompt: "", code: "", options: ["", "", "", ""], correctIndex: 0, explanation: "" });
-
-function QuestionEditor({
-  index,
-  question,
-  onChange,
-  onRemove,
-  errors,
-}: {
-  index: number;
-  question: AdminQuestion;
-  onChange: (q: AdminQuestion) => void;
-  onRemove: () => void;
-  errors: Record<string, string>;
-}) {
-  const e = (k: string) => errors[`questions.${index}.${k}`];
-  return (
-    <div className="editor-item">
-      <div className="row between">
-        <h3>Pregunta {index + 1}</h3>
-        <button type="button" className="btn ghost small" onClick={onRemove}>
-          <Icon name="trash" size={16} /> Quitar
-        </button>
-      </div>
-      <Field id={`q${index}-prompt`} label="Enunciado" error={e("prompt")}>
-        <input id={`q${index}-prompt`} className="input" value={question.prompt} onChange={(ev) => onChange({ ...question, prompt: ev.target.value })} />
-      </Field>
-      <Field id={`q${index}-code`} label="Código (opcional)">
-        <textarea id={`q${index}-code`} className="textarea code" rows={3} value={question.code} onChange={(ev) => onChange({ ...question, code: ev.target.value })} />
-      </Field>
-      <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="label" style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>
-          Opciones <span className="muted">(marca la correcta)</span>
-        </legend>
-        {question.options.map((opt, i) => (
-          <div className="option-edit" key={i}>
-            <input
-              type="radio"
-              name={`q${index}-correct`}
-              checked={question.correctIndex === i}
-              onChange={() => onChange({ ...question, correctIndex: i })}
-              aria-label={`Marcar la opción ${i + 1} como correcta`}
-            />
-            <input
-              className="input"
-              value={opt}
-              aria-label={`Opción ${i + 1}`}
-              onChange={(ev) => onChange({ ...question, options: question.options.map((o, k) => (k === i ? ev.target.value : o)) })}
-            />
-            <button
-              type="button"
-              className="btn ghost small icon"
-              aria-label={`Quitar opción ${i + 1}`}
-              disabled={question.options.length <= 2}
-              onClick={() =>
-                onChange({
-                  ...question,
-                  options: question.options.filter((_, k) => k !== i),
-                  correctIndex: question.correctIndex === i ? 0 : question.correctIndex > i ? question.correctIndex - 1 : question.correctIndex,
-                })
-              }
-            >
-              <Icon name="trash" size={16} />
-            </button>
-          </div>
-        ))}
-        {(e("options") || e("correctIndex")) && <span className="error">{e("options") ?? e("correctIndex")}</span>}
-        {question.options.length < 6 && (
-          <button type="button" className="btn secondary small" style={{ justifySelf: "start" }} onClick={() => onChange({ ...question, options: [...question.options, ""] })}>
-            <Icon name="plus" size={16} /> Agregar opción
-          </button>
-        )}
-      </fieldset>
-      <Field id={`q${index}-exp`} label="Explicación (se muestra al calificar)" error={e("explanation")}>
-        <textarea id={`q${index}-exp`} className="textarea" rows={2} value={question.explanation} onChange={(ev) => onChange({ ...question, explanation: ev.target.value })} />
-      </Field>
-    </div>
-  );
-}
+import { ChallengeEditor, CommonErrorsEditor, emptyQuestion, GlossaryEditor, LanguageSelect, QuestionEditor, ResourcesEditor, StepsEditor, TextList } from "./LessonEditors";
 
 export function DayEditorPage() {
   const { date = "" } = useParams();
@@ -128,12 +49,19 @@ export function DayEditorPage() {
       await save.mutateAsync({
         title: f.title,
         summary: f.summary,
+        objectives: f.objectives.map((t) => t.trim()).filter(Boolean),
         concept: f.concept,
         tip: f.tip,
         example: f.example,
         language: f.language,
         exampleOutput: f.exampleOutput,
+        steps: f.steps,
+        commonErrors: f.commonErrors,
         tasks: f.tasks.map((t) => t.trim()).filter(Boolean),
+        taskHints: f.tasks.map((t, i) => (t.trim() ? (f.taskHints[i] ?? "").trim() : null)).filter((h): h is string => h !== null),
+        challenge: f.challenge,
+        glossary: f.glossary.filter((g) => g.term.trim() || g.definition.trim()),
+        resources: f.resources.filter((r) => r.title.trim() || r.url.trim()),
         questions: f.questions,
       });
       setDirty(false);
@@ -169,16 +97,12 @@ export function DayEditorPage() {
       <section className="card stack">
         <h2 style={{ fontSize: "1.2rem" }}>Datos del día</h2>
         <div className="form-grid">
-          <Field id="title" label="Título" error={fields.title}>
+          <Field id="title" label="Título del día" error={fields.title}>
             <input id="title" className="input" value={f.title} onChange={(e) => update({ title: e.target.value })} />
           </Field>
           {isWorkshop && (
             <Field id="language" label="Lenguaje del ejemplo">
-              <select id="language" className="select" value={f.language} onChange={(e) => update({ language: e.target.value as Language })}>
-                <option value="python">Python</option>
-                <option value="sql">SQL</option>
-                <option value="bash">Terminal</option>
-              </select>
+              <LanguageSelect id="language" value={f.language} onChange={(language) => update({ language })} />
             </Field>
           )}
           <div className="full">
@@ -191,6 +115,11 @@ export function DayEditorPage() {
 
       {isWorkshop && (
         <>
+          <section className="card stack">
+            <h2 style={{ fontSize: "1.2rem" }}>Objetivos del día</h2>
+            <TextList label="Objetivo" hint="Lo que el estudiante va a poder hacer al terminar (2 a 4 frases)." items={f.objectives} onChange={(objectives) => update({ objectives })} max={6} rows={1} addLabel="Agregar objetivo" error={fields.objectives} />
+          </section>
+
           <section className="card stack">
             <h2 style={{ fontSize: "1.2rem" }}>Concepto y ejemplo</h2>
             <Field id="concept" label="Concepto" hint="Usa `comillas invertidas` para marcar código en el texto.">
@@ -218,14 +147,30 @@ export function DayEditorPage() {
           </section>
 
           <section className="card stack">
+            <h2 style={{ fontSize: "1.2rem" }}>Guía paso a paso ({f.steps.length} pasos)</h2>
+            <p className="muted" style={{ fontSize: 14 }}>
+              Los pasos llevan al estudiante de cero a tener el programa del día funcionando. Cada uno puede traer código.
+            </p>
+            <StepsEditor steps={f.steps} language={f.language} onChange={(steps) => update({ steps })} />
+          </section>
+
+          <section className="card stack">
+            <h2 style={{ fontSize: "1.2rem" }}>Errores comunes ({f.commonErrors.length})</h2>
+            <CommonErrorsEditor errors={f.commonErrors} onChange={(commonErrors) => update({ commonErrors })} />
+          </section>
+
+          <section className="card stack">
             <div className="row between">
               <h2 style={{ fontSize: "1.2rem" }}>Tareas del taller</h2>
-              <button type="button" className="btn secondary small" onClick={() => update({ tasks: [...f.tasks, ""] })} disabled={f.tasks.length >= 10}>
+              <button type="button" className="btn secondary small" onClick={() => update({ tasks: [...f.tasks, ""], taskHints: [...f.tasks.map((_, k) => f.taskHints[k] ?? ""), ""] })} disabled={f.tasks.length >= 10}>
                 <Icon name="plus" size={16} /> Agregar tarea
               </button>
             </div>
+            <p className="muted" style={{ fontSize: 14 }}>
+              Cada tarea puede traer una pista que el estudiante destapa si se atasca.
+            </p>
             {f.tasks.map((t, i) => (
-              <div className="option-edit" key={i} style={{ gridTemplateColumns: "24px minmax(0,1fr) auto" }}>
+              <div className="option-edit" key={i} style={{ gridTemplateColumns: "24px minmax(0,1fr) minmax(0,1fr) auto" }}>
                 <span className="mono muted">{i + 1}.</span>
                 <textarea
                   className="textarea"
@@ -235,11 +180,37 @@ export function DayEditorPage() {
                   value={t}
                   onChange={(e) => update({ tasks: f.tasks.map((x, k) => (k === i ? e.target.value : x)) })}
                 />
-                <button type="button" className="btn ghost small icon" aria-label={`Quitar tarea ${i + 1}`} disabled={f.tasks.length <= 1} onClick={() => update({ tasks: f.tasks.filter((_, k) => k !== i) })}>
+                <textarea
+                  className="textarea"
+                  rows={2}
+                  style={{ minHeight: 60 }}
+                  placeholder="Pista (opcional)"
+                  aria-label={`Pista de la tarea ${i + 1}`}
+                  value={f.taskHints[i] ?? ""}
+                  onChange={(e) => update({ taskHints: f.tasks.map((_, k) => (k === i ? e.target.value : (f.taskHints[k] ?? ""))) })}
+                />
+                <button
+                  type="button"
+                  className="btn ghost small icon"
+                  aria-label={`Quitar tarea ${i + 1}`}
+                  disabled={f.tasks.length <= 1}
+                  onClick={() => update({ tasks: f.tasks.filter((_, k) => k !== i), taskHints: f.taskHints.filter((_, k) => k !== i) })}
+                >
                   <Icon name="trash" size={16} />
                 </button>
               </div>
             ))}
+          </section>
+
+          <section className="card stack">
+            <h2 style={{ fontSize: "1.2rem" }}>Reto extra (opcional)</h2>
+            <ChallengeEditor challenge={f.challenge} language={f.language} onChange={(challenge) => update({ challenge })} />
+          </section>
+
+          <section className="card stack">
+            <h2 style={{ fontSize: "1.2rem" }}>Glosario y documentación</h2>
+            <GlossaryEditor items={f.glossary} onChange={(glossary) => update({ glossary })} />
+            <ResourcesEditor items={f.resources} onChange={(resources) => update({ resources })} error={fields.resources} />
           </section>
 
           <section className="card stack">

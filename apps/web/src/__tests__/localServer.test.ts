@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it } from "vitest";
-import type { DayResponse, DeliverableView, MeResponse, ProgressView, QuizResult, StudentRow } from "@tomas/shared";
+import type { AdminQuestion, Answer, DayResponse, DeliverableView, MeResponse, ProgressView, QuizResult, StudentRow } from "@tomas/shared";
 import { handleLocal } from "../local/server";
 import { exportBackup, importBackup, resetCache, TODAY_KEY, useStore } from "../local/store";
 
@@ -12,12 +12,16 @@ function memoryStore() {
 const call = <T>(method: string, path: string, body?: unknown) => handleLocal<T>(method, path, body);
 const login = (username: string, password: string) => call<{ user: { id: string } }>("POST", "/api/auth/login", { username, password });
 
-async function correct(date: string): Promise<number[]> {
+/** Respuestas correctas de un día: índice en opción múltiple, texto en las de escribir. */
+async function correct(date: string): Promise<Answer[]> {
   await login("admin", "admin-tomas-2026");
-  const day = await call<{ questions: { correctIndex: number }[] }>("GET", `/api/admin/days/${date}`);
+  const day = await call<{ questions: AdminQuestion[] }>("GET", `/api/admin/days/${date}`);
   await call("POST", "/api/auth/logout");
-  return day.questions.map((q) => q.correctIndex);
+  return day.questions.map((q) => (q.type === "output" || q.type === "fill" ? q.accepted[0] : q.correctIndex));
 }
+
+/** Una respuesta equivocada para cada pregunta. */
+const wrongAnswers = (answers: Answer[]) => answers.map((a) => (typeof a === "number" ? (a + 1) % 2 : "respuesta mala"));
 
 beforeEach(() => {
   const store = memoryStore();
@@ -57,11 +61,21 @@ describe("modo sin servidor", () => {
     await login("tomas", "1234");
     const before = await call<DayResponse>("GET", "/api/days/2026-10-07");
     expect(JSON.stringify(before.questions)).not.toContain("correctIndex");
+    expect(JSON.stringify(before.questions)).not.toContain("accepted");
+    expect(before.questions.map((q) => q.type)).toEqual(["choice", "choice", "choice", "boolean", "output", "fill"]);
+    expect(before.day?.steps.length).toBeGreaterThanOrEqual(4);
+    expect(before.day?.challenge?.title).toBeTruthy();
     await call("PUT", "/api/days/2026-10-07/progress", { tasks: [true, true, true] });
-    const wrong = await call<QuizResult>("POST", "/api/days/2026-10-07/quiz", { answers: answers.map((a) => (a + 1) % 4) });
-    expect(wrong).toMatchObject({ score: 0, passed: false });
-    const right = await call<QuizResult>("POST", "/api/days/2026-10-07/quiz", { answers });
-    expect(right).toMatchObject({ score: 4, passed: true, attempts: 2, best: 4 });
+    const wrong = await call<QuizResult>("POST", "/api/days/2026-10-07/quiz", { answers: wrongAnswers(answers), hints: [4] });
+    expect(wrong.passed).toBe(false);
+    expect(wrong.score).toBeLessThan(3);
+    expect(wrong.hintsUsed).toEqual([4]);
+    expect(wrong.review[4]).toMatchObject({ isCorrect: false, correct: answers[4] });
+    // Las respuestas escritas se aceptan con otras mayúsculas, comillas y espacios.
+    const relaxed = answers.map((a) => (typeof a === "string" ? `  ${a.toUpperCase()}  ` : a));
+    const right = await call<QuizResult>("POST", "/api/days/2026-10-07/quiz", { answers: relaxed });
+    expect(right).toMatchObject({ score: 6, passed: true, attempts: 2, best: 6 });
+    expect(right.review[0].feedback.length).toBeGreaterThan(0);
     const progress = await call<ProgressView>("GET", "/api/progress");
     expect(progress.days["2026-10-07"].status).toBe("done");
     expect(progress.totals.workshopsDone).toBe(1);

@@ -31,7 +31,7 @@ describe("autenticación", () => {
     const cookie = await login(env.app, STUDENT.username, STUDENT.password);
     const res = await client(env.app, cookie).get("/api/auth/me");
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ user: { username: "tomas" }, today: "2026-10-01", settings: { passScore: 3 } });
+    expect(res.json()).toMatchObject({ user: { username: "tomas" }, today: "2026-10-01", settings: { passScore: 4 } });
   });
 
   it("responde 204 en /me cuando no hay sesión", async () => {

@@ -3,7 +3,7 @@
  * Todo vive en el almacenamiento del navegador. El contenido del plan viene
  * empaquetado con la página; aquí solo se guardan las ediciones del administrador.
  */
-import type { AdminQuestion, DeliverableKind, DayKind, Language, Role, SubmissionStatus } from "@tomas/shared";
+import type { AdminQuestion, Answer, Challenge, CommonError, DeliverableKind, DayKind, GlossaryItem, Language, Resource, Role, SubmissionStatus, TutorialStep } from "@tomas/shared";
 
 export const STORAGE_KEY = "tp-local-db-v1";
 export const SESSION_KEY = "tp-local-session";
@@ -25,12 +25,19 @@ export interface DayOverride {
   title: string;
   summary: string;
   concept: string;
-  /** Ausente en ediciones guardadas antes de que existiera el consejo del día. */
+  /** Los campos opcionales faltan en ediciones guardadas por versiones anteriores: se usa lo del plan. */
   tip?: string;
+  objectives?: string[];
   example: string;
   language: Language;
   exampleOutput: string;
+  steps?: TutorialStep[];
+  commonErrors?: CommonError[];
   tasks: string[];
+  taskHints?: string[];
+  challenge?: Challenge | null;
+  glossary?: GlossaryItem[];
+  resources?: Resource[];
   questions: AdminQuestion[];
   updatedAt: string;
 }
@@ -39,6 +46,10 @@ export interface DeliverableOverride {
   path: string;
   description: string;
   criteria: string[];
+  steps?: string[];
+  tips?: string[];
+  stretch?: string;
+  checklist?: string[];
 }
 
 export interface LocalDb {
@@ -47,9 +58,11 @@ export interface LocalDb {
   users: LocalUser[];
   /** Cuentas iniciales ya creadas alguna vez: no se vuelven a crear si el administrador las cambia. */
   seededAccounts?: string[];
+  /** Versión del contenido con la que se creó o actualizó la base (2 = lecciones completas). */
+  contentVersion?: number;
   overrides: { days: Record<string, DayOverride>; deliverables: Record<string, DeliverableOverride> };
-  dayProgress: Record<string, Record<string, { tasks: boolean[]; evidence: string; completedAt: string | null; updatedAt: string }>>;
-  quizAttempts: { id: number; userId: string; date: string; answers: number[]; score: number; total: number; createdAt: string }[];
+  dayProgress: Record<string, Record<string, { tasks: boolean[]; evidence: string; challengeDone?: boolean; completedAt: string | null; updatedAt: string }>>;
+  quizAttempts: { id: number; userId: string; date: string; answers: Answer[]; hintsUsed?: number[]; score: number; total: number; createdAt: string }[];
   submissions: Record<
     string,
     Record<
@@ -166,6 +179,19 @@ function isDb(value: unknown): value is LocalDb {
   return Boolean(v && v.version === 1 && Array.isArray(v.users) && v.overrides && v.settings);
 }
 
+export const CONTENT_VERSION = 2;
+
+/**
+ * Bases guardadas con la primera versión del contenido: las evaluaciones pasaron de 4 a 6 preguntas,
+ * así que la nota mínima sube de 3 a 4 si nadie la había cambiado. Devuelve true si cambió algo.
+ */
+function upgradeContent(db: LocalDb): boolean {
+  if ((db.contentVersion ?? 1) >= CONTENT_VERSION) return false;
+  if (db.settings.passScore === 3) db.settings.passScore = 4;
+  db.contentVersion = CONTENT_VERSION;
+  return true;
+}
+
 /** Crea las cuentas iniciales que falten (una sola vez por cuenta). Devuelve true si cambió algo. */
 async function ensureDefaultAccounts(db: LocalDb): Promise<boolean> {
   const seeded = new Set(db.seededAccounts ?? db.users.map((u) => u.username));
@@ -198,12 +224,13 @@ async function createDb(): Promise<LocalDb> {
     seq: 1,
     users: [],
     seededAccounts: [],
+    contentVersion: CONTENT_VERSION,
     overrides: { days: {}, deliverables: {} },
     dayProgress: {},
     quizAttempts: [],
     submissions: {},
     activity: [],
-    settings: { passScore: 3, programName: "Plan de Tomás · Python y SQL", timeZone: "America/Bogota" },
+    settings: { passScore: 4, programName: "Plan de Tomás · Python y SQL", timeZone: "America/Bogota" },
   };
   await ensureDefaultAccounts(db);
   return db;
@@ -218,7 +245,8 @@ export async function loadDb(): Promise<LocalDb> {
       if (isDb(parsed)) {
         cache = parsed;
         // Navegadores con datos de una versión anterior reciben las cuentas nuevas (por ejemplo, la de prueba).
-        if (await ensureDefaultAccounts(parsed)) saveDb(parsed);
+        const changed = upgradeContent(parsed);
+        if ((await ensureDefaultAccounts(parsed)) || changed) saveDb(parsed);
         return parsed;
       }
     } catch {

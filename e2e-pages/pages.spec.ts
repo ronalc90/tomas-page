@@ -2,10 +2,13 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 const plan = JSON.parse(readFileSync(new URL("../packages/shared/src/data/plan.json", import.meta.url), "utf8")) as {
-  weeks: { days: { date: string; questions?: { correctIndex: number }[] }[]; deliverable: { dueDate: string } }[];
+  weeks: { days: { date: string; questions?: { type: string; correctIndex: number; accepted: string[] }[] }[]; deliverable: { dueDate: string } }[];
 };
 const answersFor = (date: string) =>
-  plan.weeks.flatMap((w) => w.days).find((d) => d.date === date)!.questions!.map((q) => q.correctIndex);
+  plan.weeks
+    .flatMap((w) => w.days)
+    .find((d) => d.date === date)!
+    .questions!.map((q) => (q.type === "output" || q.type === "fill" ? q.accepted[0] : q.correctIndex));
 
 test.describe.configure({ mode: "serial" });
 
@@ -47,15 +50,30 @@ test("Tomás completa el taller y la evaluación", async () => {
   await expect(page.getByRole("complementary", { name: "Consejo del día" })).toContainText("2024 (sí)");
   const tasks = page.locator(".checklist input[type=checkbox]");
   for (let i = 0; i < (await tasks.count()); i++) await tasks.nth(i).check();
-  for (const [i, a] of answersFor("2026-10-07").entries()) await page.locator(`input[name="q${i}"][value="${a}"]`).check();
+  await expect(page.getByRole("heading", { name: "Guía paso a paso" })).toBeVisible();
+  await page.getByLabel("Hice el reto").check();
+  for (const [i, a] of answersFor("2026-10-07").entries()) {
+    if (typeof a === "number") await page.locator(`input[name="q${i}"][value="${a}"]`).check();
+    else await page.locator(`[name="q${i}"]`).fill(a);
+  }
   await page.getByRole("button", { name: "Calificar" }).click();
-  await expect(page.locator(".result .score")).toHaveText("4 / 4");
+  await expect(page.locator(".result .score")).toHaveText("6 / 6");
   await expect(page.getByText("Taller completo")).toBeVisible();
 });
 
 test("el avance sigue ahí al recargar", async () => {
   await page.reload();
   await expect(page.getByText("Taller completo")).toBeVisible();
+  await expect(page.getByLabel("Hice el reto")).toBeChecked();
+});
+
+test("las guías se pueden leer y navegar", async () => {
+  await page.goto("guias");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Guías");
+  await page.getByRole("link", { name: /Leer un error/ }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Leer un error");
+  await expect(page.locator(".guide-section")).toHaveCount(8);
+  await expect(page.locator(".guide-section .code-block").first()).toBeVisible();
 });
 
 test("Tomás envía el entregable de la semana 1", async () => {

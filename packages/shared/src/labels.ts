@@ -1,4 +1,4 @@
-import type { DeliverableKind, ItemStatus, Language, Pace, Role, SubmissionStatus } from "./types";
+import type { DeliverableKind, ItemStatus, Language, Pace, Role, SubmissionStatus, QuestionType } from "./types";
 
 /** Textos visibles, en un solo lugar. */
 
@@ -45,6 +45,7 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   login: "inició sesión",
   workshop_completed: "completó el taller",
   quiz_attempt: "presentó la evaluación",
+  challenge_done: "hizo el reto extra",
   submission_submitted: "envió el entregable",
   submission_withdrawn: "retiró el entregable",
   submission_reviewed: "revisó el entregable",
@@ -56,3 +57,10 @@ export function deliverableTitle(kind: DeliverableKind, weekNumber: number): str
   if (kind === "mini-project") return `Mini-proyecto (semana ${weekNumber})`;
   return `Entregable de la semana ${weekNumber}`;
 }
+
+export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
+  choice: "Opción múltiple",
+  boolean: "Verdadero o falso",
+  output: "¿Qué muestra?",
+  fill: "Completa el código",
+};

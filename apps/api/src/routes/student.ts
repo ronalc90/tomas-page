@@ -1,10 +1,15 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import {
+  correctAnswerOf,
   dayProgressSchema,
+  feedbackFor,
+  isCorrectAnswer,
   isIsoDate,
+  isValidAnswer,
   quizAttemptSchema,
   submissionDraftSchema,
+  type Answer,
   type DayResponse,
   type Language,
   type QuizResult,
@@ -25,7 +30,7 @@ async function buildQuizResult(
   ctx: AppContext,
   userId: string,
   date: string,
-  attempt: { answers: number[]; score: number; total: number; createdAt: string },
+  attempt: { answers: Answer[]; hintsUsed: number[]; score: number; total: number; createdAt: string },
 ): Promise<QuizResult> {
   const qs = await ctx.db.select().from(questions).where(eq(questions.date, date)).orderBy(asc(questions.position));
   const stats = (await quizStatsByDate(ctx, userId))[date];
@@ -37,13 +42,18 @@ async function buildQuizResult(
     best: stats?.best ?? attempt.score,
     attempts: stats?.attempts ?? 1,
     createdAt: attempt.createdAt,
-    review: qs.map((q, i) => ({
-      position: q.position,
-      chosen: attempt.answers[i] ?? -1,
-      correct: q.correctIndex,
-      isCorrect: attempt.answers[i] === q.correctIndex,
-      explanation: q.explanation,
-    })),
+    hintsUsed: attempt.hintsUsed,
+    review: qs.map((q, i) => {
+      const chosen = attempt.answers[i] ?? -1;
+      return {
+        position: q.position,
+        chosen,
+        correct: correctAnswerOf(q),
+        isCorrect: isCorrectAnswer(q, chosen),
+        explanation: q.explanation,
+        feedback: feedbackFor(q, chosen),
+      };
+    }),
   };
 }
 
@@ -109,18 +119,26 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext) {
             kind: dayRow.kind,
             title: dayRow.title,
             summary: dayRow.summary,
+            objectives: dayRow.objectives,
             concept: dayRow.concept,
             tip: dayRow.tip,
             example: dayRow.example,
             language: dayRow.language as Language,
             exampleOutput: dayRow.exampleOutput,
+            steps: dayRow.steps,
+            commonErrors: dayRow.commonErrors,
             tasks: dayRow.tasks,
+            taskHints: dayRow.taskHints,
+            challenge: dayRow.challenge,
+            glossary: dayRow.glossary,
+            resources: dayRow.resources,
           }
         : null,
-      questions: qs.map((q) => ({ position: q.position, prompt: q.prompt, code: q.code, options: q.options })),
+      questions: qs.map((q) => ({ position: q.position, type: q.type, prompt: q.prompt, code: q.code, options: q.options, hint: q.hint })),
       progress: {
         tasks: dayRow ? dayRow.tasks.map((_, i) => progressRow?.tasks[i] ?? false) : [],
         evidence: progressRow?.evidence ?? "",
+        challengeDone: progressRow?.challengeDone ?? false,
         completedAt: progressRow?.completedAt ?? null,
       },
       quiz: {
@@ -151,10 +169,12 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext) {
     const set: Partial<typeof dayProgress.$inferInsert> = { updatedAt: sql`now()` as unknown as string };
     if (input.tasks) set.tasks = input.tasks;
     if (input.evidence !== undefined) set.evidence = input.evidence;
+    if (input.challengeDone !== undefined) set.challengeDone = input.challengeDone;
     await ctx.db
       .insert(dayProgress)
-      .values({ userId: user.id, date, tasks: input.tasks ?? [], evidence: input.evidence ?? "" })
+      .values({ userId: user.id, date, tasks: input.tasks ?? [], evidence: input.evidence ?? "", challengeDone: input.challengeDone ?? false })
       .onConflictDoUpdate({ target: [dayProgress.userId, dayProgress.date], set });
+    if (input.challengeDone) await logActivity(ctx, user.id, "challenge_done", date, {});
 
     await refreshWorkshopCompletion(ctx, user.id, date);
     const progress = await progressFor(ctx, user.id);
@@ -172,15 +192,16 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext) {
       if (qs.length === 0) throw notFound("Ese día no tiene evaluación.");
       if (input.answers.length !== qs.length) throw badRequest(`Responde las ${qs.length} preguntas.`);
       input.answers.forEach((a, i) => {
-        if (a >= qs[i].options.length) throw badRequest(`La respuesta de la pregunta ${i + 1} no es válida.`);
+        if (!isValidAnswer(qs[i], a)) throw badRequest(`La respuesta de la pregunta ${i + 1} no es válida.`);
       });
 
-      const score = qs.filter((q, i) => input.answers[i] === q.correctIndex).length;
+      const score = qs.filter((q, i) => isCorrectAnswer(q, input.answers[i])).length;
+      const hintsUsed = [...new Set(input.hints.filter((h) => h < qs.length))].sort((a, b) => a - b);
       const [attempt] = await ctx.db
         .insert(quizAttempts)
-        .values({ userId: user.id, date, answers: input.answers, score, total: qs.length })
+        .values({ userId: user.id, date, answers: input.answers, hintsUsed, score, total: qs.length })
         .returning();
-      await logActivity(ctx, user.id, "quiz_attempt", date, { score, total: qs.length });
+      await logActivity(ctx, user.id, "quiz_attempt", date, { score, total: qs.length, hints: hintsUsed.length });
       await refreshWorkshopCompletion(ctx, user.id, date);
       return buildQuizResult(ctx, user.id, date, attempt);
     },

@@ -1,3 +1,4 @@
+import type { Answer } from "@tomas/shared";
 import { sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll } from "vitest";
@@ -28,7 +29,7 @@ export function useTestApp(today = "2026-10-01"): TestEnv {
     });
     env.handle = createDb(config.databaseUrl);
     await env.handle.db.execute(sql`TRUNCATE users, activity RESTART IDENTITY CASCADE`);
-    await env.handle.db.execute(sql`UPDATE settings SET value = '3'::jsonb WHERE key = 'passScore'`);
+    await env.handle.db.execute(sql`UPDATE settings SET value = '4'::jsonb WHERE key = 'passScore'`);
     await seedUsers(env.handle.db, config.seed);
     const built = await buildApp(config, env.handle.db);
     env.app = built.app;
@@ -61,10 +62,13 @@ export function client(app: FastifyInstance, cookie?: string) {
   };
 }
 
-/** Respuestas correctas de un día, leídas directamente de la base. */
-export async function correctAnswers(env: TestEnv, date: string): Promise<number[]> {
-  const rows = await env.handle.db.execute<{ correct_index: number }>(
-    sql`select correct_index from questions where date = ${date} order by position`,
+/** Respuestas correctas de un día, leídas directamente de la base: índice o texto según el tipo. */
+export async function correctAnswers(env: TestEnv, date: string): Promise<Answer[]> {
+  const rows = await env.handle.db.execute<{ type: string; correct_index: number; accepted: string[] }>(
+    sql`select type, correct_index, accepted from questions where date = ${date} order by position`,
   );
-  return rows.rows.map((r) => r.correct_index);
+  return rows.rows.map((r) => (r.type === "output" || r.type === "fill" ? r.accepted[0] : r.correct_index));
 }
+
+/** Una respuesta equivocada por pregunta (válida en forma, incorrecta en contenido). */
+export const wrongAnswers = (answers: Answer[]): Answer[] => answers.map((a) => (typeof a === "number" ? (a + 1) % 2 : "respuesta mala"));

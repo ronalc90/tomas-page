@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { DayResponse, DeliverableView, ProgressView, QuizResult } from "@tomas/shared";
-import { client, correctAnswers, login, STUDENT, useTestApp } from "./helpers";
+import { client, correctAnswers, login, STUDENT, useTestApp, wrongAnswers } from "./helpers";
 
 const env = useTestApp("2026-10-01");
 let api: ReturnType<typeof client>;
@@ -40,9 +40,20 @@ describe("taller del día", () => {
     const day: DayResponse = res.json();
     expect(day.day?.title).toBe("Números y operadores");
     expect(day.day?.tip).toContain("`//` da la parte entera");
-    expect(day.questions).toHaveLength(4);
+    expect(day.questions).toHaveLength(6);
+    expect(day.questions.map((q) => q.type)).toEqual(["choice", "choice", "choice", "boolean", "output", "fill"]);
+    expect(day.questions.every((q) => q.hint.length > 0)).toBe(true);
     expect(res.body).not.toContain("correctIndex");
+    expect(res.body).not.toContain("accepted");
     expect(res.body).not.toContain("explanation");
+    expect(res.body).not.toContain("optionFeedback");
+    expect(day.day?.objectives.length).toBeGreaterThanOrEqual(2);
+    expect(day.day?.steps.length).toBeGreaterThanOrEqual(4);
+    expect(day.day?.commonErrors.length).toBeGreaterThanOrEqual(2);
+    expect(day.day?.taskHints).toHaveLength(3);
+    expect(day.day?.challenge?.solution.length).toBeGreaterThan(0);
+    expect(day.day?.glossary.length).toBeGreaterThanOrEqual(2);
+    expect(day.day?.resources[0]?.url).toMatch(/^https:\/\//);
     expect(day.quiz.last).toBeNull();
     expect(day.nav).toEqual({ prev: "2026-09-28", next: "2026-09-30" });
   });
@@ -60,29 +71,43 @@ describe("taller del día", () => {
 
   it("califica en el servidor, guarda la mejor nota y explica cada respuesta", async () => {
     const correct = await correctAnswers(env, DATE);
-    const wrong = correct.map((c) => (c + 1) % 4);
+    const wrong = wrongAnswers(correct);
 
-    const first: QuizResult = (await api.post(`/api/days/${DATE}/quiz`, { answers: wrong })).json();
-    expect(first).toMatchObject({ score: 0, total: 4, passed: false, attempts: 1, best: 0 });
+    const first: QuizResult = (await api.post(`/api/days/${DATE}/quiz`, { answers: wrong, hints: [0, 4, 4] })).json();
+    expect(first).toMatchObject({ score: 0, total: 6, passed: false, attempts: 1, best: 0, hintsUsed: [0, 4] });
     expect(first.review.every((r) => !r.isCorrect && r.explanation.length > 0)).toBe(true);
+    expect(first.review[0].feedback.length).toBeGreaterThan(0);
+    expect(first.review[4].correct).toBe(correct[4]);
 
-    const second: QuizResult = (await api.post(`/api/days/${DATE}/quiz`, { answers: correct })).json();
-    expect(second).toMatchObject({ score: 4, passed: true, attempts: 2, best: 4 });
+    // Las respuestas escritas aceptan variantes: mayúsculas, espacios alrededor y comillas.
+    const relaxed = correct.map((c) => (typeof c === "string" ? ` ${c.toUpperCase()} ` : c));
+    const second: QuizResult = (await api.post(`/api/days/${DATE}/quiz`, { answers: relaxed })).json();
+    expect(second).toMatchObject({ score: 6, passed: true, attempts: 2, best: 6, hintsUsed: [] });
 
     const third: QuizResult = (await api.post(`/api/days/${DATE}/quiz`, { answers: wrong })).json();
-    expect(third).toMatchObject({ score: 0, passed: false, attempts: 3, best: 4 });
+    expect(third).toMatchObject({ score: 0, passed: false, attempts: 3, best: 6 });
   });
 
-  it("rechaza respuestas incompletas o fuera de rango", async () => {
+  it("rechaza respuestas incompletas, fuera de rango o del tipo equivocado", async () => {
     expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1] })).statusCode).toBe(400);
-    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 9] })).statusCode).toBe(400);
+    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 9, "x", "y"] })).statusCode).toBe(400);
+    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 1, 0, "y"] })).statusCode).toBe(400);
+    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 1, "x", 0] })).statusCode).toBe(400);
+  });
+
+  it("guarda el reto extra como hecho", async () => {
+    const res = await api.put(`/api/days/${DATE}/progress`, { challengeDone: true });
+    expect(res.statusCode).toBe(200);
+    const day: DayResponse = (await api.get(`/api/days/${DATE}`)).json();
+    expect(day.progress.challengeDone).toBe(true);
+    expect(day.state.status).toBe("done");
   });
 
   it("da el taller por completo con tareas y evaluación aprobada", async () => {
     const day: DayResponse = (await api.get(`/api/days/${DATE}`)).json();
     expect(day.state.status).toBe("done");
     expect(day.progress.completedAt).not.toBeNull();
-    expect(day.quiz.last?.review).toHaveLength(4);
+    expect(day.quiz.last?.review).toHaveLength(6);
     const progress: ProgressView = (await api.get("/api/progress")).json();
     expect(progress.totals.workshopsDone).toBe(1);
     expect(progress.totals.quizAverage).toBe(1);

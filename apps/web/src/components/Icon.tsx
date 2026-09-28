@@ -25,6 +25,10 @@ const PATHS = {
   external: "M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
   code: "M8 8l-4 4 4 4M16 8l4 4-4 4M13 5l-2 14",
   bulb: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.1V16h5v-.1c0-.8.4-1.6 1.1-2.1A6 6 0 0 0 12 3z",
+  up: "M5 15l7-7 7 7",
+  down: "M5 9l7 7 7-7",
+  alert: "M12 9v4M12 17h.01M10.3 3.9 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z",
+  compass: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm4-14-2.5 6.5L7 17l2.5-6.5z",
 } as const;
 
 export type IconName = keyof typeof PATHS;

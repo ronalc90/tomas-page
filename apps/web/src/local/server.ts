@@ -11,7 +11,11 @@ import {
   adminDeliverableSchema,
   changePasswordSchema,
   computeProgress,
+  correctAnswerOf,
   createUserSchema,
+  feedbackFor,
+  isCorrectAnswer,
+  isValidAnswer,
   dayProgressSchema,
   deliverableTitle,
   formatDayMonth,
@@ -30,7 +34,12 @@ import {
   type AdminDay,
   type AdminOverview,
   type AdminQuestion,
+  type Challenge,
+  type CommonError,
   type ContentWeek,
+  type GlossaryItem,
+  type Resource,
+  type TutorialStep,
   type DayKind,
   type DayResponse,
   type DeliverableKind,
@@ -81,12 +90,19 @@ interface FullDay {
   kind: DayKind;
   title: string;
   summary: string;
+  objectives: string[];
   concept: string;
   tip: string;
   example: string;
   language: Language;
   exampleOutput: string;
+  steps: TutorialStep[];
+  commonErrors: CommonError[];
   tasks: string[];
+  taskHints: string[];
+  challenge: Challenge | null;
+  glossary: GlossaryItem[];
+  resources: Resource[];
   questions: AdminQuestion[];
   updatedAt: string | null;
 }
@@ -98,6 +114,25 @@ interface FullDeliverable {
   path: string;
   description: string;
   criteria: string[];
+  steps: string[];
+  tips: string[];
+  stretch: string;
+  checklist: string[];
+}
+
+/** Preguntas guardadas por versiones anteriores (solo opción múltiple) reciben los campos nuevos. */
+function normalizeQuestion(q: Partial<AdminQuestion>): AdminQuestion {
+  return {
+    type: q.type ?? "choice",
+    prompt: q.prompt ?? "",
+    code: q.code ?? "",
+    options: q.options ?? [],
+    correctIndex: q.correctIndex ?? 0,
+    accepted: q.accepted ?? [],
+    optionFeedback: q.optionFeedback ?? [],
+    explanation: q.explanation ?? "",
+    hint: q.hint ?? "",
+  };
 }
 
 function content(db: LocalDb) {
@@ -115,25 +150,44 @@ function content(db: LocalDb) {
         kind: d.kind as DayKind,
         title: base.title,
         summary: base.summary ?? "",
+        objectives: base.objectives ?? [],
         concept: base.concept ?? "",
         tip: base.tip ?? "",
         example: base.example ?? "",
         language: (base.language ?? "python") as Language,
         exampleOutput: base.exampleOutput ?? "",
+        steps: base.steps ?? [],
+        commonErrors: base.commonErrors ?? [],
         tasks: base.tasks ?? [],
-        questions: (base.questions ?? []) as AdminQuestion[],
+        taskHints: base.taskHints ?? [],
+        challenge: base.challenge ?? null,
+        glossary: base.glossary ?? [],
+        resources: base.resources ?? [],
+        questions: ((base.questions ?? []) as Partial<AdminQuestion>[]).map(normalizeQuestion),
         updatedAt: null,
       };
-      days.set(d.date, override ? { ...baseDay, ...override } : baseDay);
+      if (override) {
+        const merged: FullDay = { ...baseDay };
+        for (const [k, v] of Object.entries(override)) if (v !== undefined) (merged as unknown as Record<string, unknown>)[k] = v;
+        merged.questions = override.questions.map(normalizeQuestion);
+        days.set(d.date, merged);
+      } else {
+        days.set(d.date, baseDay);
+      }
     }
+    const dv = w.deliverable as typeof w.deliverable & Partial<FullDeliverable>;
     const baseDeliverable: FullDeliverable = {
       id: w.id,
       weekId: w.id,
-      dueDate: w.deliverable.dueDate,
-      kind: w.deliverable.kind as DeliverableKind,
-      path: w.deliverable.path,
-      description: w.deliverable.description,
-      criteria: w.deliverable.criteria,
+      dueDate: dv.dueDate,
+      kind: dv.kind as DeliverableKind,
+      path: dv.path,
+      description: dv.description,
+      criteria: dv.criteria,
+      steps: dv.steps ?? [],
+      tips: dv.tips ?? [],
+      stretch: dv.stretch ?? "",
+      checklist: dv.checklist ?? [],
     };
     const dOverride = db.overrides.deliverables[w.id];
     deliverables.set(w.id, dOverride ? { ...baseDeliverable, ...dOverride } : baseDeliverable);
@@ -219,12 +273,13 @@ function today(db: LocalDb): string {
 // ---------- Avance ----------
 
 function quizStats(db: LocalDb, userId: string) {
-  const stats: Record<string, { attempts: number; best: number; first: number }> = {};
+  const stats: Record<string, { attempts: number; best: number; first: number; hints: number }> = {};
   for (const a of db.quizAttempts) {
     if (a.userId !== userId) continue;
-    const s = (stats[a.date] ??= { attempts: 0, best: 0, first: a.score });
+    const s = (stats[a.date] ??= { attempts: 0, best: 0, first: a.score, hints: 0 });
     s.attempts += 1;
     s.best = Math.max(s.best, a.score);
+    s.hints = a.hintsUsed?.length ?? 0;
   }
   return stats;
 }
@@ -284,6 +339,10 @@ function deliverableViews(db: LocalDb, userId: string, onlyId?: string): Deliver
         path: d.path,
         description: d.description,
         criteria: d.criteria,
+        steps: d.steps,
+        tips: d.tips,
+        stretch: d.stretch,
+        checklist: d.checklist,
         state: progress.deliverables[d.id] ?? { status: "pending", submission: null },
         submission: sub
           ? {
@@ -311,13 +370,11 @@ function quizResult(db: LocalDb, userId: string, attempt: LocalDb["quizAttempts"
     best: stats?.best ?? attempt.score,
     attempts: stats?.attempts ?? 1,
     createdAt: attempt.createdAt,
-    review: day.questions.map((q, i) => ({
-      position: i,
-      chosen: attempt.answers[i] ?? -1,
-      correct: q.correctIndex,
-      isCorrect: attempt.answers[i] === q.correctIndex,
-      explanation: q.explanation,
-    })),
+    hintsUsed: attempt.hintsUsed ?? [],
+    review: day.questions.map((q, i) => {
+      const chosen = attempt.answers[i] ?? -1;
+      return { position: i, chosen, correct: correctAnswerOf(q), isCorrect: isCorrectAnswer(q, chosen), explanation: q.explanation, feedback: feedbackFor(q, chosen) };
+    }),
   };
 }
 
@@ -427,18 +484,26 @@ route("GET", "/api/days/:date", ({ db, params }): DayResponse => {
           kind: day.kind,
           title: day.title,
           summary: day.summary,
+          objectives: day.objectives,
           concept: day.concept,
           tip: day.tip,
           example: day.example,
           language: day.language,
           exampleOutput: day.exampleOutput,
+          steps: day.steps,
+          commonErrors: day.commonErrors,
           tasks: day.tasks,
+          taskHints: day.taskHints,
+          challenge: day.challenge,
+          glossary: day.glossary,
+          resources: day.resources,
         }
       : null,
-    questions: day ? day.questions.map((q, i) => ({ position: i, prompt: q.prompt, code: q.code, options: q.options })) : [],
+    questions: day ? day.questions.map((q, i) => ({ position: i, type: q.type, prompt: q.prompt, code: q.code, options: q.options, hint: q.hint })) : [],
     progress: {
       tasks: day ? day.tasks.map((_, i) => rec?.tasks[i] ?? false) : [],
       evidence: rec?.evidence ?? "",
+      challengeDone: rec?.challengeDone ?? false,
       completedAt: rec?.completedAt ?? null,
     },
     quiz: { attempts: state.attempts, best: state.best, last: last ? quizResult(db, user.id, last) : null },
@@ -457,6 +522,10 @@ route("PUT", "/api/days/:date/progress", ({ db, params, body }) => {
   const record = ((db.dayProgress[user.id] ??= {})[params.date] ??= { tasks: [], evidence: "", completedAt: null, updatedAt: now() });
   if (input.tasks) record.tasks = input.tasks;
   if (input.evidence !== undefined) record.evidence = input.evidence;
+  if (input.challengeDone !== undefined) {
+    record.challengeDone = input.challengeDone;
+    if (input.challengeDone) log(db, user.id, "challenge_done", params.date, {});
+  }
   record.updatedAt = now();
   refreshCompletion(db, user.id, params.date);
   const progress = progressFor(db, user.id);
@@ -470,12 +539,13 @@ route("POST", "/api/days/:date/quiz", ({ db, params, body }) => {
   if (!day || day.questions.length === 0) throw notFound("Ese día no tiene evaluación.");
   if (input.answers.length !== day.questions.length) throw badRequest(`Responde las ${day.questions.length} preguntas.`);
   input.answers.forEach((a, i) => {
-    if (a >= day.questions[i].options.length) throw badRequest(`La respuesta de la pregunta ${i + 1} no es válida.`);
+    if (!isValidAnswer(day.questions[i], a)) throw badRequest(`La respuesta de la pregunta ${i + 1} no es válida.`);
   });
-  const score = day.questions.filter((q, i) => input.answers[i] === q.correctIndex).length;
-  const attempt = { id: nextId(db), userId: user.id, date: params.date, answers: input.answers, score, total: day.questions.length, createdAt: now() };
+  const score = day.questions.filter((q, i) => isCorrectAnswer(q, input.answers[i])).length;
+  const hintsUsed = [...new Set(input.hints.filter((h) => h < day.questions.length))].sort((a, b) => a - b);
+  const attempt = { id: nextId(db), userId: user.id, date: params.date, answers: input.answers, hintsUsed, score, total: day.questions.length, createdAt: now() };
   db.quizAttempts.push(attempt);
-  log(db, user.id, "quiz_attempt", params.date, { score, total: attempt.total });
+  log(db, user.id, "quiz_attempt", params.date, { score, total: attempt.total, hints: hintsUsed.length });
   refreshCompletion(db, user.id, params.date);
   return quizResult(db, user.id, attempt);
 });
@@ -595,6 +665,8 @@ route("GET", "/api/admin/students/:id", ({ db, params }): StudentDetail => {
         state: progress.days[d.date],
         firstScore: stats[d.date]?.first ?? null,
         evidence: db.dayProgress[u.id]?.[d.date]?.evidence ?? "",
+        challengeDone: db.dayProgress[u.id]?.[d.date]?.challengeDone ?? false,
+        hintsUsed: stats[d.date]?.hints ?? 0,
       })),
     deliverables: deliverableViews(db, u.id),
     activity: activityItems(db, u.id, 40),
@@ -685,12 +757,19 @@ route("GET", "/api/admin/days/:date", ({ db, params }): AdminDay => {
     kind: d.kind,
     title: d.title,
     summary: d.summary,
+    objectives: [...d.objectives],
     concept: d.concept,
     tip: d.tip,
     example: d.example,
     language: d.language,
     exampleOutput: d.exampleOutput,
+    steps: clone(d.steps),
+    commonErrors: clone(d.commonErrors),
     tasks: [...d.tasks],
+    taskHints: [...d.taskHints],
+    challenge: d.challenge ? { ...d.challenge } : null,
+    glossary: clone(d.glossary),
+    resources: clone(d.resources),
     questions: clone(d.questions),
     updatedAt: d.updatedAt,
   };

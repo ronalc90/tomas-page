@@ -77,8 +77,10 @@ describe("contenido", () => {
 
   it("devuelve el taller con las respuestas correctas para editar", async () => {
     const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
-    expect(day.questions).toHaveLength(4);
+    expect(day.questions).toHaveLength(6);
     expect(typeof day.questions[0].correctIndex).toBe("number");
+    expect(day.questions[4].accepted.length).toBeGreaterThan(0);
+    expect(day.questions[0].optionFeedback).toHaveLength(day.questions[0].options.length);
   });
 
   it("valida las preguntas antes de guardar", async () => {
@@ -88,6 +90,35 @@ describe("contenido", () => {
       questions: [{ ...day.questions[0], correctIndex: 7 }],
     });
     expect(res.statusCode).toBe(400);
+    const noAnswer = await admin.put(`/api/admin/days/${DATE}`, { ...day, questions: [{ ...day.questions[4], accepted: [] }] });
+    expect(noAnswer.statusCode).toBe(400);
+    const noBlank = await admin.put(`/api/admin/days/${DATE}`, { ...day, questions: [{ ...day.questions[5], code: "sin hueco" }] });
+    expect(noBlank.statusCode).toBe(400);
+  });
+
+  it("edita la lección completa: pasos, errores, pistas, reto y una pregunta de texto", async () => {
+    const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
+    const res = await admin.put(`/api/admin/days/${DATE}`, {
+      ...day,
+      steps: [{ title: "Paso editado", body: "Cuerpo del paso.", code: "print(1)", language: "python" }],
+      commonErrors: [{ error: "NameError", cause: "Variable sin definir.", fix: "Defínela antes." }],
+      taskHints: ["Pista 1", "Pista 2", "Pista 3"],
+      challenge: { title: "Reto editado", description: "Haz algo.", hint: "Piensa.", solution: "print(2)", language: "python" },
+      questions: [
+        ...day.questions.slice(0, 5),
+        { type: "fill", prompt: "Completa", code: "x = ____(3.7)", options: [], correctIndex: 0, accepted: ["int", "round"], optionFeedback: [], explanation: "int o round.", hint: "" },
+      ],
+    });
+    expect(res.statusCode).toBe(200);
+    const seen = (await student.get(`/api/days/${DATE}`)).json();
+    expect(seen.day.steps).toHaveLength(1);
+    expect(seen.day.challenge.title).toBe("Reto editado");
+    expect(seen.day.taskHints).toEqual(["Pista 1", "Pista 2", "Pista 3"]);
+    expect(seen.questions[5]).toMatchObject({ type: "fill", prompt: "Completa" });
+    // Las preguntas de texto aceptan cualquiera de las respuestas.
+    const answers = seen.questions.map((q: { type: string }, i: number) => (i === 5 ? "ROUND" : q.type === "output" ? "" : 0));
+    const graded = (await student.post(`/api/days/${DATE}/quiz`, { answers })).json();
+    expect(graded.review[5].isCorrect).toBe(true);
   });
 
   it("guarda los cambios y el estudiante los ve", async () => {

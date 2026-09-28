@@ -13,6 +13,9 @@ import { DeliverablesPage } from "./pages/student/DeliverablesPage";
 
 // El panel de administración se carga aparte: el estudiante nunca descarga ese código.
 const AdminRoutes = lazy(() => import("./pages/admin/AdminRoutes"));
+// Las guías traen bastante texto: se descargan solo cuando alguien las abre.
+const GuidesPage = lazy(() => import("./pages/student/GuidesPage").then((m) => ({ default: m.GuidesPage })));
+const GuidePage = lazy(() => import("./pages/student/GuidesPage").then((m) => ({ default: m.GuidePage })));
 
 function RequireAuth({ me, children }: { me: MeResponse | null | undefined; children: ReactNode }) {
   const location = useLocation();
@@ -40,6 +43,22 @@ export function App() {
         <Route path="hoy" element={<TodayRedirect />} />
         <Route path="dia/:date" element={<DayPage />} />
         <Route path="entregables" element={<DeliverablesPage />} />
+        <Route
+          path="guias"
+          element={
+            <Suspense fallback={<Loading />}>
+              <GuidesPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="guias/:slug"
+          element={
+            <Suspense fallback={<Loading />}>
+              <GuidePage />
+            </Suspense>
+          }
+        />
         <Route path="cuenta" element={<AccountPage />} />
         <Route
           path="admin/*"

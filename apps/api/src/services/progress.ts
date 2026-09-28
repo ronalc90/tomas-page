@@ -15,6 +15,8 @@ export interface QuizStats {
   attempts: number;
   best: number;
   first: number;
+  /** Pistas destapadas en el intento más reciente. */
+  hints: number;
 }
 
 export async function quizStatsByDate(ctx: AppContext, userId: string): Promise<Record<string, QuizStats>> {
@@ -24,11 +26,12 @@ export async function quizStatsByDate(ctx: AppContext, userId: string): Promise<
       attempts: sql<number>`count(*)::int`,
       best: sql<number>`max(${quizAttempts.score})::int`,
       first: sql<number>`(array_agg(${quizAttempts.score} order by ${quizAttempts.id}))[1]::int`,
+      hints: sql<number>`(array_agg(jsonb_array_length(${quizAttempts.hintsUsed}) order by ${quizAttempts.id} desc))[1]::int`,
     })
     .from(quizAttempts)
     .where(eq(quizAttempts.userId, userId))
     .groupBy(quizAttempts.date);
-  return Object.fromEntries(rows.map((r) => [r.date, { attempts: r.attempts, best: r.best, first: r.first }]));
+  return Object.fromEntries(rows.map((r) => [r.date, { attempts: r.attempts, best: r.best, first: r.first, hints: r.hints }]));
 }
 
 export async function loadProgressInput(ctx: AppContext, userId: string): Promise<ProgressUserInput> {
@@ -135,6 +138,10 @@ export async function deliverableViews(ctx: AppContext, userId: string, onlyId?:
         path: d.path,
         description: d.description,
         criteria: d.criteria,
+        steps: d.steps,
+        tips: d.tips,
+        stretch: d.stretch,
+        checklist: d.checklist,
         state: progress.deliverables[d.id] ?? { status: "pending", submission: null },
         submission: sub
           ? {

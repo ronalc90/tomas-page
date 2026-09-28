@@ -77,10 +77,13 @@ export function StudentsTable({ rows }: { rows: StudentRow[] }) {
 
 function describe(item: ActivityItem): string {
   const verb = ACTIVITY_LABEL[item.type] ?? item.type;
-  const d = item.detail as { title?: string; score?: number; total?: number; decision?: string };
+  const d = item.detail as { title?: string; score?: number; total?: number; decision?: string; hints?: number };
+  const when = item.ref && isIsoDate(item.ref) ? formatShort(item.ref) : item.ref;
   switch (item.type) {
     case "quiz_attempt":
-      return `${verb} del ${item.ref && isIsoDate(item.ref) ? formatShort(item.ref) : item.ref}: ${d.score}/${d.total}`;
+      return `${verb} del ${when}: ${d.score}/${d.total}${d.hints ? ` (${d.hints === 1 ? "1 pista" : `${d.hints} pistas`})` : ""}`;
+    case "challenge_done":
+      return `${verb} del ${when}`;
     case "workshop_completed":
       return `${verb} “${d.title ?? item.ref}”`;
     case "submission_submitted":

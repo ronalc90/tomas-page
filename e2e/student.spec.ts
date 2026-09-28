@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN, correctAnswers, login, STUDENT } from "./helpers";
+import { ADMIN, answerQuiz, correctAnswers, login, STUDENT } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -31,17 +31,30 @@ test("Tomás completa el taller del día: tareas y evaluación", async ({ page, 
   await expect(tasks).toHaveCount(3);
   for (let i = 0; i < 3; i++) await tasks.nth(i).check();
 
-  // Primer intento con una respuesta mala: no aprueba (3 de 4 es suficiente, 2 no).
-  const wrong = answers.map((a, i) => (i < 2 ? (a + 1) % 4 : a));
-  for (const [i, a] of wrong.entries()) await page.locator(`input[name="q${i}"][value="${a}"]`).check();
+  // La lección completa está en pantalla: guía paso a paso, pistas, reto y glosario.
+  await expect(page.getByRole("heading", { name: "Guía paso a paso" })).toBeVisible();
+  await page.getByRole("button", { name: "Abrir todos" }).click();
+  await expect(page.locator(".step-body")).toHaveCount(await page.locator(".step-list li").count());
+  await page.getByRole("button", { name: "Ver pista" }).first().click();
+  await expect(page.locator(".hint-text").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Reto extra" })).toBeVisible();
+  await page.getByRole("button", { name: "Ver una solución" }).click();
+  await expect(page.locator(".challenge .code-block")).toBeVisible();
+  await page.getByLabel("Hice el reto").check();
+  await expect(page.getByLabel("Hice el reto")).toBeChecked();
+
+  // Primer intento con tres respuestas malas: no aprueba (4 de 6 es suficiente, 3 no).
+  const wrong = answers.map((a, i) => (i < 3 ? ((a as number) + 1) % 2 : a));
+  await answerQuiz(page, wrong);
   await page.getByRole("button", { name: "Calificar" }).click();
-  await expect(page.locator(".result .score")).toHaveText("2 / 4");
+  await expect(page.locator(".result .score")).toHaveText("3 / 6");
   await expect(page.getByText("Incorrecto.").first()).toBeVisible();
+  await expect(page.getByText(/Qué repasar/)).toBeVisible();
 
   await page.getByRole("button", { name: "Intentar de nuevo" }).click();
-  for (const [i, a] of answers.entries()) await page.locator(`input[name="q${i}"][value="${a}"]`).check();
+  await answerQuiz(page, answers);
   await page.getByRole("button", { name: "Calificar" }).click();
-  await expect(page.locator(".result .score")).toHaveText("4 / 4");
+  await expect(page.locator(".result .score")).toHaveText("6 / 6");
   await expect(page.getByText("Taller completo")).toBeVisible();
 
   await page.goto("/");

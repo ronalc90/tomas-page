@@ -1,6 +1,6 @@
 # Plan de Tomás · Python y SQL
 
-Plataforma para que Tomás aprenda Python y SQL entre el **27 de septiembre y el 30 de diciembre de 2026**: 62 talleres de lunes a viernes (concepto, ejemplo de código, 3 tareas, consejo del día y una evaluación de 4 preguntas con explicaciones) y un entregable cada sábado con sus criterios. Incluye un panel de administración para seguir el avance, revisar entregas, editar el contenido y gestionar cuentas.
+Plataforma para que Tomás aprenda Python y SQL entre el **27 de septiembre y el 30 de diciembre de 2026**: 62 lecciones de lunes a viernes (objetivos, concepto, ejemplo, consejo del día, guía paso a paso, errores comunes, 3 tareas con pista, reto extra con solución, glosario, enlaces a la documentación y una evaluación de 6 preguntas de cuatro tipos con pistas y retroalimentación por opción), un entregable cada sábado con guía y criterios, y 9 guías generales (instalar, terminal, errores, depurar, Git, DB Browser…). Incluye un panel de administración para seguir el avance, revisar entregas, editar el contenido y gestionar cuentas.
 
 | | |
 |---|---|
@@ -31,7 +31,8 @@ apps/
     drizzle/  migraciones SQL versionadas
 packages/
   shared/     tipos, validaciones (zod), reglas de avance y fechas, usados por web y API
-    src/data/plan.json   contenido del plan (talleres, evaluaciones, consejos y entregables)
+    src/data/plan.json     contenido del plan (lecciones completas, evaluaciones y entregables)
+    src/data/guides.json   guías generales (instalar, terminal, errores, depurar, Git…)
 e2e/          pruebas de punta a punta con Playwright
 ```
 
@@ -39,8 +40,8 @@ Un solo servicio sirve la API (`/api/*`) y la aplicación web, así no hay probl
 
 ### Decisiones importantes
 
-- **Las evaluaciones se califican en el servidor.** Las respuestas correctas nunca viajan al navegador antes de presentar; después de cada intento llega la revisión con explicaciones. Se guardan todos los intentos: el panel muestra la mejor nota y la del primer intento.
-- **Un taller está completo** cuando las tres tareas están marcadas y la evaluación está aprobada (nota mínima configurable, por defecto 3 de 4). Lo que tiene fecha anterior a hoy y no está completo queda **atrasado**. "Hoy" se calcula en la zona horaria de Bogotá.
+- **Las evaluaciones se califican en el servidor.** Cuatro tipos de pregunta (opción múltiple, verdadero/falso, «¿qué muestra?» y completar código); las reglas de calificación viven en `packages/shared/src/quiz.ts`. Las respuestas correctas nunca viajan al navegador antes de presentar; después de cada intento llega la revisión con explicación, comentario por opción y respuesta correcta. Se guardan todos los intentos y las pistas usadas: el panel muestra la mejor nota, la del primer intento, las pistas y si hizo el reto.
+- **Un taller está completo** cuando las tres tareas están marcadas y la evaluación está aprobada (nota mínima configurable, por defecto 4 de 6). Lo que tiene fecha anterior a hoy y no está completo queda **atrasado**. "Hoy" se calcula en la zona horaria de Bogotá.
 - **Las reglas de avance viven en `packages/shared/src/progress.ts`**, así el estudiante y el administrador ven exactamente lo mismo.
 - **Sesiones con cookie `httpOnly`, `SameSite=Lax` y `Secure`** en producción; en la base solo se guarda el hash del token. Contraseñas con bcrypt. Límite de intentos de inicio de sesión por IP y usuario. Cabeceras de seguridad con Helmet (CSP estricta).
 - **Las ediciones del administrador se respetan:** el contenido inicial solo se carga si la base está vacía. Para recargarlo a propósito: `npm run db:seed -- --reset-content`.
