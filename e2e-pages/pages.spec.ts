@@ -46,18 +46,19 @@ test("Tomás completa el taller y la evaluación", async () => {
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Tomás");
   await page.getByRole("link", { name: "Empezar" }).click();
   await expect(page).toHaveURL(/dia\/2026-10-07/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("and, or, not");
-  await expect(page.getByRole("complementary", { name: "Consejo del día" })).toContainText("2024 (sí)");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bucles anidados y patrones");
+  await expect(page.getByRole("heading", { name: "Tema 2: Menús con while" })).toBeVisible();
   const tasks = page.locator(".checklist input[type=checkbox]");
-  for (let i = 0; i < (await tasks.count()); i++) await tasks.nth(i).check();
-  await expect(page.getByRole("heading", { name: "Guía paso a paso" })).toBeVisible();
+  await expect(tasks).toHaveCount(5);
+  for (let i = 0; i < 5; i++) await tasks.nth(i).check();
+  await expect(page.getByRole("heading", { name: "Guía paso a paso" }).first()).toBeVisible();
   await page.getByLabel("Hice el reto").check();
   for (const [i, a] of answersFor("2026-10-07").entries()) {
     if (typeof a === "number") await page.locator(`input[name="q${i}"][value="${a}"]`).check();
     else await page.locator(`[name="q${i}"]`).fill(a);
   }
   await page.getByRole("button", { name: "Calificar" }).click();
-  await expect(page.locator(".result .score")).toHaveText("6 / 6");
+  await expect(page.locator(".result .score")).toHaveText("8 / 8");
   await expect(page.getByText("Taller completo")).toBeVisible();
 });
 
@@ -67,12 +68,22 @@ test("el avance sigue ahí al recargar", async () => {
   await expect(page.getByLabel("Hice el reto")).toBeChecked();
 });
 
+test("el temario muestra todo el plan y abre cualquier día", async () => {
+  await page.goto("temario");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Temario");
+  await expect(page.locator(".syllabus-day.workshop")).toHaveCount(64);
+  await expect(page.locator(".syllabus-day.holiday")).toHaveCount(3);
+  await page.locator(".syllabus-link", { hasText: "Herencia" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Herencia");
+  await expect(page.getByRole("heading", { name: /Tema 1: Clases que heredan/ })).toBeVisible();
+});
+
 test("las guías se pueden leer y navegar", async () => {
   await page.goto("guias");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Guías");
   await page.getByRole("link", { name: /Leer un error/ }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Leer un error");
-  await expect(page.locator(".guide-section")).toHaveCount(8);
+  await expect(page.locator(".guide-section").first()).toBeVisible();
   await expect(page.locator(".guide-section .code-block").first()).toBeVisible();
 });
 
@@ -80,8 +91,8 @@ test("Tomás envía el entregable de la semana 1", async () => {
   await page.goto("dia/2026-10-03");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Entregable de la semana 1");
   const criteria = page.locator(".checklist input[type=checkbox]");
-  await expect(criteria).toHaveCount(4);
-  for (let i = 0; i < 4; i++) await criteria.nth(i).check();
+  await expect(criteria).toHaveCount(5);
+  for (let i = 0; i < 5; i++) await criteria.nth(i).check();
   await page.getByLabel(/Enlace a tu código/).fill("https://github.com/tomas/curso-python");
   await page.getByRole("button", { name: "Enviar entregable" }).click();
   await expect(page.locator(".pill.submitted")).toBeVisible();

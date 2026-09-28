@@ -45,6 +45,9 @@ export interface PlanDay {
   date: string;
   kind: DayKind;
   title: string;
+  summary: string;
+  /** Títulos de los temas del día (vacío en festivos). */
+  topics: string[];
   taskCount: number;
 }
 
@@ -170,6 +173,23 @@ export interface QuizResult {
   review: QuestionReview[];
 }
 
+export interface ScheduleBlock {
+  label: string;
+  minutes: number;
+}
+
+/** Un tema del día (hay dos por día): concepto, ejemplo, guía paso a paso y errores comunes. */
+export interface Topic {
+  title: string;
+  concept: string;
+  tip: string;
+  example: string;
+  language: Language;
+  exampleOutput: string;
+  steps: TutorialStep[];
+  commonErrors: CommonError[];
+}
+
 export interface TutorialStep {
   title: string;
   body: string;
@@ -228,15 +248,10 @@ export interface DayContent {
   summary: string;
   /** Lo que el estudiante va a poder hacer al terminar. */
   objectives: string[];
-  concept: string;
-  /** Consejo práctico del día (errores comunes, cómo estudiar o depurar). */
-  tip: string;
-  example: string;
-  language: Language;
-  exampleOutput: string;
-  /** Guía paso a paso para construir el programa del día. */
-  steps: TutorialStep[];
-  commonErrors: CommonError[];
+  /** Agenda del día (unas 4 horas en total). */
+  schedule: ScheduleBlock[];
+  /** Los temas del día, normalmente dos. */
+  topics: Topic[];
   tasks: string[];
   /** Una pista por tarea, en el mismo orden. */
   taskHints: string[];

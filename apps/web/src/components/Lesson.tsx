@@ -1,11 +1,35 @@
 import { useState } from "react";
-import type { Challenge, CommonError, GlossaryItem, Resource, TutorialStep } from "@tomas/shared";
+import type { Challenge, CommonError, GlossaryItem, Resource, ScheduleBlock, TutorialStep } from "@tomas/shared";
 import { CodeBlock, RichText } from "./CodeBlock";
 import { Icon } from "./Icon";
 
 /** Piezas de la lección del día: guía paso a paso, errores comunes, reto y glosario. */
 
-function Steps({ steps }: { steps: TutorialStep[] }) {
+function Schedule({ blocks }: { blocks: ScheduleBlock[] }) {
+  const total = blocks.reduce((a, b) => a + b.minutes, 0);
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  return (
+    <div className="schedule" aria-label="Agenda del día">
+      <div className="row between">
+        <b>Agenda de hoy</b>
+        <span className="muted small">
+          {hours} h{mins ? ` ${mins} min` : ""} en total
+        </span>
+      </div>
+      <ol className="schedule-list">
+        {blocks.map((b, i) => (
+          <li key={i} style={{ flexGrow: b.minutes }}>
+            <span className="schedule-label">{b.label}</span>
+            <span className="schedule-min">{b.minutes} min</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function Steps({ steps, idPrefix = "s" }: { steps: TutorialStep[]; idPrefix?: string }) {
   const [open, setOpen] = useState<number[]>([0]);
   const toggle = (i: number) => setOpen((o) => (o.includes(i) ? o.filter((x) => x !== i) : [...o, i]));
   const all = open.length === steps.length;
@@ -21,13 +45,13 @@ function Steps({ steps }: { steps: TutorialStep[] }) {
           const isOpen = open.includes(i);
           return (
             <li key={i} className={isOpen ? "open" : ""}>
-              <button type="button" className="step-head" aria-expanded={isOpen} aria-controls={`paso-${i}`} onClick={() => toggle(i)}>
+              <button type="button" className="step-head" aria-expanded={isOpen} aria-controls={`${idPrefix}-paso-${i}`} onClick={() => toggle(i)}>
                 <span className="step-n">{i + 1}</span>
                 <span className="step-title">{s.title}</span>
                 <Icon name={isOpen ? "up" : "down"} size={18} />
               </button>
               {isOpen && (
-                <div className="step-body" id={`paso-${i}`}>
+                <div className="step-body" id={`${idPrefix}-paso-${i}`}>
                   <p>
                     <RichText text={s.body} />
                   </p>
@@ -150,4 +174,4 @@ function Glossary({ items, resources }: { items: GlossaryItem[]; resources: Reso
   );
 }
 
-export const Lesson = { Steps, CommonErrors, Challenge: ChallengeCard, Glossary };
+export const Lesson = { Schedule, Steps, CommonErrors, Challenge: ChallengeCard, Glossary };

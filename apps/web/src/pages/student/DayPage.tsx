@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router";
 import { capitalize, formatLong, type DayResponse } from "@tomas/shared";
-import { CodeBlock, RichText } from "../../components/CodeBlock";
+import { CodeBlock, GlossaryProvider, RichText } from "../../components/CodeBlock";
 import { DeliverablePanel } from "../../components/DeliverablePanel";
 import { Icon } from "../../components/Icon";
 import { Lesson } from "../../components/Lesson";
@@ -80,11 +80,11 @@ function Workshop({ data }: { data: DayResponse }) {
   const done = data.state.status === "done";
 
   return (
-    <>
+    <GlossaryProvider items={day.glossary}>
       <section className="section">
         <h2>
           <span className="step">1</span>
-          Concepto
+          Hoy
         </h2>
         {day.objectives.length > 0 && (
           <div className="objectives">
@@ -98,37 +98,47 @@ function Workshop({ data }: { data: DayResponse }) {
             </ul>
           </div>
         )}
-        <p className="concept">
-          <RichText text={day.concept} />
+        {day.schedule.length > 0 && <Lesson.Schedule blocks={day.schedule} />}
+        <p className="muted small">
+          Puedes leer y estudiar cualquier día del plan, aunque no lo hayas hecho todavía: usa el calendario, el temario o las flechas de arriba.
         </p>
-        <CodeBlock code={day.example} language={day.language} output={day.exampleOutput} />
-        {day.tip && (
-          <aside className="tip" aria-label="Consejo del día">
-            <Icon name="bulb" size={22} />
-            <div>
-              <strong>Consejo del día</strong>
-              <p>
-                <RichText text={day.tip} />
-              </p>
-            </div>
-          </aside>
-        )}
       </section>
 
-      {day.steps.length > 0 && (
-        <section className="section">
+      {day.topics.map((topic, t) => (
+        <section className="section topic" key={t} id={`tema-${t + 1}`}>
           <h2>
-            <span className="step">2</span>
-            Guía paso a paso
+            <span className="step">{t + 2}</span>
+            Tema {t + 1}: {topic.title}
           </h2>
-          <p className="muted">Sigue los pasos en orden. Cada uno se puede abrir y cerrar; el código lo puedes copiar.</p>
-          <Lesson.Steps steps={day.steps} />
+          <p className="concept">
+            <RichText text={topic.concept} />
+          </p>
+          {topic.example && <CodeBlock code={topic.example} language={topic.language} output={topic.exampleOutput} />}
+          {topic.tip && (
+            <aside className="tip" aria-label={`Consejo del tema ${t + 1}`}>
+              <Icon name="bulb" size={22} />
+              <div>
+                <strong>Consejo</strong>
+                <p>
+                  <RichText text={topic.tip} />
+                </p>
+              </div>
+            </aside>
+          )}
+          {topic.steps.length > 0 && (
+            <>
+              <h3 className="sub-heading">Guía paso a paso</h3>
+              <p className="muted">Sigue los pasos en orden. Cada uno se puede abrir y cerrar; el código lo puedes copiar.</p>
+              <Lesson.Steps steps={topic.steps} idPrefix={`t${t}`} />
+            </>
+          )}
+          {topic.commonErrors.length > 0 && <Lesson.CommonErrors errors={topic.commonErrors} />}
         </section>
-      )}
+      ))}
 
       <section className="section">
         <h2>
-          <span className="step">3</span>
+          <span className="step">{day.topics.length + 2}</span>
           Taller
         </h2>
         <p className="muted">Haz cada tarea en tu computador y márcala cuando la termines. Si te atascas, abre la pista.</p>
@@ -160,7 +170,7 @@ function Workshop({ data }: { data: DayResponse }) {
             </li>
           ))}
         </ul>
-        {day.commonErrors.length > 0 && <Lesson.CommonErrors errors={day.commonErrors} />}
+
         <div className="field">
           <div className="row between">
             <label htmlFor="evidence">Evidencia (opcional)</label>
@@ -184,7 +194,7 @@ function Workshop({ data }: { data: DayResponse }) {
       {day.challenge && (
         <section className="section" id="reto">
           <h2>
-            <span className="step">4</span>
+            <span className="step">{day.topics.length + 3}</span>
             Reto extra
           </h2>
           <Lesson.Challenge challenge={day.challenge} done={challengeDone} onDone={setChallengeDone} />
@@ -194,13 +204,13 @@ function Workshop({ data }: { data: DayResponse }) {
       {data.questions.length > 0 && (
         <section className="section" id="evaluacion">
           <h2>
-            <span className="step">5</span>
+            <span className="step">{day.topics.length + 4}</span>
             Evaluación del día
           </h2>
           <Quiz
             key={data.date}
             questions={data.questions}
-            passScore={me.data?.settings.passScore ?? 3}
+            passScore={me.data?.settings.passScore ?? 5}
             attempts={data.quiz.attempts}
             best={data.quiz.best}
             last={data.quiz.last}
@@ -227,13 +237,13 @@ function Workshop({ data }: { data: DayResponse }) {
       {(day.glossary.length > 0 || day.resources.length > 0) && (
         <section className="section">
           <h2>
-            <span className="step">6</span>
+            <span className="step">{day.topics.length + 5}</span>
             Para profundizar
           </h2>
           <Lesson.Glossary items={day.glossary} resources={day.resources} />
         </section>
       )}
-    </>
+    </GlossaryProvider>
   );
 }
 
@@ -333,7 +343,7 @@ export function DayPage() {
       {deliverable && (
         <div className="stack" style={isWorkshop ? { borderTop: "1px solid var(--rule)", paddingTop: 28 } : undefined}>
           {isWorkshop && <h2 style={{ fontSize: "1.6rem", fontWeight: 800 }}>{deliverable.title}</h2>}
-          <DeliverablePanel deliverable={deliverable} startStep={isWorkshop ? 7 : 1} />
+          <DeliverablePanel deliverable={deliverable} startStep={isWorkshop ? (head?.topics.length ?? 2) + 6 : 1} />
         </div>
       )}
     </div>

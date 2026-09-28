@@ -24,17 +24,23 @@ test("Tomás completa el taller del día: tareas y evaluación", async ({ page, 
 
   await page.getByRole("link", { name: "Empezar" }).click();
   await expect(page).toHaveURL(/\/dia\/2026-10-07/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("and, or, not");
-  await expect(page.getByRole("complementary", { name: "Consejo del día" })).toContainText("2024 (sí)");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bucles anidados y patrones");
+  await expect(page.getByRole("heading", { name: "Tema 1: for dentro de for" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tema 2: Menús con while" })).toBeVisible();
+  await expect(page.getByLabel("Agenda del día")).toContainText("4 h");
+  await expect(page.getByRole("complementary", { name: "Consejo del tema 1" })).toContainText("imprime los valores");
+  // Los términos del glosario muestran su definición al recibir el foco.
+  await page.locator(".term").first().focus();
+  await expect(page.locator(".term").first().locator(".tooltip")).toBeVisible();
 
   const tasks = page.locator(".checklist input[type=checkbox]");
-  await expect(tasks).toHaveCount(3);
-  for (let i = 0; i < 3; i++) await tasks.nth(i).check();
+  await expect(tasks).toHaveCount(5);
+  for (let i = 0; i < 5; i++) await tasks.nth(i).check();
 
   // La lección completa está en pantalla: guía paso a paso, pistas, reto y glosario.
-  await expect(page.getByRole("heading", { name: "Guía paso a paso" })).toBeVisible();
-  await page.getByRole("button", { name: "Abrir todos" }).click();
-  await expect(page.locator(".step-body")).toHaveCount(await page.locator(".step-list li").count());
+  await expect(page.getByRole("heading", { name: "Guía paso a paso" }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Abrir todos" }).first().click();
+  await expect(page.locator(".step-list").first().locator(".step-body")).toHaveCount(await page.locator(".step-list").first().locator("li").count());
   await page.getByRole("button", { name: "Ver pista" }).first().click();
   await expect(page.locator(".hint-text").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Reto extra" })).toBeVisible();
@@ -43,23 +49,23 @@ test("Tomás completa el taller del día: tareas y evaluación", async ({ page, 
   await page.getByLabel("Hice el reto").check();
   await expect(page.getByLabel("Hice el reto")).toBeChecked();
 
-  // Primer intento con tres respuestas malas: no aprueba (4 de 6 es suficiente, 3 no).
-  const wrong = answers.map((a, i) => (i < 3 ? ((a as number) + 1) % 2 : a));
+  // Primer intento con cuatro respuestas malas: no aprueba (5 de 8 es suficiente, 4 no).
+  const wrong = answers.map((a, i) => (i < 4 ? ((a as number) + 1) % 2 : a));
   await answerQuiz(page, wrong);
   await page.getByRole("button", { name: "Calificar" }).click();
-  await expect(page.locator(".result .score")).toHaveText("3 / 6");
+  await expect(page.locator(".result .score")).toHaveText("4 / 8");
   await expect(page.getByText("Incorrecto.").first()).toBeVisible();
   await expect(page.getByText(/Qué repasar/)).toBeVisible();
 
   await page.getByRole("button", { name: "Intentar de nuevo" }).click();
   await answerQuiz(page, answers);
   await page.getByRole("button", { name: "Calificar" }).click();
-  await expect(page.locator(".result .score")).toHaveText("6 / 6");
+  await expect(page.locator(".result .score")).toHaveText("8 / 8");
   await expect(page.getByText("Taller completo")).toBeVisible();
 
   await page.goto("/");
-  const workshops = page.locator(".stat").filter({ has: page.locator("dt", { hasText: /^Talleres$/ }) });
-  await expect(workshops.locator("dd").first()).toContainText("1 / 62");
+  const workshops = page.locator(".stat").filter({ has: page.locator("dt", { hasText: /^Talleres/ }) });
+  await expect(workshops.locator("dd").first()).toContainText("1 / 64");
 });
 
 test("la evidencia del taller se guarda sola", async ({ page }) => {
@@ -87,8 +93,9 @@ test("Tomás envía el entregable de la semana 1", async ({ page }) => {
   const send = page.getByRole("button", { name: "Enviar entregable" });
   await expect(send).toBeDisabled();
   const criteria = page.locator(".checklist input[type=checkbox]");
-  await expect(criteria).toHaveCount(4);
-  for (let i = 0; i < 4; i++) await criteria.nth(i).check();
+  await expect(criteria).toHaveCount(5);
+  for (let i = 0; i < 5; i++) await criteria.nth(i).check();
+  await expect(page.getByRole("heading", { name: "Cómo abordarlo" })).toBeVisible();
   await page.getByLabel(/Enlace a tu código/).fill("https://github.com/tomas/curso-python/tree/main/semana-01");
   await expect(send).toBeEnabled();
   await send.click();

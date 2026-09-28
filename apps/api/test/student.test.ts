@@ -10,11 +10,11 @@ beforeAll(async () => {
 });
 
 describe("plan y avance", () => {
-  it("entrega el plan completo: 15 semanas, 62 talleres y 15 entregables", async () => {
+  it("entrega el plan completo: 15 semanas, 64 talleres y 15 entregables", async () => {
     const plan = (await api.get("/api/plan")).json();
     expect(plan.weeks).toHaveLength(15);
     const workshops = plan.weeks.flatMap((w: { days: { kind: string }[] }) => w.days).filter((d: { kind: string }) => d.kind === "workshop");
-    expect(workshops).toHaveLength(62);
+    expect(workshops).toHaveLength(64);
     expect(plan.weeks.filter((w: { deliverable: unknown }) => w.deliverable)).toHaveLength(15);
     expect(plan.start).toBe("2026-09-27");
     expect(plan.end).toBe("2026-12-30");
@@ -38,19 +38,20 @@ describe("taller del día", () => {
     const res = await api.get(`/api/days/${DATE}`);
     expect(res.statusCode).toBe(200);
     const day: DayResponse = res.json();
-    expect(day.day?.title).toBe("Números y operadores");
-    expect(day.day?.tip).toContain("`//` da la parte entera");
-    expect(day.questions).toHaveLength(6);
-    expect(day.questions.map((q) => q.type)).toEqual(["choice", "choice", "choice", "boolean", "output", "fill"]);
+    expect(day.day?.title).toBe("Números y entrada de datos");
+    expect(day.day?.topics.map((t) => t.title)).toEqual(["Operadores aritméticos", "input() y conversión de tipos"]);
+    expect(day.day?.schedule.reduce((a, b) => a + b.minutes, 0)).toBeGreaterThanOrEqual(220);
+    expect(day.questions).toHaveLength(8);
+    expect(day.questions.map((q) => q.type)).toEqual(["choice", "choice", "choice", "boolean", "output", "output", "fill", "fill"]);
     expect(day.questions.every((q) => q.hint.length > 0)).toBe(true);
     expect(res.body).not.toContain("correctIndex");
     expect(res.body).not.toContain("accepted");
     expect(res.body).not.toContain("explanation");
     expect(res.body).not.toContain("optionFeedback");
     expect(day.day?.objectives.length).toBeGreaterThanOrEqual(2);
-    expect(day.day?.steps.length).toBeGreaterThanOrEqual(4);
-    expect(day.day?.commonErrors.length).toBeGreaterThanOrEqual(2);
-    expect(day.day?.taskHints).toHaveLength(3);
+    expect(day.day?.topics[0].steps.length).toBeGreaterThanOrEqual(3);
+    expect(day.day?.topics[1].commonErrors.length).toBeGreaterThanOrEqual(2);
+    expect(day.day?.taskHints).toHaveLength(day.day?.tasks.length ?? 0);
     expect(day.day?.challenge?.solution.length).toBeGreaterThan(0);
     expect(day.day?.glossary.length).toBeGreaterThanOrEqual(2);
     expect(day.day?.resources[0]?.url).toMatch(/^https:\/\//);
@@ -64,9 +65,9 @@ describe("taller del día", () => {
   });
 
   it("no da el taller por completo solo con las tareas", async () => {
-    const res = await api.put(`/api/days/${DATE}/progress`, { tasks: [true, true, true], evidence: "print(2 ** 10)" });
+    const res = await api.put(`/api/days/${DATE}/progress`, { tasks: [true, true, true, true, true], evidence: "print(2 ** 10)" });
     expect(res.statusCode).toBe(200);
-    expect(res.json().state).toMatchObject({ tasksDone: 3, status: "overdue" });
+    expect(res.json().state).toMatchObject({ tasksDone: 5, status: "overdue" });
   });
 
   it("califica en el servidor, guarda la mejor nota y explica cada respuesta", async () => {
@@ -74,7 +75,7 @@ describe("taller del día", () => {
     const wrong = wrongAnswers(correct);
 
     const first: QuizResult = (await api.post(`/api/days/${DATE}/quiz`, { answers: wrong, hints: [0, 4, 4] })).json();
-    expect(first).toMatchObject({ score: 0, total: 6, passed: false, attempts: 1, best: 0, hintsUsed: [0, 4] });
+    expect(first).toMatchObject({ score: 0, total: 8, passed: false, attempts: 1, best: 0, hintsUsed: [0, 4] });
     expect(first.review.every((r) => !r.isCorrect && r.explanation.length > 0)).toBe(true);
     expect(first.review[0].feedback.length).toBeGreaterThan(0);
     expect(first.review[4].correct).toBe(correct[4]);
@@ -82,17 +83,17 @@ describe("taller del día", () => {
     // Las respuestas escritas aceptan variantes: mayúsculas, espacios alrededor y comillas.
     const relaxed = correct.map((c) => (typeof c === "string" ? ` ${c.toUpperCase()} ` : c));
     const second: QuizResult = (await api.post(`/api/days/${DATE}/quiz`, { answers: relaxed })).json();
-    expect(second).toMatchObject({ score: 6, passed: true, attempts: 2, best: 6, hintsUsed: [] });
+    expect(second).toMatchObject({ score: 8, passed: true, attempts: 2, best: 8, hintsUsed: [] });
 
     const third: QuizResult = (await api.post(`/api/days/${DATE}/quiz`, { answers: wrong })).json();
-    expect(third).toMatchObject({ score: 0, passed: false, attempts: 3, best: 6 });
+    expect(third).toMatchObject({ score: 0, passed: false, attempts: 3, best: 8 });
   });
 
   it("rechaza respuestas incompletas, fuera de rango o del tipo equivocado", async () => {
     expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1] })).statusCode).toBe(400);
-    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 9, "x", "y"] })).statusCode).toBe(400);
-    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 1, 0, "y"] })).statusCode).toBe(400);
-    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 1, "x", 0] })).statusCode).toBe(400);
+    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 9, "x", "y", "a", "b"] })).statusCode).toBe(400);
+    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 1, 0, "y", "a", "b"] })).statusCode).toBe(400);
+    expect((await api.post(`/api/days/${DATE}/quiz`, { answers: [0, 1, 2, 1, "x", "y", "a", 0] })).statusCode).toBe(400);
   });
 
   it("guarda el reto extra como hecho", async () => {
@@ -107,7 +108,7 @@ describe("taller del día", () => {
     const day: DayResponse = (await api.get(`/api/days/${DATE}`)).json();
     expect(day.state.status).toBe("done");
     expect(day.progress.completedAt).not.toBeNull();
-    expect(day.quiz.last?.review).toHaveLength(6);
+    expect(day.quiz.last?.review).toHaveLength(8);
     const progress: ProgressView = (await api.get("/api/progress")).json();
     expect(progress.totals.workshopsDone).toBe(1);
     expect(progress.totals.quizAverage).toBe(1);
@@ -115,11 +116,11 @@ describe("taller del día", () => {
   });
 
   it("vuelve a abrir el taller si se desmarca una tarea", async () => {
-    await api.put(`/api/days/${DATE}/progress`, { tasks: [true, false, true] });
+    await api.put(`/api/days/${DATE}/progress`, { tasks: [true, false, true, true, true] });
     const day: DayResponse = (await api.get(`/api/days/${DATE}`)).json();
     expect(day.state.status).toBe("overdue");
     expect(day.progress.completedAt).toBeNull();
-    await api.put(`/api/days/${DATE}/progress`, { tasks: [true, true, true] });
+    await api.put(`/api/days/${DATE}/progress`, { tasks: [true, true, true, true, true] });
   });
 
   it("responde 404 para fechas fuera del plan o inválidas", async () => {
@@ -139,13 +140,13 @@ describe("entregables", () => {
   const ID = "s01";
 
   it("no deja enviar sin criterios ni evidencia", async () => {
-    await api.put(`/api/deliverables/${ID}`, { criteria: [true, false, false, false] });
+    await api.put(`/api/deliverables/${ID}`, { criteria: [true, false, false, false, false] });
     const res = await api.post(`/api/deliverables/${ID}/submit`);
     expect(res.statusCode).toBe(400);
   });
 
   it("envía cuando todo está completo y bloquea la edición", async () => {
-    await api.put(`/api/deliverables/${ID}`, { criteria: [true, true, true, true], evidence: "https://github.com/tomas/curso" });
+    await api.put(`/api/deliverables/${ID}`, { criteria: [true, true, true, true, true], evidence: "https://github.com/tomas/curso" });
     const sent = await api.post(`/api/deliverables/${ID}/submit`);
     expect(sent.statusCode).toBe(200);
     const view: DeliverableView = sent.json();

@@ -3,7 +3,7 @@
  * (sin hora), lo que evita errores de zona horaria al comparar días.
  */
 
-export const DEFAULT_TIME_ZONE = "America/Bogota";
+export const DEFAULT_TIME_ZONE = "America/Costa_Rica";
 
 const WEEKDAYS_SHORT = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"] as const;
 const WEEKDAYS_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;

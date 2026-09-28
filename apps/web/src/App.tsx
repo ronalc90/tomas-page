@@ -10,6 +10,7 @@ import { AccountPage } from "./pages/student/AccountPage";
 import { DashboardPage } from "./pages/student/DashboardPage";
 import { DayPage, TodayRedirect } from "./pages/student/DayPage";
 import { DeliverablesPage } from "./pages/student/DeliverablesPage";
+import { SyllabusPage } from "./pages/student/SyllabusPage";
 
 // El panel de administración se carga aparte: el estudiante nunca descarga ese código.
 const AdminRoutes = lazy(() => import("./pages/admin/AdminRoutes"));
@@ -43,6 +44,7 @@ export function App() {
         <Route path="hoy" element={<TodayRedirect />} />
         <Route path="dia/:date" element={<DayPage />} />
         <Route path="entregables" element={<DeliverablesPage />} />
+        <Route path="temario" element={<SyllabusPage />} />
         <Route
           path="guias"
           element={

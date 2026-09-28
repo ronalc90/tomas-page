@@ -35,7 +35,7 @@ export function dateTime(iso: string | null | undefined): string {
     month: "short",
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "America/Bogota",
+    timeZone: "America/Costa_Rica",
   });
 }
 

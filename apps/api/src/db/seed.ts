@@ -8,13 +8,16 @@ import plan from "@tomas/shared/plan.json";
 
 type PlanJson = typeof plan;
 type PlanWeek = PlanJson["weeks"][number];
-type PlanDayJson = Omit<PlanWeek["days"][number], "questions" | "steps" | "challenge"> & Partial<DayContent> & { questions?: AdminQuestion[] };
+type PlanDayJson = Omit<PlanWeek["days"][number], "questions" | "topics" | "challenge" | "schedule"> & Partial<DayContent> & { questions?: AdminQuestion[] };
 
 export const DEFAULT_SETTINGS = {
-  passScore: 4,
-  timeZone: "America/Bogota",
+  passScore: 5,
+  timeZone: "America/Costa_Rica",
   programName: "Plan de Tomás · Python y SQL",
 };
+
+/** Versión del contenido empaquetado. Sube cuando cambia la estructura del plan (no por ediciones del admin). */
+export const CONTENT_VERSION = 3;
 
 /** Carga el contenido del plan. Si ya hay contenido y no se pide reset, no toca nada (respeta las ediciones del admin). */
 export async function seedContent(db: Database, options: { reset?: boolean } = {}): Promise<boolean> {
@@ -28,13 +31,7 @@ export async function seedContent(db: Database, options: { reset?: boolean } = {
     }
     await tx.insert(phases).values(data.phases);
     for (const w of data.weeks) {
-      await tx.insert(weeks).values({
-        id: w.id,
-        number: w.number,
-        phaseId: w.phaseId,
-        title: w.title,
-        rangeLabel: w.rangeLabel,
-      });
+      await tx.insert(weeks).values({ id: w.id, number: w.number, phaseId: w.phaseId, title: w.title, rangeLabel: w.rangeLabel });
       for (const d of w.days) {
         const full = d as unknown as PlanDayJson;
         await tx.insert(days).values({ date: d.date, weekId: w.id, ...dayColumns(full) });
@@ -42,8 +39,59 @@ export async function seedContent(db: Database, options: { reset?: boolean } = {
           await tx.insert(questions).values(full.questions.map((q, i) => questionRow(q, d.date, i)));
         }
       }
-      await tx.insert(deliverables).values({ id: w.id, weekId: w.id, ...w.deliverable });
+      await tx.insert(deliverables).values({ id: w.id, weekId: w.id, ...deliverableColumns(w.deliverable) });
     }
+    await tx.insert(settings).values({ key: "contentVersion", value: CONTENT_VERSION }).onConflictDoUpdate({ target: settings.key, set: { value: CONTENT_VERSION } });
+  });
+  return true;
+}
+
+/**
+ * Bases con contenido de una versión anterior del plan: se reemplaza todo el contenido (fases, semanas,
+ * días, entregables y preguntas) por el actual SIN borrar el avance de los estudiantes. Las filas de
+ * avance quedan ligadas a la fecha, así que lo hecho en una fecha se conserva aunque el taller cambie.
+ * Las ediciones del administrador sobre el contenido viejo no se conservan (ya no aplican).
+ * La nota mínima pasa a 5 si todavía tenía el valor por defecto de una versión anterior (3 o 4).
+ */
+export async function syncContentVersion(db: Database): Promise<boolean> {
+  const [row] = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, "contentVersion"));
+  const current = typeof row?.value === "number" ? row.value : 0;
+  if (current >= CONTENT_VERSION) return false;
+  const data = plan as PlanJson;
+  await db.transaction(async (tx) => {
+    for (const p of data.phases) {
+      await tx.insert(phases).values(p).onConflictDoUpdate({ target: phases.id, set: { name: p.name, rangeLabel: p.rangeLabel, goal: p.goal } });
+    }
+    const keepDates = new Set<string>();
+    for (const w of data.weeks) {
+      const weekRow = { id: w.id, number: w.number, phaseId: w.phaseId, title: w.title, rangeLabel: w.rangeLabel };
+      await tx.insert(weeks).values(weekRow).onConflictDoUpdate({ target: weeks.id, set: weekRow });
+      for (const d of w.days) {
+        keepDates.add(d.date);
+        const full = d as unknown as PlanDayJson;
+        const cols = dayColumns(full);
+        await tx
+          .insert(days)
+          .values({ date: d.date, weekId: w.id, ...cols })
+          .onConflictDoUpdate({ target: days.date, set: { weekId: w.id, ...cols, updatedAt: sql`now()` } });
+        await tx.delete(questions).where(eq(questions.date, d.date));
+        if (full.questions?.length) {
+          await tx.insert(questions).values(full.questions.map((q, i) => questionRow(q, d.date, i)));
+        }
+      }
+      const dcols = deliverableColumns(w.deliverable);
+      await tx
+        .insert(deliverables)
+        .values({ id: w.id, weekId: w.id, ...dcols })
+        .onConflictDoUpdate({ target: deliverables.id, set: dcols });
+    }
+    const existing = await tx.select({ date: days.date }).from(days);
+    for (const { date } of existing) {
+      if (!keepDates.has(date)) await tx.delete(days).where(eq(days.date, date));
+    }
+    await tx.execute(sql`UPDATE settings SET value = '5'::jsonb WHERE key = 'passScore' AND value IN ('3'::jsonb, '4'::jsonb)`);
+    await tx.execute(sql`UPDATE settings SET value = '"America/Costa_Rica"'::jsonb WHERE key = 'timeZone' AND value = '"America/Bogota"'::jsonb`);
+    await tx.insert(settings).values({ key: "contentVersion", value: CONTENT_VERSION }).onConflictDoUpdate({ target: settings.key, set: { value: CONTENT_VERSION } });
   });
   return true;
 }
@@ -54,18 +102,28 @@ function dayColumns(d: PlanDayJson) {
     title: d.title,
     summary: d.summary,
     objectives: d.objectives ?? [],
-    concept: d.concept ?? "",
-    tip: d.tip ?? "",
-    example: d.example ?? "",
-    language: d.language ?? "python",
-    exampleOutput: d.exampleOutput ?? "",
-    steps: d.steps ?? [],
-    commonErrors: d.commonErrors ?? [],
+    schedule: d.schedule ?? [],
+    topics: d.topics ?? [],
     tasks: d.tasks ?? [],
     taskHints: d.taskHints ?? [],
     challenge: d.challenge ?? null,
     glossary: d.glossary ?? [],
     resources: d.resources ?? [],
+  };
+}
+
+function deliverableColumns(d: PlanWeek["deliverable"]) {
+  const full = d as typeof d & { steps?: string[]; tips?: string[]; stretch?: string; checklist?: string[] };
+  return {
+    dueDate: d.dueDate,
+    kind: d.kind,
+    path: d.path,
+    description: d.description,
+    criteria: d.criteria,
+    steps: full.steps ?? [],
+    tips: full.tips ?? [],
+    stretch: full.stretch ?? "",
+    checklist: full.checklist ?? [],
   };
 }
 
@@ -83,54 +141,6 @@ function questionRow(q: AdminQuestion, date: string, position: number) {
     explanation: q.explanation,
     hint: q.hint ?? "",
   };
-}
-
-/**
- * Bases creadas con la primera versión del contenido (solo concepto, tareas y 4 preguntas de opción
- * múltiple): se completan las lecciones (objetivos, guía paso a paso, errores comunes, pistas, reto,
- * glosario, recursos y guías de los entregables) y se reemplazan las evaluaciones por las de 6 preguntas
- * de varios tipos. Solo ocurre si ninguna pregunta es de un tipo nuevo, es decir, una sola vez; después
- * las ediciones del administrador mandan. La nota mínima pasa de 3 a 4 si nadie la había cambiado.
- */
-export async function seedLessonsV2(db: Database): Promise<boolean> {
-  const [{ value: newTypes }] = await db.select({ value: count() }).from(questions).where(sql`${questions.type} <> 'choice'`);
-  if (newTypes > 0) return false;
-  await db.transaction(async (tx) => {
-    for (const w of (plan as PlanJson).weeks) {
-      for (const d of w.days) {
-        const full = d as unknown as PlanDayJson;
-        const { kind: _kind, title: _title, summary: _summary, concept: _concept, tip: _tip, example: _example, language: _language, exampleOutput: _out, tasks: _tasks, ...lesson } = dayColumns(full);
-        await tx.update(days).set(lesson).where(eq(days.date, d.date));
-        await tx.delete(questions).where(eq(questions.date, d.date));
-        if (full.questions?.length) {
-          await tx.insert(questions).values(full.questions.map((q, i) => questionRow(q, d.date, i)));
-        }
-      }
-      const { steps, tips, stretch, checklist } = w.deliverable;
-      await tx.update(deliverables).set({ steps, tips, stretch, checklist }).where(eq(deliverables.id, w.id));
-    }
-    await tx.execute(sql`UPDATE settings SET value = '4'::jsonb WHERE key = 'passScore' AND value = '3'::jsonb`);
-  });
-  return true;
-}
-
-/**
- * Bases creadas antes de que existiera el consejo del día: si ningún taller tiene consejo,
- * se copian los del plan. Si el administrador ya escribió alguno, no se toca nada.
- */
-export async function seedTips(db: Database): Promise<number> {
-  const [{ value: withTip }] = await db.select({ value: count() }).from(days).where(sql`${days.tip} <> ''`);
-  if (withTip > 0) return 0;
-  let filled = 0;
-  for (const w of (plan as PlanJson).weeks) {
-    for (const d of w.days) {
-      const tip = (d as { tip?: string }).tip;
-      if (!tip) continue;
-      const updated = await db.update(days).set({ tip }).where(eq(days.date, d.date)).returning({ date: days.date });
-      filled += updated.length;
-    }
-  }
-  return filled;
 }
 
 export async function seedSettings(db: Database): Promise<void> {
@@ -172,10 +182,7 @@ export async function seedUsers(db: Database, seed: Config["seed"]): Promise<str
 
 export async function seedAll(db: Database, config: Config, options: { resetContent?: boolean } = {}) {
   const content = await seedContent(db, { reset: options.resetContent });
-  if (!content) {
-    await seedTips(db);
-    await seedLessonsV2(db);
-  }
+  if (!content) await syncContentVersion(db);
   await seedSettings(db);
   const createdUsers = await seedUsers(db, config.seed);
   return { content, createdUsers };

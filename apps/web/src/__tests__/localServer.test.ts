@@ -62,19 +62,21 @@ describe("modo sin servidor", () => {
     const before = await call<DayResponse>("GET", "/api/days/2026-10-07");
     expect(JSON.stringify(before.questions)).not.toContain("correctIndex");
     expect(JSON.stringify(before.questions)).not.toContain("accepted");
-    expect(before.questions.map((q) => q.type)).toEqual(["choice", "choice", "choice", "boolean", "output", "fill"]);
-    expect(before.day?.steps.length).toBeGreaterThanOrEqual(4);
+    expect(before.questions.map((q) => q.type)).toEqual(["choice", "choice", "choice", "boolean", "output", "output", "fill", "fill"]);
+    expect(before.day?.topics).toHaveLength(2);
+    expect(before.day?.topics[0].steps.length).toBeGreaterThanOrEqual(3);
+    expect(before.day?.schedule.reduce((a, b) => a + b.minutes, 0)).toBeGreaterThanOrEqual(220);
     expect(before.day?.challenge?.title).toBeTruthy();
-    await call("PUT", "/api/days/2026-10-07/progress", { tasks: [true, true, true] });
+    await call("PUT", "/api/days/2026-10-07/progress", { tasks: [true, true, true, true, true] });
     const wrong = await call<QuizResult>("POST", "/api/days/2026-10-07/quiz", { answers: wrongAnswers(answers), hints: [4] });
     expect(wrong.passed).toBe(false);
-    expect(wrong.score).toBeLessThan(3);
+    expect(wrong.score).toBeLessThan(5);
     expect(wrong.hintsUsed).toEqual([4]);
     expect(wrong.review[4]).toMatchObject({ isCorrect: false, correct: answers[4] });
     // Las respuestas escritas se aceptan con otras mayúsculas, comillas y espacios.
     const relaxed = answers.map((a) => (typeof a === "string" ? `  ${a.toUpperCase()}  ` : a));
     const right = await call<QuizResult>("POST", "/api/days/2026-10-07/quiz", { answers: relaxed });
-    expect(right).toMatchObject({ score: 6, passed: true, attempts: 2, best: 6 });
+    expect(right).toMatchObject({ score: 8, passed: true, attempts: 2, best: 8 });
     expect(right.review[0].feedback.length).toBeGreaterThan(0);
     const progress = await call<ProgressView>("GET", "/api/progress");
     expect(progress.days["2026-10-07"].status).toBe("done");
@@ -85,7 +87,7 @@ describe("modo sin servidor", () => {
   it("envía un entregable, el administrador pide cambios y luego lo aprueba", async () => {
     const { user } = await login("tomas", "1234");
     await expect(call("POST", "/api/deliverables/s01/submit")).rejects.toMatchObject({ status: 400 });
-    await call("PUT", "/api/deliverables/s01", { criteria: [true, true, true, true], evidence: "https://github.com/tomas/x" });
+    await call("PUT", "/api/deliverables/s01", { criteria: [true, true, true, true, true], evidence: "https://github.com/tomas/x" });
     const sent = await call<DeliverableView>("POST", "/api/deliverables/s01/submit");
     expect(sent.submission?.status).toBe("submitted");
     await call("POST", "/api/auth/logout");
@@ -110,9 +112,9 @@ describe("modo sin servidor", () => {
   it("el administrador edita contenido, crea usuarios y cambia ajustes", async () => {
     await login("admin", "admin-tomas-2026");
     const day = await call<Record<string, unknown>>("GET", "/api/admin/days/2026-10-05");
-    await call("PUT", "/api/admin/days/2026-10-05", { ...day, title: "if, else (editado)" });
+    await call("PUT", "/api/admin/days/2026-10-05", { ...day, title: "while (editado)" });
     const plan = await call<{ weeks: { days: { date: string; title: string }[] }[] }>("GET", "/api/plan");
-    expect(plan.weeks.flatMap((w) => w.days).find((d) => d.date === "2026-10-05")?.title).toBe("if, else (editado)");
+    expect(plan.weeks.flatMap((w) => w.days).find((d) => d.date === "2026-10-05")?.title).toBe("while (editado)");
 
     await call("POST", "/api/admin/users", { username: "sofia", displayName: "Sofía", role: "student", password: "clave" });
     await expect(call("POST", "/api/admin/users", { username: "sofia", displayName: "Otra", role: "student", password: "clave" })).rejects.toMatchObject({ status: 409 });
@@ -122,36 +124,36 @@ describe("modo sin servidor", () => {
     expect((await call<MeResponse>("GET", "/api/auth/me")).settings.passScore).toBe(4);
   });
 
-  it("muestra el consejo del día y respeta ediciones guardadas antes de que existiera", async () => {
-    await login("tomas", "1234");
-    expect((await call<DayResponse>("GET", "/api/days/2026-10-07")).day?.tip).toContain("2024 (sí)");
-    await call("POST", "/api/auth/logout");
-
+  it("descarta ediciones de una versión anterior del contenido pero conserva el avance", async () => {
     await login("admin", "admin-tomas-2026");
     const day = await call<Record<string, unknown>>("GET", "/api/admin/days/2026-10-06");
-    await call("PUT", "/api/admin/days/2026-10-06", { ...day, tip: "Consejo nuevo." });
-    expect((await call<DayResponse>("GET", "/api/days/2026-10-06")).day?.tip).toBe("Consejo nuevo.");
-    // Una edición de una versión anterior no tiene el campo: se usa el consejo del plan.
+    await call("PUT", "/api/admin/days/2026-10-06", { ...day, title: "Editado" });
+    await call("POST", "/api/auth/logout");
+    await login("tomas", "1234");
+    await call("PUT", "/api/days/2026-10-06/progress", { tasks: [true, true, false, false, false], evidence: "mi avance" });
+    expect((await call<DayResponse>("GET", "/api/days/2026-10-06")).day?.title).toBe("Editado");
+    // Simula una base guardada por la versión anterior (sin número de versión y con nota mínima vieja).
     const { db } = await exportBackup();
-    const { tip: _omit, ...oldOverride } = db.overrides.days["2026-10-06"]!;
-    importBackup(JSON.stringify({ ...db, overrides: { ...db.overrides, days: { "2026-10-05": { ...oldOverride, title: "Editado antes" } } } }));
-    const old = await call<DayResponse>("GET", "/api/days/2026-10-05");
-    expect(old.day?.title).toBe("Editado antes");
-    expect(old.day?.tip).toContain("`==` compara");
+    importBackup(JSON.stringify({ ...db, contentVersion: undefined, settings: { ...db.settings, passScore: 4, timeZone: "America/Bogota" } }));
+    resetCache();
+    const after = await call<DayResponse>("GET", "/api/days/2026-10-06");
+    expect(after.day?.title).toBe("for y range");
+    expect(after.progress.evidence).toBe("mi avance");
+    expect((await call<MeResponse>("GET", "/api/auth/me")).settings).toMatchObject({ passScore: 5, timeZone: "America/Costa_Rica" });
   });
 
   it("exporta e importa una copia de seguridad", async () => {
     await login("tomas", "1234");
-    await call("PUT", "/api/days/2026-10-05/progress", { tasks: [true, false, false] });
+    await call("PUT", "/api/days/2026-10-05/progress", { tasks: [true, false, false, false, false] });
     const backup = await exportBackup();
 
     useStore(memoryStore());
     resetCache();
     await login("tomas", "1234");
-    expect((await call<DayResponse>("GET", "/api/days/2026-10-05")).progress.tasks).toEqual([false, false, false]);
+    expect((await call<DayResponse>("GET", "/api/days/2026-10-05")).progress.tasks).toEqual([false, false, false, false, false]);
 
     importBackup(JSON.stringify(backup));
-    expect((await call<DayResponse>("GET", "/api/days/2026-10-05")).progress.tasks).toEqual([true, false, false]);
+    expect((await call<DayResponse>("GET", "/api/days/2026-10-05")).progress.tasks).toEqual([true, false, false, false, false]);
     expect(() => importBackup("{}")).toThrow("no es una copia");
   });
 });

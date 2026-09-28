@@ -89,7 +89,12 @@ export function DashboardPage() {
           Hola, {name}. <span className="accent">{percent(t.completion)}</span> del plan listo.
         </h1>
         <dl className="stats">
-          <Stat label="Avance total" value={percent(t.completion)} sub="de talleres y entregables" />
+          <Stat
+            label="Avance total"
+            value={percent(t.completion)}
+            sub="de talleres y entregables"
+            help="Porcentaje de talleres completos y entregables enviados sobre el total del plan. Un taller está completo cuando marcaste todas sus tareas y aprobaste la evaluación."
+          />
           <Stat
             label="Talleres"
             value={
@@ -98,11 +103,13 @@ export function DashboardPage() {
               </>
             }
             sub={t.streak > 1 ? `Racha de ${t.streak} seguidos` : "completados"}
+            help="Talleres completos. La racha cuenta cuántos talleres seguidos, sin saltarte ninguno, llevas completos hasta el más reciente."
           />
           <Stat
             label="Evaluaciones"
             value={percent(t.quizAverage)}
             sub={t.quizzesTaken ? `${t.quizzesPassed} aprobadas de ${t.quizzesTaken}` : "aún no presentas ninguna"}
+            help="Promedio de tu mejor nota en cada evaluación presentada. Puedes repetir una evaluación las veces que quieras: siempre cuenta la mejor."
           />
           <Stat
             label="Entregables"
@@ -112,6 +119,7 @@ export function DashboardPage() {
               </>
             }
             sub={t.deliverablesApproved ? `${t.deliverablesApproved} aprobados` : "entregados"}
+            help="Entregables que ya enviaste a revisión. Aprobados son los que el revisor ya dio por buenos; si pide cambios, puedes corregir y reenviar."
           />
         </dl>
         <ProgressBar value={t.completion} label="Avance total del plan" />
@@ -139,11 +147,14 @@ export function DashboardPage() {
           <div className="card-head">
             <h2>Calendario</h2>
             <span className="muted" style={{ fontSize: 14 }}>
-              Toca un día para abrirlo
+              Toca cualquier día para abrirlo, aunque todavía no lo hayas hecho
             </span>
           </div>
           <Calendar plan={plan.data!} progress={p} />
           <CalendarLegend />
+          <p className="muted small" style={{ margin: "12px 0 0" }}>
+            ¿Quieres ver todos los temas de un vistazo? Abre el <Link to="/temario">temario completo</Link>.
+          </p>
         </div>
         <div className="stack">
           <TodayCard plan={plan.data!} progress={p} />

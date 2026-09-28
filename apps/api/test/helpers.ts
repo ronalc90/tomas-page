@@ -29,7 +29,7 @@ export function useTestApp(today = "2026-10-01"): TestEnv {
     });
     env.handle = createDb(config.databaseUrl);
     await env.handle.db.execute(sql`TRUNCATE users, activity RESTART IDENTITY CASCADE`);
-    await env.handle.db.execute(sql`UPDATE settings SET value = '4'::jsonb WHERE key = 'passScore'`);
+    await env.handle.db.execute(sql`UPDATE settings SET value = '5'::jsonb WHERE key = 'passScore'`);
     await seedUsers(env.handle.db, config.seed);
     const built = await buildApp(config, env.handle.db);
     env.app = built.app;

@@ -32,7 +32,7 @@ test("el administrador crea un estudiante que luego puede entrar", async ({ page
 test("el administrador edita un taller y el cambio se ve en la vista del estudiante", async ({ page }) => {
   await login(page, ADMIN);
   await page.goto("/admin/contenido");
-  await page.getByText("Variables, tipos y operaciones").click();
+  await page.getByText("Variables, tipos y texto").click();
   await page.getByRole("link", { name: /Variables y print/ }).click();
   await page.getByLabel("Título del día").fill("Variables y print (actualizado)");
   await page.getByRole("button", { name: "Guardar cambios" }).click();

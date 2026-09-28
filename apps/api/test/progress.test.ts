@@ -81,10 +81,10 @@ describe("computeProgress", () => {
 });
 
 describe("fechas", () => {
-  it("usa la zona horaria de Bogotá para decidir qué día es hoy", () => {
-    // 2026-10-01 03:00 UTC es todavía 30 de septiembre en Bogotá (UTC-5).
-    expect(todayIn("America/Bogota", new Date("2026-10-01T03:00:00Z"))).toBe("2026-09-30");
-    expect(todayIn("America/Bogota", new Date("2026-10-01T06:00:00Z"))).toBe("2026-10-01");
+  it("usa la zona horaria de Costa Rica para decidir qué día es hoy", () => {
+    // 2026-10-01 05:00 UTC es todavía 30 de septiembre en Costa Rica (UTC-6).
+    expect(todayIn("America/Costa_Rica", new Date("2026-10-01T05:00:00Z"))).toBe("2026-09-30");
+    expect(todayIn("America/Costa_Rica", new Date("2026-10-01T07:00:00Z"))).toBe("2026-10-01");
   });
 
   it("suma días, calcula lunes y valida fechas", () => {

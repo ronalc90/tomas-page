@@ -3,7 +3,7 @@
  * Todo vive en el almacenamiento del navegador. El contenido del plan viene
  * empaquetado con la página; aquí solo se guardan las ediciones del administrador.
  */
-import type { AdminQuestion, Answer, Challenge, CommonError, DeliverableKind, DayKind, GlossaryItem, Language, Resource, Role, SubmissionStatus, TutorialStep } from "@tomas/shared";
+import type { AdminQuestion, Answer, Challenge, DeliverableKind, DayKind, GlossaryItem, Resource, Role, ScheduleBlock, SubmissionStatus, Topic } from "@tomas/shared";
 
 export const STORAGE_KEY = "tp-local-db-v1";
 export const SESSION_KEY = "tp-local-session";
@@ -24,20 +24,14 @@ export interface LocalUser {
 export interface DayOverride {
   title: string;
   summary: string;
-  concept: string;
-  /** Los campos opcionales faltan en ediciones guardadas por versiones anteriores: se usa lo del plan. */
-  tip?: string;
-  objectives?: string[];
-  example: string;
-  language: Language;
-  exampleOutput: string;
-  steps?: TutorialStep[];
-  commonErrors?: CommonError[];
+  objectives: string[];
+  schedule: ScheduleBlock[];
+  topics: Topic[];
   tasks: string[];
-  taskHints?: string[];
-  challenge?: Challenge | null;
-  glossary?: GlossaryItem[];
-  resources?: Resource[];
+  taskHints: string[];
+  challenge: Challenge | null;
+  glossary: GlossaryItem[];
+  resources: Resource[];
   questions: AdminQuestion[];
   updatedAt: string;
 }
@@ -179,15 +173,19 @@ function isDb(value: unknown): value is LocalDb {
   return Boolean(v && v.version === 1 && Array.isArray(v.users) && v.overrides && v.settings);
 }
 
-export const CONTENT_VERSION = 2;
+export const CONTENT_VERSION = 3;
 
 /**
- * Bases guardadas con la primera versión del contenido: las evaluaciones pasaron de 4 a 6 preguntas,
- * así que la nota mínima sube de 3 a 4 si nadie la había cambiado. Devuelve true si cambió algo.
+ * Bases guardadas con una versión anterior del contenido. El plan cambió de forma (dos temas por día,
+ * 8 preguntas, feriados de Costa Rica), así que las ediciones del administrador sobre los días viejos ya
+ * no aplican y se descartan; el avance del estudiante se conserva por fecha. La nota mínima sube a 5 si
+ * todavía tenía el valor por defecto anterior (3 o 4). Devuelve true si cambió algo.
  */
 function upgradeContent(db: LocalDb): boolean {
   if ((db.contentVersion ?? 1) >= CONTENT_VERSION) return false;
-  if (db.settings.passScore === 3) db.settings.passScore = 4;
+  if (db.settings.passScore === 3 || db.settings.passScore === 4) db.settings.passScore = 5;
+  if (db.settings.timeZone === "America/Bogota") db.settings.timeZone = "America/Costa_Rica";
+  db.overrides.days = {};
   db.contentVersion = CONTENT_VERSION;
   return true;
 }
@@ -230,7 +228,7 @@ async function createDb(): Promise<LocalDb> {
     quizAttempts: [],
     submissions: {},
     activity: [],
-    settings: { passScore: 4, programName: "Plan de Tomás · Python y SQL", timeZone: "America/Bogota" },
+    settings: { passScore: 5, programName: "Plan de Tomás · Python y SQL", timeZone: "America/Costa_Rica" },
   };
   await ensureDefaultAccounts(db);
   return db;

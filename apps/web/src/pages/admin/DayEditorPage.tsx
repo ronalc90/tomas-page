@@ -1,14 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 import { capitalize, formatLong, type AdminDay } from "@tomas/shared";
-import { CodeBlock } from "../../components/CodeBlock";
 import { Icon } from "../../components/Icon";
 import { useToast } from "../../components/Toast";
 import { ErrorState, Field, Loading, PageHeader } from "../../components/ui";
 import { ApiError, errorMessage } from "../../lib/api";
 import { relativeTime } from "../../lib/format";
 import { useAdminDay, useSaveAdminDay } from "../../lib/queries";
-import { ChallengeEditor, CommonErrorsEditor, emptyQuestion, GlossaryEditor, LanguageSelect, QuestionEditor, ResourcesEditor, StepsEditor, TextList } from "./LessonEditors";
+import { ChallengeEditor, emptyQuestion, GlossaryEditor, QuestionEditor, ResourcesEditor, ScheduleEditor, TextList, TopicsEditor } from "./LessonEditors";
 
 export function DayEditorPage() {
   const { date = "" } = useParams();
@@ -50,13 +49,8 @@ export function DayEditorPage() {
         title: f.title,
         summary: f.summary,
         objectives: f.objectives.map((t) => t.trim()).filter(Boolean),
-        concept: f.concept,
-        tip: f.tip,
-        example: f.example,
-        language: f.language,
-        exampleOutput: f.exampleOutput,
-        steps: f.steps,
-        commonErrors: f.commonErrors,
+        schedule: f.schedule.filter((b) => b.label.trim()),
+        topics: f.topics,
         tasks: f.tasks.map((t) => t.trim()).filter(Boolean),
         taskHints: f.tasks.map((t, i) => (t.trim() ? (f.taskHints[i] ?? "").trim() : null)).filter((h): h is string => h !== null),
         challenge: f.challenge,
@@ -100,11 +94,6 @@ export function DayEditorPage() {
           <Field id="title" label="Título del día" error={fields.title}>
             <input id="title" className="input" value={f.title} onChange={(e) => update({ title: e.target.value })} />
           </Field>
-          {isWorkshop && (
-            <Field id="language" label="Lenguaje del ejemplo">
-              <LanguageSelect id="language" value={f.language} onChange={(language) => update({ language })} />
-            </Field>
-          )}
           <div className="full">
             <Field id="summary" label="Resumen" hint="Una línea que describe el día (se usa en el calendario y en festivos).">
               <textarea id="summary" className="textarea" rows={2} value={f.summary} onChange={(e) => update({ summary: e.target.value })} />
@@ -121,43 +110,11 @@ export function DayEditorPage() {
           </section>
 
           <section className="card stack">
-            <h2 style={{ fontSize: "1.2rem" }}>Concepto y ejemplo</h2>
-            <Field id="concept" label="Concepto" hint="Usa `comillas invertidas` para marcar código en el texto.">
-              <textarea id="concept" className="textarea" rows={6} value={f.concept} onChange={(e) => update({ concept: e.target.value })} />
-            </Field>
-            <Field id="tip" label="Consejo del día" hint="Un consejo corto: un error común, cómo estudiar o cómo depurar. Si lo dejas vacío, no se muestra." error={fields.tip}>
-              <textarea id="tip" className="textarea" rows={3} value={f.tip} onChange={(e) => update({ tip: e.target.value })} />
-            </Field>
-            <div className="form-grid">
-              <Field id="example" label="Código de ejemplo">
-                <textarea id="example" className="textarea code" rows={10} value={f.example} onChange={(e) => update({ example: e.target.value })} />
-              </Field>
-              <Field id="output" label="Lo que muestra al correrlo">
-                <textarea id="output" className="textarea code" rows={10} value={f.exampleOutput} onChange={(e) => update({ exampleOutput: e.target.value })} />
-              </Field>
-            </div>
-            <details>
-              <summary className="muted" style={{ cursor: "pointer", fontSize: 14 }}>
-                Vista previa del ejemplo
-              </summary>
-              <div style={{ marginTop: 12 }}>
-                <CodeBlock code={f.example} language={f.language} output={f.exampleOutput} />
-              </div>
-            </details>
+            <h2 style={{ fontSize: "1.2rem" }}>Agenda del día</h2>
+            <ScheduleEditor blocks={f.schedule} onChange={(schedule) => update({ schedule })} error={fields.schedule} />
           </section>
 
-          <section className="card stack">
-            <h2 style={{ fontSize: "1.2rem" }}>Guía paso a paso ({f.steps.length} pasos)</h2>
-            <p className="muted" style={{ fontSize: 14 }}>
-              Los pasos llevan al estudiante de cero a tener el programa del día funcionando. Cada uno puede traer código.
-            </p>
-            <StepsEditor steps={f.steps} language={f.language} onChange={(steps) => update({ steps })} />
-          </section>
-
-          <section className="card stack">
-            <h2 style={{ fontSize: "1.2rem" }}>Errores comunes ({f.commonErrors.length})</h2>
-            <CommonErrorsEditor errors={f.commonErrors} onChange={(commonErrors) => update({ commonErrors })} />
-          </section>
+          <TopicsEditor topics={f.topics} onChange={(topics) => update({ topics })} errors={fields} />
 
           <section className="card stack">
             <div className="row between">
@@ -204,7 +161,7 @@ export function DayEditorPage() {
 
           <section className="card stack">
             <h2 style={{ fontSize: "1.2rem" }}>Reto extra (opcional)</h2>
-            <ChallengeEditor challenge={f.challenge} language={f.language} onChange={(challenge) => update({ challenge })} />
+            <ChallengeEditor challenge={f.challenge} language={f.topics[0]?.language ?? "python"} onChange={(challenge) => update({ challenge })} />
           </section>
 
           <section className="card stack">

@@ -137,17 +137,23 @@ export const challengeSchema = z.object({
   language: languageSchema.default("python"),
 });
 
+export const topicSchema = z.object({
+  title: z.string().trim().min(1, "El tema necesita un título").max(120),
+  concept: z.string().trim().max(6_000).default(""),
+  tip: z.string().trim().max(1_000).default(""),
+  example: z.string().max(10_000).default(""),
+  language: languageSchema.default("python"),
+  exampleOutput: z.string().max(10_000).default(""),
+  steps: z.array(tutorialStepSchema).max(10).default([]),
+  commonErrors: z.array(commonErrorSchema).max(8).default([]),
+});
+
 export const adminDaySchema = z.object({
   title: z.string().trim().min(1).max(200),
   summary: z.string().trim().max(2_000).default(""),
   objectives: z.array(z.string().trim().min(1).max(300)).max(6).default([]),
-  concept: z.string().trim().max(5_000).default(""),
-  tip: z.string().trim().max(1_000).default(""),
-  example: z.string().max(10_000).default(""),
-  language: languageSchema,
-  exampleOutput: z.string().max(10_000).default(""),
-  steps: z.array(tutorialStepSchema).max(10).default([]),
-  commonErrors: z.array(commonErrorSchema).max(8).default([]),
+  schedule: z.array(z.object({ label: z.string().trim().min(1).max(120), minutes: z.number().int().min(1).max(240) })).max(8).default([]),
+  topics: z.array(topicSchema).max(4).default([]),
   tasks: z.array(z.string().trim().min(1).max(1_000)).max(10),
   taskHints: z.array(z.string().trim().max(1_000)).max(10).default([]),
   challenge: challengeSchema.nullable().default(null),

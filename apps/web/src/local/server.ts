@@ -35,16 +35,15 @@ import {
   type AdminOverview,
   type AdminQuestion,
   type Challenge,
-  type CommonError,
   type ContentWeek,
   type GlossaryItem,
   type Resource,
-  type TutorialStep,
+  type ScheduleBlock,
+  type Topic,
   type DayKind,
   type DayResponse,
   type DeliverableKind,
   type DeliverableView,
-  type Language,
   type MeResponse,
   type PlanResponse,
   type ProgressPlanInput,
@@ -91,13 +90,8 @@ interface FullDay {
   title: string;
   summary: string;
   objectives: string[];
-  concept: string;
-  tip: string;
-  example: string;
-  language: Language;
-  exampleOutput: string;
-  steps: TutorialStep[];
-  commonErrors: CommonError[];
+  schedule: ScheduleBlock[];
+  topics: Topic[];
   tasks: string[];
   taskHints: string[];
   challenge: Challenge | null;
@@ -151,13 +145,8 @@ function content(db: LocalDb) {
         title: base.title,
         summary: base.summary ?? "",
         objectives: base.objectives ?? [],
-        concept: base.concept ?? "",
-        tip: base.tip ?? "",
-        example: base.example ?? "",
-        language: (base.language ?? "python") as Language,
-        exampleOutput: base.exampleOutput ?? "",
-        steps: base.steps ?? [],
-        commonErrors: base.commonErrors ?? [],
+        schedule: base.schedule ?? [],
+        topics: (base.topics ?? []) as Topic[],
         tasks: base.tasks ?? [],
         taskHints: base.taskHints ?? [],
         challenge: base.challenge ?? null,
@@ -221,7 +210,7 @@ function content(db: LocalDb) {
         ...w,
         days: [...days.values()]
           .filter((x) => x.weekId === w.id)
-          .map((x) => ({ date: x.date, kind: x.kind, title: x.title, taskCount: x.tasks.length })),
+          .map((x) => ({ date: x.date, kind: x.kind, title: x.title, summary: x.summary, topics: x.topics.map((t) => t.title), taskCount: x.tasks.length })),
         deliverable: { id: d.id, weekId: d.weekId, dueDate: d.dueDate, kind: d.kind, path: d.path, title: titleOf(d) },
       };
     }),
@@ -485,13 +474,8 @@ route("GET", "/api/days/:date", ({ db, params }): DayResponse => {
           title: day.title,
           summary: day.summary,
           objectives: day.objectives,
-          concept: day.concept,
-          tip: day.tip,
-          example: day.example,
-          language: day.language,
-          exampleOutput: day.exampleOutput,
-          steps: day.steps,
-          commonErrors: day.commonErrors,
+          schedule: day.schedule,
+          topics: day.topics,
           tasks: day.tasks,
           taskHints: day.taskHints,
           challenge: day.challenge,
@@ -758,13 +742,8 @@ route("GET", "/api/admin/days/:date", ({ db, params }): AdminDay => {
     title: d.title,
     summary: d.summary,
     objectives: [...d.objectives],
-    concept: d.concept,
-    tip: d.tip,
-    example: d.example,
-    language: d.language,
-    exampleOutput: d.exampleOutput,
-    steps: clone(d.steps),
-    commonErrors: clone(d.commonErrors),
+    schedule: clone(d.schedule),
+    topics: clone(d.topics),
     tasks: [...d.tasks],
     taskHints: [...d.taskHints],
     challenge: d.challenge ? { ...d.challenge } : null,

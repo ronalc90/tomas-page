@@ -14,7 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import type { Answer, Challenge, CommonError, GlossaryItem, QuestionType, Resource, TutorialStep } from "@tomas/shared";
+import type { Answer, Challenge, GlossaryItem, QuestionType, Resource, ScheduleBlock, Topic } from "@tomas/shared";
 
 export const roleEnum = pgEnum("role", ["student", "admin"]);
 export const dayKindEnum = pgEnum("day_kind", ["workshop", "holiday", "free"]);
@@ -93,15 +93,10 @@ export const days = pgTable(
     kind: dayKindEnum("kind").notNull(),
     title: text("title").notNull(),
     summary: text("summary").notNull().default(""),
-    concept: text("concept").notNull().default(""),
-    tip: text("tip").notNull().default(""),
-    example: text("example").notNull().default(""),
-    language: text("language").notNull().default("python"),
-    exampleOutput: text("example_output").notNull().default(""),
     tasks: jsonb("tasks").$type<string[]>().notNull().default([]),
     objectives: jsonb("objectives").$type<string[]>().notNull().default([]),
-    steps: jsonb("steps").$type<TutorialStep[]>().notNull().default([]),
-    commonErrors: jsonb("common_errors").$type<CommonError[]>().notNull().default([]),
+    schedule: jsonb("schedule").$type<ScheduleBlock[]>().notNull().default([]),
+    topics: jsonb("topics").$type<Topic[]>().notNull().default([]),
     taskHints: jsonb("task_hints").$type<string[]>().notNull().default([]),
     challenge: jsonb("challenge").$type<Challenge | null>(),
     glossary: jsonb("glossary").$type<GlossaryItem[]>().notNull().default([]),

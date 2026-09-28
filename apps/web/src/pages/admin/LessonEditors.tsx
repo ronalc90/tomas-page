@@ -1,4 +1,5 @@
-import type { AdminQuestion, Challenge, CommonError, GlossaryItem, Language, QuestionType, Resource, TutorialStep } from "@tomas/shared";
+import type { AdminQuestion, Challenge, CommonError, GlossaryItem, Language, QuestionType, Resource, ScheduleBlock, Topic, TutorialStep } from "@tomas/shared";
+import { CodeBlock } from "../../components/CodeBlock";
 import { QUESTION_TYPE_LABEL } from "@tomas/shared";
 import { Icon } from "../../components/Icon";
 import { Field } from "../../components/ui";
@@ -19,6 +20,7 @@ export const emptyQuestion = (type: QuestionType = "choice"): AdminQuestion => (
 
 export const emptyStep = (language: Language): TutorialStep => ({ title: "", body: "", code: "", language });
 export const emptyError = (): CommonError => ({ error: "", cause: "", fix: "" });
+export const emptyTopic = (language: Language = "python"): Topic => ({ title: "", concept: "", tip: "", example: "", language, exampleOutput: "", steps: [], commonErrors: [] });
 export const emptyChallenge = (language: Language): Challenge => ({ title: "", description: "", hint: "", solution: "", language });
 
 export function LanguageSelect({ id, value, onChange }: { id: string; value: Language; onChange: (l: Language) => void }) {
@@ -78,7 +80,7 @@ export function TextList({
   );
 }
 
-export function StepsEditor({ steps, language, onChange }: { steps: TutorialStep[]; language: Language; onChange: (s: TutorialStep[]) => void }) {
+export function StepsEditor({ steps, language, onChange, idPrefix = "" }: { steps: TutorialStep[]; language: Language; onChange: (s: TutorialStep[]) => void; idPrefix?: string }) {
   const set = (i: number, patch: Partial<TutorialStep>) => onChange(steps.map((s, k) => (k === i ? { ...s, ...patch } : s)));
   const move = (i: number, dir: -1 | 1) => {
     const j = i + dir;
@@ -105,18 +107,18 @@ export function StepsEditor({ steps, language, onChange }: { steps: TutorialStep
               </button>
             </div>
           </div>
-          <Field id={`step${i}-title`} label={`Título del paso ${i + 1}`}>
-            <input id={`step${i}-title`} className="input" value={s.title} onChange={(e) => set(i, { title: e.target.value })} />
+          <Field id={`${idPrefix}step${i}-title`} label={`Título del paso ${i + 1}`}>
+            <input id={`${idPrefix}step${i}-title`} className="input" value={s.title} onChange={(e) => set(i, { title: e.target.value })} />
           </Field>
-          <Field id={`step${i}-body`} label={`Explicación del paso ${i + 1}`}>
-            <textarea id={`step${i}-body`} className="textarea" rows={3} value={s.body} onChange={(e) => set(i, { body: e.target.value })} />
+          <Field id={`${idPrefix}step${i}-body`} label={`Explicación del paso ${i + 1}`}>
+            <textarea id={`${idPrefix}step${i}-body`} className="textarea" rows={3} value={s.body} onChange={(e) => set(i, { body: e.target.value })} />
           </Field>
           <div className="form-grid">
-            <Field id={`step${i}-code`} label={`Código del paso ${i + 1} (opcional)`}>
-              <textarea id={`step${i}-code`} className="textarea code" rows={5} value={s.code} onChange={(e) => set(i, { code: e.target.value })} />
+            <Field id={`${idPrefix}step${i}-code`} label={`Código del paso ${i + 1} (opcional)`}>
+              <textarea id={`${idPrefix}step${i}-code`} className="textarea code" rows={5} value={s.code} onChange={(e) => set(i, { code: e.target.value })} />
             </Field>
-            <Field id={`step${i}-lang`} label={`Lenguaje del paso ${i + 1}`}>
-              <LanguageSelect id={`step${i}-lang`} value={s.language} onChange={(l) => set(i, { language: l })} />
+            <Field id={`${idPrefix}step${i}-lang`} label={`Lenguaje del paso ${i + 1}`}>
+              <LanguageSelect id={`${idPrefix}step${i}-lang`} value={s.language} onChange={(l) => set(i, { language: l })} />
             </Field>
           </div>
         </div>
@@ -128,7 +130,7 @@ export function StepsEditor({ steps, language, onChange }: { steps: TutorialStep
   );
 }
 
-export function CommonErrorsEditor({ errors, onChange }: { errors: CommonError[]; onChange: (e: CommonError[]) => void }) {
+export function CommonErrorsEditor({ errors, onChange, idPrefix = "" }: { errors: CommonError[]; onChange: (e: CommonError[]) => void; idPrefix?: string }) {
   const set = (i: number, patch: Partial<CommonError>) => onChange(errors.map((e, k) => (k === i ? { ...e, ...patch } : e)));
   return (
     <div className="stack">
@@ -140,15 +142,15 @@ export function CommonErrorsEditor({ errors, onChange }: { errors: CommonError[]
               <Icon name="trash" size={16} /> Quitar
             </button>
           </div>
-          <Field id={`err${i}-error`} label="Qué se ve (el mensaje o el síntoma)">
-            <input id={`err${i}-error`} className="input code" value={e.error} onChange={(ev) => set(i, { error: ev.target.value })} />
+          <Field id={`${idPrefix}err${i}-error`} label="Qué se ve (el mensaje o el síntoma)">
+            <input id={`${idPrefix}err${i}-error`} className="input code" value={e.error} onChange={(ev) => set(i, { error: ev.target.value })} />
           </Field>
           <div className="form-grid">
-            <Field id={`err${i}-cause`} label="Por qué pasa">
-              <textarea id={`err${i}-cause`} className="textarea" rows={2} value={e.cause} onChange={(ev) => set(i, { cause: ev.target.value })} />
+            <Field id={`${idPrefix}err${i}-cause`} label="Por qué pasa">
+              <textarea id={`${idPrefix}err${i}-cause`} className="textarea" rows={2} value={e.cause} onChange={(ev) => set(i, { cause: ev.target.value })} />
             </Field>
-            <Field id={`err${i}-fix`} label="Cómo se arregla">
-              <textarea id={`err${i}-fix`} className="textarea" rows={2} value={e.fix} onChange={(ev) => set(i, { fix: ev.target.value })} />
+            <Field id={`${idPrefix}err${i}-fix`} label="Cómo se arregla">
+              <textarea id={`${idPrefix}err${i}-fix`} className="textarea" rows={2} value={e.fix} onChange={(ev) => set(i, { fix: ev.target.value })} />
             </Field>
           </div>
         </div>
@@ -360,5 +362,92 @@ export function QuestionEditor({
         <textarea id={`q${index}-exp`} className="textarea" rows={2} value={question.explanation} onChange={(ev) => onChange({ ...question, explanation: ev.target.value })} />
       </Field>
     </div>
+  );
+}
+
+export function ScheduleEditor({ blocks, onChange, error }: { blocks: ScheduleBlock[]; onChange: (b: ScheduleBlock[]) => void; error?: string }) {
+  const total = blocks.reduce((a, b) => a + (Number.isFinite(b.minutes) ? b.minutes : 0), 0);
+  return (
+    <div className="stack">
+      <p className="muted" style={{ fontSize: 14 }}>
+        Cómo se reparten las 4 horas del día. Total: <b className="num">{total} min</b>.
+      </p>
+      {blocks.map((b, i) => (
+        <div className="option-edit" key={i} style={{ gridTemplateColumns: "minmax(0,1fr) 110px auto" }}>
+          <input className="input" aria-label={`Bloque ${i + 1}`} placeholder="Tema 1: …" value={b.label} onChange={(e) => onChange(blocks.map((x, k) => (k === i ? { ...x, label: e.target.value } : x)))} />
+          <input
+            className="input"
+            type="number"
+            min={1}
+            max={240}
+            aria-label={`Minutos del bloque ${i + 1}`}
+            value={b.minutes}
+            onChange={(e) => onChange(blocks.map((x, k) => (k === i ? { ...x, minutes: Number(e.target.value) } : x)))}
+          />
+          <button type="button" className="btn ghost small icon" aria-label={`Quitar bloque ${i + 1}`} onClick={() => onChange(blocks.filter((_, k) => k !== i))}>
+            <Icon name="trash" size={16} />
+          </button>
+        </div>
+      ))}
+      {error && <span className="error">{error}</span>}
+      <button type="button" className="btn secondary small" style={{ justifySelf: "start" }} onClick={() => onChange([...blocks, { label: "", minutes: 30 }])} disabled={blocks.length >= 8}>
+        <Icon name="plus" size={16} /> Agregar bloque
+      </button>
+    </div>
+  );
+}
+
+export function TopicsEditor({ topics, onChange, errors }: { topics: Topic[]; onChange: (t: Topic[]) => void; errors: Record<string, string> }) {
+  const set = (i: number, patch: Partial<Topic>) => onChange(topics.map((t, k) => (k === i ? { ...t, ...patch } : t)));
+  return (
+    <>
+      {topics.map((t, i) => (
+        <section className="card stack" key={i}>
+          <div className="row between">
+            <h2 style={{ fontSize: "1.2rem" }}>Tema {i + 1}</h2>
+            <button type="button" className="btn ghost small" disabled={topics.length <= 1} onClick={() => onChange(topics.filter((_, k) => k !== i))}>
+              <Icon name="trash" size={16} /> Quitar tema
+            </button>
+          </div>
+          <div className="form-grid">
+            <Field id={`topic${i}-title`} label={`Título del tema ${i + 1}`} error={errors[`topics.${i}.title`]}>
+              <input id={`topic${i}-title`} className="input" value={t.title} onChange={(e) => set(i, { title: e.target.value })} />
+            </Field>
+            <Field id={`topic${i}-lang`} label="Lenguaje del ejemplo">
+              <LanguageSelect id={`topic${i}-lang`} value={t.language} onChange={(language) => set(i, { language })} />
+            </Field>
+          </div>
+          <Field id={`topic${i}-concept`} label="Concepto" hint="Usa `comillas invertidas` para marcar código en el texto.">
+            <textarea id={`topic${i}-concept`} className="textarea" rows={7} value={t.concept} onChange={(e) => set(i, { concept: e.target.value })} />
+          </Field>
+          <Field id={`topic${i}-tip`} label="Consejo" hint="Un consejo corto: un error común, cómo estudiar o cómo depurar.">
+            <textarea id={`topic${i}-tip`} className="textarea" rows={2} value={t.tip} onChange={(e) => set(i, { tip: e.target.value })} />
+          </Field>
+          <div className="form-grid">
+            <Field id={`topic${i}-example`} label="Código de ejemplo">
+              <textarea id={`topic${i}-example`} className="textarea code" rows={10} value={t.example} onChange={(e) => set(i, { example: e.target.value })} />
+            </Field>
+            <Field id={`topic${i}-output`} label="Lo que muestra al correrlo">
+              <textarea id={`topic${i}-output`} className="textarea code" rows={10} value={t.exampleOutput} onChange={(e) => set(i, { exampleOutput: e.target.value })} />
+            </Field>
+          </div>
+          <details>
+            <summary className="muted" style={{ cursor: "pointer", fontSize: 14 }}>
+              Vista previa del ejemplo
+            </summary>
+            <div style={{ marginTop: 12 }}>
+              <CodeBlock code={t.example} language={t.language} output={t.exampleOutput} />
+            </div>
+          </details>
+          <h3 style={{ margin: "8px 0 0", fontSize: "1.05rem" }}>Guía paso a paso ({t.steps.length} pasos)</h3>
+          <StepsEditor steps={t.steps} language={t.language} onChange={(steps) => set(i, { steps })} idPrefix={`t${i}`} />
+          <h3 style={{ margin: "8px 0 0", fontSize: "1.05rem" }}>Errores comunes ({t.commonErrors.length})</h3>
+          <CommonErrorsEditor errors={t.commonErrors} onChange={(commonErrors) => set(i, { commonErrors })} idPrefix={`t${i}`} />
+        </section>
+      ))}
+      <button type="button" className="btn secondary small" style={{ justifySelf: "start" }} onClick={() => onChange([...topics, emptyTopic(topics[0]?.language)])} disabled={topics.length >= 4}>
+        <Icon name="plus" size={16} /> Agregar tema
+      </button>
+    </>
   );
 }

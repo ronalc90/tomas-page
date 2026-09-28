@@ -1,6 +1,6 @@
 # Plan de Tomás · Python y SQL
 
-Plataforma para que Tomás aprenda Python y SQL entre el **27 de septiembre y el 30 de diciembre de 2026**: 62 lecciones de lunes a viernes (objetivos, concepto, ejemplo, consejo del día, guía paso a paso, errores comunes, 3 tareas con pista, reto extra con solución, glosario, enlaces a la documentación y una evaluación de 6 preguntas de cuatro tipos con pistas y retroalimentación por opción), un entregable cada sábado con guía y criterios, y 9 guías generales (instalar, terminal, errores, depurar, Git, DB Browser…). Incluye un panel de administración para seguir el avance, revisar entregas, editar el contenido y gestionar cuentas.
+Plataforma para que Tomás (Costa Rica) aprenda Python, POO, estructuras de datos y SQL entre el **27 de septiembre y el 30 de diciembre de 2026**, con unas 4 horas de estudio al día: 64 días de lunes a viernes (sin los feriados de Costa Rica), cada uno con dos temas (concepto, ejemplo, consejo, guía paso a paso y errores comunes), agenda del día, 5 tareas con pista, reto extra con solución, glosario con tooltips, enlaces para seguir estudiando y una evaluación de 8 preguntas de cuatro tipos con pistas y retroalimentación por opción; un entregable cada sábado con guía y criterios; un temario navegable; y 11 guías generales (instalar, terminal, errores, depurar, Git, DB Browser, dónde seguir estudiando, POO en una página…). Incluye un panel de administración para seguir el avance, revisar entregas, editar el contenido y gestionar cuentas.
 
 | | |
 |---|---|
@@ -41,10 +41,10 @@ Un solo servicio sirve la API (`/api/*`) y la aplicación web, así no hay probl
 ### Decisiones importantes
 
 - **Las evaluaciones se califican en el servidor.** Cuatro tipos de pregunta (opción múltiple, verdadero/falso, «¿qué muestra?» y completar código); las reglas de calificación viven en `packages/shared/src/quiz.ts`. Las respuestas correctas nunca viajan al navegador antes de presentar; después de cada intento llega la revisión con explicación, comentario por opción y respuesta correcta. Se guardan todos los intentos y las pistas usadas: el panel muestra la mejor nota, la del primer intento, las pistas y si hizo el reto.
-- **Un taller está completo** cuando las tres tareas están marcadas y la evaluación está aprobada (nota mínima configurable, por defecto 4 de 6). Lo que tiene fecha anterior a hoy y no está completo queda **atrasado**. "Hoy" se calcula en la zona horaria de Bogotá.
+- **Un taller está completo** cuando las tres tareas están marcadas y la evaluación está aprobada (nota mínima configurable, por defecto 5 de 8). Lo que tiene fecha anterior a hoy y no está completo queda **atrasado**. "Hoy" se calcula en la zona horaria de Costa Rica.
 - **Las reglas de avance viven en `packages/shared/src/progress.ts`**, así el estudiante y el administrador ven exactamente lo mismo.
 - **Sesiones con cookie `httpOnly`, `SameSite=Lax` y `Secure`** en producción; en la base solo se guarda el hash del token. Contraseñas con bcrypt. Límite de intentos de inicio de sesión por IP y usuario. Cabeceras de seguridad con Helmet (CSP estricta).
-- **Las ediciones del administrador se respetan:** el contenido inicial solo se carga si la base está vacía. Para recargarlo a propósito: `npm run db:seed -- --reset-content`.
+- **Las ediciones del administrador se respetan:** el contenido inicial solo se carga si la base está vacía. Para recargarlo a propósito: `npm run db:seed -- --reset-content`. Cuando cambia la estructura del plan (`CONTENT_VERSION` en `apps/api/src/db/seed.ts`), al arrancar se reemplaza el contenido conservando el avance de los estudiantes.
 
 ## Cuentas iniciales
 

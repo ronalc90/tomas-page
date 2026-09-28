@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { AdminDay, AdminOverview, ReviewQueueItem, StudentDetail, UserRow } from "@tomas/shared";
 import { sql } from "drizzle-orm";
-import { seedTips } from "../src/db/seed";
+import { syncContentVersion } from "../src/db/seed";
 import { ADMIN, client, login, STUDENT, useTestApp } from "./helpers";
 
 const env = useTestApp("2026-10-05");
@@ -13,7 +13,7 @@ beforeAll(async () => {
   admin = client(env.app, await login(env.app, ADMIN.username, ADMIN.password));
   student = client(env.app, await login(env.app, STUDENT.username, STUDENT.password));
   studentId = (await student.get("/api/auth/me")).json().user.id;
-  await student.put("/api/deliverables/s00", { criteria: [true, true, true], evidence: "hola.py listo" });
+  await student.put("/api/deliverables/s00", { criteria: [true, true, true, true], evidence: "hola.py listo" });
   await student.post("/api/deliverables/s00/submit");
 });
 
@@ -32,7 +32,7 @@ describe("resumen y estudiantes", () => {
   it("muestra el detalle de un estudiante", async () => {
     const detail: StudentDetail = (await admin.get(`/api/admin/students/${studentId}`)).json();
     expect(detail.student.username).toBe("tomas");
-    expect(detail.days).toHaveLength(62);
+    expect(detail.days).toHaveLength(64);
     expect(detail.deliverables).toHaveLength(15);
     expect((await admin.get("/api/admin/students/no-existe")).statusCode).toBe(404);
   });
@@ -72,12 +72,49 @@ describe("revisión de entregables", () => {
   });
 });
 
+describe("lecciones completas", () => {
+  it("todos los talleres traen dos temas, agenda de unas 4 horas, pistas, reto y 8 preguntas", async () => {
+    const weeks = (await admin.get("/api/admin/content")).json() as { days: { date: string; kind: string }[] }[];
+    const workshops = weeks.flatMap((w) => w.days).filter((d) => d.kind === "workshop");
+    expect(workshops).toHaveLength(64);
+    for (const d of workshops) {
+      const day: AdminDay = (await admin.get(`/api/admin/days/${d.date}`)).json();
+      expect(day.topics.length, d.date).toBe(2);
+      const minutes = day.schedule.reduce((a, b) => a + b.minutes, 0);
+      expect(minutes, d.date).toBeGreaterThanOrEqual(220);
+      expect(minutes, d.date).toBeLessThanOrEqual(260);
+      expect(day.topics.every((t) => t.concept.length > 100 && t.steps.length >= 3 && t.commonErrors.length >= 2), d.date).toBe(true);
+      expect(day.taskHints.length, d.date).toBe(day.tasks.length);
+      expect(day.challenge?.solution.length, d.date).toBeGreaterThan(0);
+      expect(day.questions.map((q) => q.type), d.date).toEqual(["choice", "choice", "choice", "boolean", "output", "output", "fill", "fill"]);
+    }
+  });
+
+  it("actualiza el contenido de una versión anterior sin borrar el avance", async () => {
+    // Simula una base con contenido viejo: marca la versión como anterior y cambia un título.
+    await env.handle.db.execute(sql`UPDATE settings SET value = '2'::jsonb WHERE key = 'contentVersion'`);
+    await env.handle.db.execute(sql`UPDATE settings SET value = '4'::jsonb WHERE key = 'passScore'`);
+    await env.handle.db.execute(sql`UPDATE days SET title = 'Título viejo' WHERE date = '2026-10-06'`);
+    const saved = await student.put("/api/days/2026-10-06/progress", { tasks: [true, true, false, false, false], evidence: "avance previo" });
+    expect(saved.statusCode).toBe(200);
+    expect(await syncContentVersion(env.handle.db)).toBe(true);
+    expect(await syncContentVersion(env.handle.db)).toBe(false);
+    const day = (await student.get("/api/days/2026-10-06")).json();
+    expect(day.day.title).toBe("for y range");
+    expect(day.progress.evidence).toBe("avance previo");
+    expect(day.progress.tasks).toEqual([true, true, false, false, false]);
+    await env.ctx.settings.update({});
+    expect((await student.get("/api/auth/me")).json().settings.passScore).toBe(5);
+    await env.ctx.settings.update({ passScore: 5 });
+  });
+});
+
 describe("contenido", () => {
   const DATE = "2026-10-05";
 
   it("devuelve el taller con las respuestas correctas para editar", async () => {
     const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
-    expect(day.questions).toHaveLength(6);
+    expect(day.questions).toHaveLength(8);
     expect(typeof day.questions[0].correctIndex).toBe("number");
     expect(day.questions[4].accepted.length).toBeGreaterThan(0);
     expect(day.questions[0].optionFeedback).toHaveLength(day.questions[0].options.length);
@@ -92,7 +129,7 @@ describe("contenido", () => {
     expect(res.statusCode).toBe(400);
     const noAnswer = await admin.put(`/api/admin/days/${DATE}`, { ...day, questions: [{ ...day.questions[4], accepted: [] }] });
     expect(noAnswer.statusCode).toBe(400);
-    const noBlank = await admin.put(`/api/admin/days/${DATE}`, { ...day, questions: [{ ...day.questions[5], code: "sin hueco" }] });
+    const noBlank = await admin.put(`/api/admin/days/${DATE}`, { ...day, questions: [{ ...day.questions[7], code: "sin hueco" }] });
     expect(noBlank.statusCode).toBe(400);
   });
 
@@ -100,43 +137,53 @@ describe("contenido", () => {
     const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
     const res = await admin.put(`/api/admin/days/${DATE}`, {
       ...day,
-      steps: [{ title: "Paso editado", body: "Cuerpo del paso.", code: "print(1)", language: "python" }],
-      commonErrors: [{ error: "NameError", cause: "Variable sin definir.", fix: "Defínela antes." }],
-      taskHints: ["Pista 1", "Pista 2", "Pista 3"],
+      topics: [
+        {
+          ...day.topics[0],
+          tip: "Consejo editado por el administrador.",
+          steps: [{ title: "Paso editado", body: "Cuerpo del paso.", code: "print(1)", language: "python" }],
+          commonErrors: [{ error: "NameError", cause: "Variable sin definir.", fix: "Defínela antes." }],
+        },
+        day.topics[1],
+      ],
+      schedule: [{ label: "Tema 1", minutes: 120 }, { label: "Tema 2", minutes: 120 }],
+      taskHints: day.tasks.map((_, i) => `Pista ${i + 1}`),
       challenge: { title: "Reto editado", description: "Haz algo.", hint: "Piensa.", solution: "print(2)", language: "python" },
       questions: [
-        ...day.questions.slice(0, 5),
+        ...day.questions.slice(0, 7),
         { type: "fill", prompt: "Completa", code: "x = ____(3.7)", options: [], correctIndex: 0, accepted: ["int", "round"], optionFeedback: [], explanation: "int o round.", hint: "" },
       ],
     });
     expect(res.statusCode).toBe(200);
     const seen = (await student.get(`/api/days/${DATE}`)).json();
-    expect(seen.day.steps).toHaveLength(1);
+    expect(seen.day.topics[0].steps).toHaveLength(1);
+    expect(seen.day.topics[0].tip).toBe("Consejo editado por el administrador.");
+    expect(seen.day.topics[1].steps.length).toBeGreaterThanOrEqual(3);
+    expect(seen.day.schedule).toHaveLength(2);
     expect(seen.day.challenge.title).toBe("Reto editado");
-    expect(seen.day.taskHints).toEqual(["Pista 1", "Pista 2", "Pista 3"]);
-    expect(seen.questions[5]).toMatchObject({ type: "fill", prompt: "Completa" });
+    expect(seen.day.taskHints[0]).toBe("Pista 1");
+    expect(seen.questions[7]).toMatchObject({ type: "fill", prompt: "Completa" });
     // Las preguntas de texto aceptan cualquiera de las respuestas.
-    const answers = seen.questions.map((q: { type: string }, i: number) => (i === 5 ? "ROUND" : q.type === "output" ? "" : 0));
+    const answers = seen.questions.map((q: { type: string }, i: number) => (i === 7 ? "ROUND" : q.type === "output" || q.type === "fill" ? "" : 0));
     const graded = (await student.post(`/api/days/${DATE}/quiz`, { answers })).json();
-    expect(graded.review[5].isCorrect).toBe(true);
+    expect(graded.review[7].isCorrect).toBe(true);
   });
 
   it("guarda los cambios y el estudiante los ve", async () => {
     const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
     const res = await admin.put(`/api/admin/days/${DATE}`, {
       ...day,
-      title: "if, else y comparaciones (editado)",
-      tip: "Consejo editado por el administrador.",
+      title: "while (editado)",
       tasks: [...day.tasks, "Tarea extra de práctica."],
+      taskHints: [...day.taskHints, ""],
     });
     expect(res.statusCode).toBe(200);
     const seen = (await student.get(`/api/days/${DATE}`)).json();
-    expect(seen.day.title).toBe("if, else y comparaciones (editado)");
-    expect(seen.day.tip).toBe("Consejo editado por el administrador.");
-    expect(seen.day.tasks).toHaveLength(4);
+    expect(seen.day.title).toBe("while (editado)");
+    expect(seen.day.tasks).toHaveLength(day.tasks.length + 1);
     const plan = (await student.get("/api/plan")).json();
     const planDay = plan.weeks.flatMap((w: { days: { date: string; title: string }[] }) => w.days).find((d: { date: string }) => d.date === DATE);
-    expect(planDay.title).toBe("if, else y comparaciones (editado)");
+    expect(planDay.title).toBe("while (editado)");
   });
 
   it("edita los criterios de un entregable", async () => {
@@ -154,25 +201,6 @@ describe("contenido", () => {
     const weeks = (await admin.get("/api/admin/content")).json();
     expect(weeks).toHaveLength(15);
     expect(weeks[1].deliverable.criteria.length).toBeGreaterThan(0);
-  });
-});
-
-describe("consejo del día", () => {
-  it("todos los talleres traen un consejo", async () => {
-    const weeks = (await admin.get("/api/admin/content")).json() as { days: { date: string; kind: string }[] }[];
-    const workshops = weeks.flatMap((w) => w.days).filter((d) => d.kind === "workshop");
-    expect(workshops).toHaveLength(62);
-    for (const d of workshops) {
-      const day: AdminDay = (await admin.get(`/api/admin/days/${d.date}`)).json();
-      expect(day.tip.trim(), d.date).not.toBe("");
-    }
-  });
-
-  it("completa los consejos en bases creadas antes de que existieran, una sola vez", async () => {
-    await env.handle.db.execute(sql`UPDATE days SET tip = ''`);
-    expect(await seedTips(env.handle.db)).toBe(62);
-    expect((await student.get("/api/days/2026-10-05")).json().day.tip).toContain("`==` compara");
-    expect(await seedTips(env.handle.db)).toBe(0);
   });
 });
 

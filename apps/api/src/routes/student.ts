@@ -11,7 +11,6 @@ import {
   submissionDraftSchema,
   type Answer,
   type DayResponse,
-  type Language,
   type QuizResult,
 } from "@tomas/shared";
 import type { AppContext } from "../context";
@@ -120,13 +119,8 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext) {
             title: dayRow.title,
             summary: dayRow.summary,
             objectives: dayRow.objectives,
-            concept: dayRow.concept,
-            tip: dayRow.tip,
-            example: dayRow.example,
-            language: dayRow.language as Language,
-            exampleOutput: dayRow.exampleOutput,
-            steps: dayRow.steps,
-            commonErrors: dayRow.commonErrors,
+            schedule: dayRow.schedule,
+            topics: dayRow.topics,
             tasks: dayRow.tasks,
             taskHints: dayRow.taskHints,
             challenge: dayRow.challenge,

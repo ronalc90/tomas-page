@@ -51,6 +51,7 @@ export function AppShell({ me }: { me: MeResponse }) {
   const student: NavItem[] = [
     { to: "/", label: "Inicio", icon: "home", end: true },
     { to: "/hoy", label: "Hoy", icon: "today" },
+    { to: "/temario", label: "Temario", icon: "book" },
     { to: "/entregables", label: "Entregables", icon: "inbox" },
     { to: "/guias", label: "Guías", icon: "compass" },
   ];

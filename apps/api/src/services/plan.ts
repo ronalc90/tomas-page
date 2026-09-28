@@ -70,7 +70,7 @@ export class PlanCache {
       this.db.select().from(phases).orderBy(asc(phases.id)),
       this.db.select().from(weeks).orderBy(asc(weeks.number)),
       this.db
-        .select({ date: days.date, weekId: days.weekId, kind: days.kind, title: days.title, tasks: days.tasks })
+        .select({ date: days.date, weekId: days.weekId, kind: days.kind, title: days.title, tasks: days.tasks, summary: days.summary, topics: days.topics })
         .from(days)
         .orderBy(asc(days.date)),
       this.db.select().from(deliverables),
@@ -119,7 +119,7 @@ export class PlanCache {
           ...w,
           days: dayRows
             .filter((d) => d.weekId === w.id)
-            .map((d) => ({ date: d.date, kind: d.kind, title: d.title, taskCount: d.tasks.length })),
+            .map((d) => ({ date: d.date, kind: d.kind, title: d.title, summary: d.summary, topics: d.topics.map((t) => t.title), taskCount: d.tasks.length })),
           deliverable: deliverable ? deliverableMap.get(deliverable.id)! : null,
         };
       }),

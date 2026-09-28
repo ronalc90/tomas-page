@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { PACE_LABEL, STATUS_LABEL, SUBMISSION_LABEL, type ItemStatus, type Pace, type SubmissionStatus } from "@tomas/shared";
 import { errorMessage } from "../lib/api";
+import { Help } from "./CodeBlock";
 import { Icon } from "./Icon";
 
 export function StatusPill({ status, label }: { status: ItemStatus; label?: string }) {
@@ -32,10 +33,13 @@ export function ProgressBar({ value, label, thin }: { value: number; label: stri
   );
 }
 
-export function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
+export function Stat({ label, value, sub, help }: { label: string; value: ReactNode; sub?: ReactNode; help?: string }) {
   return (
     <div className="stat">
-      <dt>{label}</dt>
+      <dt>
+        {label}
+        {help && <Help text={help} label={`Qué significa ${label.toLowerCase()}`} />}
+      </dt>
       <dd>{value}</dd>
       {sub && <dd className="sub">{sub}</dd>}
     </div>
