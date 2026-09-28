@@ -1,12 +1,18 @@
 version: 2
 updates:
+  # Dependencias de npm: un solo PR semanal con las versiones menores y parches.
+  # Las versiones mayores se actualizan a mano, porque pueden romper la API.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 3
     groups:
       dependencias:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
