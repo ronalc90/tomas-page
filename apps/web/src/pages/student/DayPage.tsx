@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router";
 import { capitalize, formatLong, type DayResponse } from "@tomas/shared";
 import { CodeBlock, RichText } from "../../components/CodeBlock";
@@ -34,15 +34,23 @@ function Workshop({ data }: { data: DayResponse }) {
   const [evidence, setEvidence] = useState(data.progress.evidence);
   const autosave = useAutosave((value) => saveProgress.mutateAsync({ evidence: value }));
 
-  useEffect(() => setTasks(data.progress.tasks), [data.progress.tasks]);
+  // Igual que en los entregables: no se pisa lo marcado mientras haya guardados en camino.
+  const pending = useRef(0);
+  useEffect(() => {
+    if (pending.current === 0) setTasks(data.progress.tasks);
+  }, [data.progress.tasks]);
 
   const toggleTask = (i: number, checked: boolean) => {
     const next = tasks.map((t, k) => (k === i ? checked : t));
     setTasks(next);
+    pending.current += 1;
     saveProgress.mutate(
       { tasks: next },
       {
         onError: (err) => toast(errorMessage(err), "error"),
+        onSettled: () => {
+          pending.current -= 1;
+        },
       },
     );
   };

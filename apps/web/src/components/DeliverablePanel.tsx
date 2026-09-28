@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DELIVERABLE_KIND_LABEL, formatLong, type DeliverableView } from "@tomas/shared";
 import { errorMessage } from "../lib/api";
 import { dateTime } from "../lib/format";
@@ -18,14 +18,26 @@ export function DeliverablePanel({ deliverable, startStep = 1 }: { deliverable: 
   const [evidence, setEvidence] = useState(sub?.evidence ?? "");
   const autosave = useAutosave((value) => save.mutateAsync({ evidence: value }));
 
+  // Mientras haya guardados en camino, manda lo que el estudiante marcó en pantalla:
+  // así una respuesta atrasada del servidor no desmarca una casilla recién marcada.
+  const pending = useRef(0);
   useEffect(() => {
-    setCriteria(sub?.criteria ?? deliverable.criteria.map(() => false));
+    if (pending.current === 0) setCriteria(sub?.criteria ?? deliverable.criteria.map(() => false));
   }, [sub?.criteria, deliverable.criteria]);
 
   const toggle = (i: number, checked: boolean) => {
     const next = criteria.map((c, k) => (k === i ? checked : c));
     setCriteria(next);
-    save.mutate({ criteria: next }, { onError: (err) => toast(errorMessage(err), "error") });
+    pending.current += 1;
+    save.mutate(
+      { criteria: next },
+      {
+        onError: (err) => toast(errorMessage(err), "error"),
+        onSettled: () => {
+          pending.current -= 1;
+        },
+      },
+    );
   };
 
   const ready = criteria.length > 0 && criteria.every(Boolean) && evidence.trim().length > 0;

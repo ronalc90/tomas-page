@@ -27,7 +27,8 @@ test("Tomás completa el taller del día: tareas y evaluación", async ({ page, 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("and, or, not");
 
   const tasks = page.locator(".checklist input[type=checkbox]");
-  for (let i = 0; i < (await tasks.count()); i++) await tasks.nth(i).check();
+  await expect(tasks).toHaveCount(3);
+  for (let i = 0; i < 3; i++) await tasks.nth(i).check();
 
   // Primer intento con una respuesta mala: no aprueba (3 de 4 es suficiente, 2 no).
   const wrong = answers.map((a, i) => (i < 2 ? (a + 1) % 4 : a));
@@ -63,7 +64,8 @@ test("Tomás envía el entregable de la semana 1", async ({ page }) => {
   const send = page.getByRole("button", { name: "Enviar entregable" });
   await expect(send).toBeDisabled();
   const criteria = page.locator(".checklist input[type=checkbox]");
-  for (let i = 0; i < (await criteria.count()); i++) await criteria.nth(i).check();
+  await expect(criteria).toHaveCount(4);
+  for (let i = 0; i < 4; i++) await criteria.nth(i).check();
   await page.getByLabel(/Enlace a tu código/).fill("https://github.com/tomas/curso-python/tree/main/semana-01");
   await expect(send).toBeEnabled();
   await send.click();

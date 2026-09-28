@@ -3,7 +3,7 @@ import type { Config } from "../config";
 import { hashPassword } from "../lib/password";
 import type { Database } from "./client";
 import { days, deliverables, phases, questions, settings, users, weeks } from "./schema";
-import plan from "./seed-data/plan.json";
+import plan from "@tomas/shared/plan.json";
 
 type PlanJson = typeof plan;
 

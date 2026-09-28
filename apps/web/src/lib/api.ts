@@ -1,4 +1,5 @@
 import type { ApiErrorBody } from "@tomas/shared";
+import { LOCAL_MODE } from "./mode";
 
 export class ApiError extends Error {
   constructor(
@@ -14,6 +15,11 @@ export class ApiError extends Error {
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+  if (LOCAL_MODE) {
+    // Sin servidor: la misma API se atiende dentro del navegador (se carga solo en ese modo).
+    const { handleLocal } = await import("../local/server");
+    return handleLocal<T>(method, path, body);
+  }
   let res: Response;
   try {
     res = await fetch(path, {

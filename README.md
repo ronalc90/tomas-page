@@ -9,6 +9,19 @@ Plataforma para que Tomás aprenda Python y SQL entre el **27 de septiembre y el
 | **Administración** | Resumen con métricas y actividad, detalle por estudiante, cola de revisión (aprobar o pedir cambios), editor de talleres y preguntas, usuarios y ajustes |
 | **Stack** | React 19 + Vite + TypeScript · Fastify 5 + Drizzle ORM · PostgreSQL 16 · Railway |
 
+## Dos formas de publicarlo
+
+| | GitHub Pages (en línea hoy) | Railway (servidor + PostgreSQL) |
+|---|---|---|
+| Dirección | https://ronalc90.github.io/tomas-page/ | la que asigne Railway |
+| Dónde viven los datos | En el navegador de quien usa la página | En PostgreSQL, compartidos entre equipos |
+| Panel de administración | Ve los datos de ese navegador; para revisar el trabajo de Tomás desde otro equipo se usa **Mi cuenta → Copia de seguridad** | Ve a todos los estudiantes en tiempo real |
+| Evaluaciones | Se califican en el navegador | Se califican en el servidor (las respuestas nunca llegan al navegador antes de presentar) |
+
+Es la misma aplicación: la versión de GitHub Pages se compila con `VITE_DATA_MODE=local` y atiende la API dentro del navegador (`apps/web/src/local/`), con las mismas reglas y validaciones que el servidor. Cuando el proyecto de Railway esté activo, el CI despliega también allá.
+
+**Cuentas de la versión GitHub Pages:** `tomas` / `1234` y `admin` / `admin-tomas-2026`. Cada navegador empieza con estas cuentas; cambia la contraseña del administrador en **Mi cuenta**.
+
 ## Arquitectura
 
 ```
@@ -66,6 +79,7 @@ npm run typecheck   # TypeScript en los tres paquetes
 npm test            # Vitest: API contra PostgreSQL real + componentes de la web
 npm run build
 npm run e2e         # Playwright: flujos completos de estudiante y administrador (escritorio y celular)
+npm run build:pages && npm run e2e:pages   # versión sin servidor (GitHub Pages)
 ```
 
 Las pruebas de la API crean una base limpia (`tomas_test`) con las migraciones reales. Las de punta a punta levantan el servidor compilado con una base propia (`tomas_e2e`).
@@ -76,7 +90,9 @@ Las pruebas de la API crean una base limpia (`tomas_test`) con las migraciones r
 
 1. **Calidad y pruebas:** lint, tipos, pruebas con PostgreSQL 16, compilación y Playwright.
 2. **Imagen Docker:** construye la imagen de producción, la arranca contra PostgreSQL y verifica `/api/health`.
-3. **Desplegar en Railway:** solo en `main` y solo si los dos trabajos anteriores pasan. Sube el código con `railway up`, espera la compilación y comprueba que `/api/health` responde con la versión (commit) recién desplegada.
+3. **Versión GitHub Pages:** compila la versión sin servidor y la prueba con Playwright.
+4. **Publicar en GitHub Pages:** solo en `main`, si todo lo anterior pasó; publica y comprueba que la página responde.
+5. **Desplegar en Railway:** solo en `main` y solo cuando la variable `RAILWAY_SERVICE` existe en GitHub. Sube el código con `railway up`, espera la compilación y comprueba que `/api/health` responde con la versión (commit) recién desplegada.
 
 Configuración que usa el despliegue (en GitHub → Settings):
 

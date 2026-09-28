@@ -91,10 +91,81 @@ jobs:
           docker logs app
           exit 1
 
+  pages:
+    name: Versión GitHub Pages
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar la versión sin servidor
+        run: VITE_APP_VERSION="${GITHUB_SHA::7}" npm run build:pages
+
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Probar la versión sin servidor
+        run: npm run e2e:pages
+
+      - name: Guardar el reporte de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-pages
+          path: playwright-report-pages
+          retention-days: 7
+
+      - name: Preparar la publicación
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: apps/web/dist
+
+  publish-pages:
+    name: Publicar en GitHub Pages
+    needs: [pages]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Verificar que la página responde
+        run: |
+          for i in $(seq 1 20); do
+            if curl -fsS "${{ steps.deployment.outputs.page_url }}" | grep -q "Plan de Tomás"; then
+              echo "Página en línea: ${{ steps.deployment.outputs.page_url }}"
+              exit 0
+            fi
+            sleep 6
+          done
+          exit 1
+
+  # Se activa cuando el proyecto de Railway esté configurado (variable RAILWAY_SERVICE en GitHub).
   deploy:
     name: Desplegar en Railway
     needs: [verify, docker]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.RAILWAY_SERVICE != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:

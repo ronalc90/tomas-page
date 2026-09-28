@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import { Icon } from "../components/Icon";
 import { Field } from "../components/ui";
 import { ApiError, errorMessage } from "../lib/api";
+import { LOCAL_MODE } from "../lib/mode";
 import { useLogin } from "../lib/queries";
 
 export function LoginPage() {
@@ -116,6 +117,11 @@ export function LoginPage() {
           <p className="muted" style={{ fontSize: 14 }}>
             ¿Olvidaste tu contraseña? Pídele al administrador que la restablezca.
           </p>
+          {LOCAL_MODE && (
+            <p className="muted" style={{ fontSize: 13 }}>
+              Tu avance se guarda en este navegador. Usa siempre el mismo computador o descarga una copia desde Mi cuenta.
+            </p>
+          )}
         </form>
       </div>
     </div>

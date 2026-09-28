@@ -3,6 +3,7 @@ import { capitalize, formatLong } from "@tomas/shared";
 import { ErrorState, Loading, PageHeader, Stat } from "../../components/ui";
 import { WeeklyChart } from "../../components/WeeklyChart";
 import { percent } from "../../lib/format";
+import { LOCAL_MODE } from "../../lib/mode";
 import { useOverview } from "../../lib/queries";
 import { ActivityFeed, StudentsTable } from "./shared";
 
@@ -32,6 +33,15 @@ export function OverviewPage() {
           ) : undefined
         }
       />
+
+      {LOCAL_MODE && (
+        <div className="alert info" role="note">
+          <span>
+            Esta versión funciona sin servidor: ves el avance guardado en <b>este navegador</b>. Para revisar lo que hizo Tomás en su
+            computador, pídele la copia de seguridad (Mi cuenta → Descargar copia) y cárgala en <Link to="/cuenta">Mi cuenta</Link>.
+          </span>
+        </div>
+      )}
 
       <dl className="stats">
         <Stat label="Estudiantes activos" value={active.length} sub={behind ? `${behind} con pendientes atrasados` : "todos al día"} />
