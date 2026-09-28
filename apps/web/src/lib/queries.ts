@@ -24,6 +24,7 @@ import type {
   UserRow,
 } from "@tomas/shared";
 import { api, ApiError, serial } from "./api";
+import { BASENAME } from "./mode";
 
 export const keys = {
   me: ["me"] as const,
@@ -72,13 +73,20 @@ export function useLogin() {
   });
 }
 
+/**
+ * Cierra la sesión y recarga la aplicación en la pantalla de inicio de sesión.
+ * La recarga completa garantiza que no quede en memoria ningún dato de la sesión anterior.
+ */
 export function useLogout() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post("/api/auth/logout"),
+    mutationFn: async () => {
+      await qc.cancelQueries();
+      await api.post("/api/auth/logout").catch(() => undefined);
+    },
     onSettled: () => {
       qc.clear();
-      qc.setQueryData(keys.me, null);
+      window.location.replace(`${BASENAME}/login`);
     },
   });
 }

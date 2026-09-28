@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { NavLink, Outlet, useLocation } from "react-router";
 import { ROLE_LABEL, type MeResponse } from "@tomas/shared";
 import { initials } from "../lib/format";
 import { LOCAL_MODE } from "../lib/mode";
@@ -43,7 +43,6 @@ function PendingBadge() {
 export function AppShell({ me }: { me: MeResponse }) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const logout = useLogout();
   const isAdmin = me.user.role === "admin";
 
@@ -146,7 +145,8 @@ export function AppShell({ me }: { me: MeResponse }) {
             <button
               type="button"
               className="btn ghost small"
-              onClick={() => logout.mutate(undefined, { onSettled: () => navigate("/login", { replace: true }) })}
+              disabled={logout.isPending}
+              onClick={() => logout.mutate()}
             >
               <Icon name="logout" size={18} />
               Cerrar sesión
