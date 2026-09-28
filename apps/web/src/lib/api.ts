@@ -13,20 +13,28 @@ export class ApiError extends Error {
 }
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+type LocalHandler = <T>(method: string, path: string, body?: unknown) => Promise<T>;
+
+let localHandler: LocalHandler | undefined;
 
 export async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
   if (LOCAL_MODE) {
     // Sin servidor: la misma API se atiende dentro del navegador (se carga solo en ese modo).
-    const { handleLocal } = await import("../local/server");
-    return handleLocal<T>(method, path, body);
+    // Se guarda la referencia tras la primera carga: así un guardado lanzado al cerrar o recargar
+    // la pestaña termina de inmediato, sin esperar otra importación.
+    localHandler ??= (await import("../local/server")).handleLocal;
+    return localHandler<T>(method, path, body);
   }
   let res: Response;
   try {
+    const payload = body !== undefined ? JSON.stringify(body) : undefined;
     res = await fetch(path, {
       method,
       credentials: "same-origin",
+      // Permite terminar un guardado aunque la pestaña se cierre (solo para cuerpos pequeños).
+      keepalive: method !== "GET" && (payload?.length ?? 0) < 60_000,
       headers: body !== undefined ? { "content-type": "application/json" } : undefined,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: payload,
     });
   } catch {
     throw new ApiError(0, "network", "No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.");

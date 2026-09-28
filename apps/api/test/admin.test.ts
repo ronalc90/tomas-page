@@ -20,8 +20,8 @@ describe("resumen y estudiantes", () => {
     const res = await admin.get("/api/admin/overview");
     expect(res.statusCode).toBe(200);
     const overview: AdminOverview = res.json();
-    expect(overview.students).toHaveLength(1);
-    expect(overview.students[0]).toMatchObject({ username: "tomas", pace: "behind" });
+    expect(overview.students.map((s) => s.username)).toEqual(["prueba", "tomas"]);
+    expect(overview.students.find((s) => s.username === "tomas")).toMatchObject({ pace: "behind" });
     expect(overview.pendingReviews).toBe(1);
     expect(overview.activity.some((a) => a.type === "submission_submitted")).toBe(true);
     expect(overview.weeklyActivity.length).toBeGreaterThan(0);
@@ -119,6 +119,12 @@ describe("contenido", () => {
     const weeks = (await admin.get("/api/admin/content")).json();
     expect(weeks).toHaveLength(15);
     expect(weeks[1].deliverable.criteria.length).toBeGreaterThan(0);
+  });
+});
+
+describe("cuentas iniciales", () => {
+  it("crea la cuenta de prueba cuando hay contraseña para ella", async () => {
+    await login(env.app, "prueba", "prueba123");
   });
 });
 

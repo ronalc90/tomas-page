@@ -27,6 +27,20 @@ beforeEach(() => {
 });
 
 describe("modo sin servidor", () => {
+  it("agrega una sola vez la cuenta de prueba a navegadores con datos anteriores", async () => {
+    await login("prueba", "prueba123");
+    await call("POST", "/api/auth/logout");
+    // Simula datos de una versión anterior: sin la cuenta de prueba ni el registro de cuentas creadas.
+    const { db } = await exportBackup();
+    const old = { ...db, users: db.users.filter((u) => u.username !== "prueba"), seededAccounts: undefined };
+    importBackup(JSON.stringify(old));
+    resetCache();
+    await login("prueba", "prueba123");
+    const again = await exportBackup();
+    expect(again.db.users.filter((u) => u.username === "prueba")).toHaveLength(1);
+    expect(again.db.seededAccounts).toEqual(expect.arrayContaining(["admin", "tomas", "prueba"]));
+  });
+
   it("crea las cuentas iniciales y pide sesión", async () => {
     expect(await call<MeResponse | null>("GET", "/api/auth/me")).toBeNull();
     await expect(call("GET", "/api/progress")).rejects.toMatchObject({ status: 401 });
@@ -64,7 +78,7 @@ describe("modo sin servidor", () => {
 
     await login("admin", "admin-tomas-2026");
     const students = await call<StudentRow[]>("GET", "/api/admin/students");
-    expect(students.map((s) => s.username)).toEqual(["tomas"]);
+    expect(students.map((s) => s.username)).toEqual(["prueba", "tomas"]);
     await expect(call("POST", `/api/admin/reviews/${user.id}/s01`, { decision: "changes_requested", feedback: "" })).rejects.toMatchObject({ status: 400 });
     await call("POST", `/api/admin/reviews/${user.id}/s01`, { decision: "changes_requested", feedback: "Agrega un caso." });
     await call("POST", "/api/auth/logout");

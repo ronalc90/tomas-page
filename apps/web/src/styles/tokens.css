@@ -18,6 +18,8 @@
 
   --ok: #1d6b59;
   --warn: #b4541a;
+  /* Texto de advertencia sobre fondos claros de color (contraste 5:1) */
+  --warn-text: #9a4412;
   --warn-soft: #fbe9dd;
   --bad: #b42d3a;
   --bad-soft: #f8e1e4;
@@ -27,7 +29,7 @@
   --c0: #6a55a0;
   --c1: #2c6aa8;
   --c2: #1d6b59;
-  --c3: #a66d12;
+  --c3: #8f5d0c;
   --c4: #963a58;
   --on-phase: #ffffff;
 
@@ -70,6 +72,7 @@
     --on-accent: #0f151c;
     --ok: #4cb597;
     --warn: #e48a4e;
+    --warn-text: #e48a4e;
     --warn-soft: #3a2518;
     --bad: #ee6b77;
     --bad-soft: #3b1c22;
@@ -107,6 +110,7 @@
   --on-accent: #0f151c;
   --ok: #4cb597;
   --warn: #e48a4e;
+  --warn-text: #e48a4e;
   --warn-soft: #3a2518;
   --bad: #ee6b77;
   --bad-soft: #3b1c22;

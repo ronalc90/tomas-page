@@ -20,7 +20,7 @@ Plataforma para que Tomás aprenda Python y SQL entre el **27 de septiembre y el
 
 Es la misma aplicación: la versión de GitHub Pages se compila con `VITE_DATA_MODE=local` y atiende la API dentro del navegador (`apps/web/src/local/`), con las mismas reglas y validaciones que el servidor. Cuando el proyecto de Railway esté activo, el CI despliega también allá.
 
-**Cuentas de la versión GitHub Pages:** `tomas` / `1234` y `admin` / `admin-tomas-2026`. Cada navegador empieza con estas cuentas; cambia la contraseña del administrador en **Mi cuenta**.
+**Cuentas de la versión GitHub Pages:** `tomas` / `1234`, `admin` / `admin-tomas-2026` y la cuenta de prueba `prueba` / `prueba123` (para explorar sin tocar el avance de Tomás; se puede desactivar en **Administración → Usuarios**). Cada navegador empieza con estas cuentas; cambia la contraseña del administrador en **Mi cuenta**.
 
 ## Arquitectura
 
@@ -53,6 +53,7 @@ Se crean la primera vez que arranca el servidor, con las variables `SEED_*`:
 |---|---|---|
 | `tomas` | Estudiante | `SEED_STUDENT_PASSWORD` (en producción: `1234`) |
 | `admin` | Administrador | `SEED_ADMIN_PASSWORD` (variable secreta en Railway) |
+| `prueba` | Estudiante de prueba | `SEED_TEST_PASSWORD` (en desarrollo: `prueba123`; en producción solo se crea si defines la variable) |
 
 Si una cuenta ya existe, su contraseña no se toca. Las contraseñas se cambian desde **Mi cuenta** o desde **Administración → Usuarios**.
 

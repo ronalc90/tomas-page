@@ -27,6 +27,8 @@ const envSchema = z.object({
   SEED_STUDENT_USERNAME: z.string().default("tomas"),
   SEED_STUDENT_NAME: z.string().default("Tomás"),
   SEED_STUDENT_PASSWORD: z.string().optional(),
+  /** Si se define, crea también la cuenta "prueba" (estudiante) para probar sin tocar la de Tomás. */
+  SEED_TEST_PASSWORD: z.string().optional(),
 });
 
 export type Config = ReturnType<typeof loadConfig>;
@@ -64,6 +66,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
         username: e.SEED_STUDENT_USERNAME,
         displayName: e.SEED_STUDENT_NAME,
         password: e.SEED_STUDENT_PASSWORD ?? (production ? undefined : "1234"),
+      },
+      test: {
+        username: "prueba",
+        displayName: "Estudiante de prueba",
+        password: e.SEED_TEST_PASSWORD ?? (production ? undefined : "prueba123"),
       },
     },
   };

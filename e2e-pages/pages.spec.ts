@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 const plan = JSON.parse(readFileSync(new URL("../packages/shared/src/data/plan.json", import.meta.url), "utf8")) as {
-  weeks: { days: { date: string; questions?: { correctIndex: number }[] }[] }[];
+  weeks: { days: { date: string; questions?: { correctIndex: number }[] }[]; deliverable: { dueDate: string } }[];
 };
 const answersFor = (date: string) =>
   plan.weeks.flatMap((w) => w.days).find((d) => d.date === date)!.questions!.map((q) => q.correctIndex);
@@ -72,7 +72,7 @@ test("Tomás envía el entregable de la semana 1", async () => {
 test("el administrador ve el avance y aprueba el entregable", async () => {
   await login("admin", "admin-tomas-2026");
   await expect(page.getByText("Esta versión funciona sin servidor")).toBeVisible();
-  await expect(page.locator("tr.clickable").first()).toContainText("Tomás");
+  await expect(page.locator("tr.clickable", { hasText: "Tomás" })).toBeVisible();
   await page.getByRole("link", { name: /Revisar 1 entregable/ }).click();
   await page.locator(".deliverable-list a").first().click();
   await page.getByLabel("Comentario para el estudiante").fill("Muy bien.");
@@ -84,4 +84,31 @@ test("descarga una copia de seguridad", async () => {
   await page.goto("cuenta");
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Descargar copia" }).click()]);
   expect(download.suggestedFilename()).toMatch(/^plan-tomas-\d{4}-\d{2}-\d{2}\.json$/);
+  await logout();
+});
+
+test("la cuenta de prueba entra y no puede abrir el panel de administración", async () => {
+  await login("prueba", "prueba123");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Estudiante");
+  await page.goto("admin/usuarios");
+  await expect(page).toHaveURL(/\/tomas-page\/?$/);
+});
+
+test("la evidencia no se pierde aunque se recargue enseguida", async () => {
+  await page.goto("dia/2026-09-29");
+  const evidence = page.getByLabel("Evidencia (opcional)");
+  await evidence.fill("print(2 ** 10)");
+  await page.reload();
+  await expect(evidence).toHaveValue("print(2 ** 10)");
+});
+
+test("todas las fechas del plan abren", async () => {
+  test.setTimeout(120_000);
+  const dates = [...new Set(plan.weeks.flatMap((w) => [...w.days.map((d) => d.date), w.deliverable.dueDate]))];
+  expect(dates.length).toBeGreaterThan(80);
+  for (const date of dates) {
+    await page.goto(`dia/${date}`);
+    await expect(page.getByRole("heading", { level: 1 }), date).toBeVisible();
+    await expect(page.getByText("No pudimos cargar esta sección")).toHaveCount(0);
+  }
 });

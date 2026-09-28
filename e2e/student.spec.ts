@@ -45,16 +45,25 @@ test("Tomás completa el taller del día: tareas y evaluación", async ({ page, 
 
   await page.goto("/");
   const workshops = page.locator(".stat").filter({ has: page.locator("dt", { hasText: /^Talleres$/ }) });
-  await expect(workshops.locator("dd")).toContainText("1 / 62");
+  await expect(workshops.locator("dd").first()).toContainText("1 / 62");
 });
 
 test("la evidencia del taller se guarda sola", async ({ page }) => {
   await login(page, STUDENT);
   await page.goto("/dia/2026-10-07");
   await page.getByLabel("Evidencia (opcional)").fill("print(True and False)");
-  await expect(page.getByText("Guardado")).toBeVisible();
+  await expect(page.getByText("Guardado", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Evidencia (opcional)")).toHaveValue("print(True and False)");
+});
+
+test("la evidencia no se pierde aunque se recargue enseguida", async ({ page }) => {
+  await login(page, STUDENT);
+  await page.goto("/dia/2026-10-06");
+  const evidence = page.getByLabel("Evidencia (opcional)");
+  await evidence.fill("print(10 > 3)");
+  await page.reload();
+  await expect(evidence).toHaveValue("print(10 > 3)");
 });
 
 test("Tomás envía el entregable de la semana 1", async ({ page }) => {
@@ -99,4 +108,11 @@ test("un estudiante no puede entrar al panel de administración", async ({ page 
   await page.goto("/admin/usuarios");
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Tomás");
+});
+
+test("la cuenta de prueba entra con su propio avance", async ({ page }) => {
+  await login(page, { username: "prueba", password: "prueba123" });
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Estudiante");
+  await page.goto("/dia/2026-10-07");
+  await expect(page.getByText("Taller completo")).toHaveCount(0);
 });

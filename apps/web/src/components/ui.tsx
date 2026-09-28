@@ -37,7 +37,7 @@ export function Stat({ label, value, sub }: { label: string; value: ReactNode; s
     <div className="stat">
       <dt>{label}</dt>
       <dd>{value}</dd>
-      {sub && <span className="sub">{sub}</span>}
+      {sub && <dd className="sub">{sub}</dd>}
     </div>
   );
 }

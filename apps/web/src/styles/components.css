@@ -168,8 +168,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-.stat .sub {
+.stat dd.sub {
+  font-family: var(--font-body);
+  font-weight: 400;
   font-size: 13px;
+  line-height: 1.4;
   color: var(--muted);
 }
 
@@ -243,7 +246,7 @@
 .pill.overdue,
 .pill.behind,
 .pill.changes_requested {
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 .pill.in_progress,

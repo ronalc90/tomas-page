@@ -75,6 +75,7 @@ export async function seedUsers(db: Database, seed: Config["seed"]): Promise<str
   const accounts = [
     { ...seed.admin, role: "admin" as const },
     { ...seed.student, role: "student" as const },
+    ...(seed.test.password ? [{ ...seed.test, role: "student" as const }] : []),
   ];
   for (const account of accounts) {
     const username = account.username.trim().toLowerCase();
@@ -84,6 +85,7 @@ export async function seedUsers(db: Database, seed: Config["seed"]): Promise<str
       .where(eq(sql`lower(${users.username})`, username));
     if (found) continue;
     if (!account.password) {
+      if (account.username === seed.test.username) continue;
       console.warn(`[seed] No se creó "${username}": falta la contraseña inicial en las variables de entorno.`);
       continue;
     }

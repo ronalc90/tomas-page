@@ -43,6 +43,8 @@ export interface LocalDb {
   version: 1;
   seq: number;
   users: LocalUser[];
+  /** Cuentas iniciales ya creadas alguna vez: no se vuelven a crear si el administrador las cambia. */
+  seededAccounts?: string[];
   overrides: { days: Record<string, DayOverride>; deliverables: Record<string, DeliverableOverride> };
   dayProgress: Record<string, Record<string, { tasks: boolean[]; evidence: string; completedAt: string | null; updatedAt: string }>>;
   quizAttempts: { id: number; userId: string; date: string; answers: number[]; score: number; total: number; createdAt: string }[];
@@ -70,6 +72,8 @@ export interface LocalDb {
 export const DEFAULT_ACCOUNTS = [
   { username: "admin", displayName: "Administrador", role: "admin" as const, password: "admin-tomas-2026" },
   { username: "tomas", displayName: "Tomás", role: "student" as const, password: "1234" },
+  // Para probar la página sin tocar el avance de Tomás. Se puede desactivar desde Usuarios.
+  { username: "prueba", displayName: "Estudiante de prueba", role: "student" as const, password: "prueba123" },
 ];
 
 // ---------- Almacenamiento ----------
@@ -160,12 +164,17 @@ function isDb(value: unknown): value is LocalDb {
   return Boolean(v && v.version === 1 && Array.isArray(v.users) && v.overrides && v.settings);
 }
 
-async function createDb(): Promise<LocalDb> {
-  const now = new Date().toISOString();
-  const users: LocalUser[] = [];
+/** Crea las cuentas iniciales que falten (una sola vez por cuenta). Devuelve true si cambió algo. */
+async function ensureDefaultAccounts(db: LocalDb): Promise<boolean> {
+  const seeded = new Set(db.seededAccounts ?? db.users.map((u) => u.username));
+  let changed = !db.seededAccounts;
   for (const account of DEFAULT_ACCOUNTS) {
+    if (seeded.has(account.username)) continue;
+    seeded.add(account.username);
+    changed = true;
+    if (db.users.some((u) => u.username === account.username)) continue;
     const salt = randomId(12);
-    users.push({
+    db.users.push({
       id: uuid(),
       username: account.username,
       displayName: account.displayName,
@@ -173,14 +182,20 @@ async function createDb(): Promise<LocalDb> {
       passwordHash: await hashPassword(account.password, salt),
       salt,
       active: true,
-      createdAt: now,
+      createdAt: new Date().toISOString(),
       lastLoginAt: null,
     });
   }
-  return {
+  db.seededAccounts = [...seeded];
+  return changed;
+}
+
+async function createDb(): Promise<LocalDb> {
+  const db: LocalDb = {
     version: 1,
     seq: 1,
-    users,
+    users: [],
+    seededAccounts: [],
     overrides: { days: {}, deliverables: {} },
     dayProgress: {},
     quizAttempts: [],
@@ -188,6 +203,8 @@ async function createDb(): Promise<LocalDb> {
     activity: [],
     settings: { passScore: 3, programName: "Plan de Tomás · Python y SQL", timeZone: "America/Bogota" },
   };
+  await ensureDefaultAccounts(db);
+  return db;
 }
 
 export async function loadDb(): Promise<LocalDb> {
@@ -198,6 +215,8 @@ export async function loadDb(): Promise<LocalDb> {
       const parsed = JSON.parse(raw);
       if (isDb(parsed)) {
         cache = parsed;
+        // Navegadores con datos de una versión anterior reciben las cuentas nuevas (por ejemplo, la de prueba).
+        if (await ensureDefaultAccounts(parsed)) saveDb(parsed);
         return parsed;
       }
     } catch {

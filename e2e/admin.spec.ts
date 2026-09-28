@@ -7,7 +7,7 @@ test("el administrador ve el resumen y el detalle del estudiante", async ({ page
   await login(page, ADMIN);
   await expect(page.getByRole("heading", { name: "Resumen" })).toBeVisible();
   await expect(page.getByRole("img", { name: /Actividad por semana/ })).toBeVisible();
-  await page.locator("tr.clickable").first().click();
+  await page.locator("tr.clickable", { hasText: "Tomás" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tomás");
   await expect(page.getByRole("group", { name: "Calendario del plan" })).toBeVisible();
 });

@@ -6,7 +6,7 @@ export type SaveState = "idle" | "pending" | "saving" | "saved" | "error";
  * Guarda un texto automáticamente cuando el usuario deja de escribir.
  * También guarda al salir del campo y antes de cambiar de página.
  */
-export function useAutosave(save: (value: string) => Promise<unknown>, delay = 800) {
+export function useAutosave(save: (value: string) => Promise<unknown>, delay = 600) {
   const [state, setState] = useState<SaveState>("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<string | null>(null);
@@ -38,7 +38,18 @@ export function useAutosave(save: (value: string) => Promise<unknown>, delay = 8
     [delay, flush],
   );
 
-  useEffect(() => () => void flush(), [flush]);
+  useEffect(() => {
+    // Al ocultar la pestaña (recargar, cerrar o cambiar de app) se guarda lo que falte.
+    const onHide = () => void flush();
+    const onVisibility = () => document.visibilityState === "hidden" && onHide();
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onVisibility);
+      void flush();
+    };
+  }, [flush]);
 
   return { state, schedule, flush };
 }
