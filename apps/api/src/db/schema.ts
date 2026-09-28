@@ -93,6 +93,7 @@ export const days = pgTable(
     title: text("title").notNull(),
     summary: text("summary").notNull().default(""),
     concept: text("concept").notNull().default(""),
+    tip: text("tip").notNull().default(""),
     example: text("example").notNull().default(""),
     language: text("language").notNull().default("python"),
     exampleOutput: text("example_output").notNull().default(""),

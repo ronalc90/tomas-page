@@ -1,6 +1,6 @@
 # Plan de Tomás · Python y SQL
 
-Plataforma para que Tomás aprenda Python y SQL entre el **27 de septiembre y el 30 de diciembre de 2026**: un taller por día, una evaluación al final de cada taller y un entregable cada sábado. Incluye un panel de administración para seguir el avance, revisar entregas, editar el contenido y gestionar cuentas.
+Plataforma para que Tomás aprenda Python y SQL entre el **27 de septiembre y el 30 de diciembre de 2026**: 62 talleres de lunes a viernes (concepto, ejemplo de código, 3 tareas, consejo del día y una evaluación de 4 preguntas con explicaciones) y un entregable cada sábado con sus criterios. Incluye un panel de administración para seguir el avance, revisar entregas, editar el contenido y gestionar cuentas.
 
 | | |
 |---|---|
@@ -29,9 +29,9 @@ apps/
   web/        React + React Router + TanStack Query (la interfaz)
   api/        Fastify + Drizzle: API REST, sesiones, reglas de avance; sirve la web compilada
     drizzle/  migraciones SQL versionadas
-    src/db/seed-data/plan.json   contenido inicial del plan
 packages/
   shared/     tipos, validaciones (zod), reglas de avance y fechas, usados por web y API
+    src/data/plan.json   contenido del plan (talleres, evaluaciones, consejos y entregables)
 e2e/          pruebas de punta a punta con Playwright
 ```
 

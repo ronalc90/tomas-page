@@ -25,6 +25,7 @@ test("Tomás completa el taller del día: tareas y evaluación", async ({ page, 
   await page.getByRole("link", { name: "Empezar" }).click();
   await expect(page).toHaveURL(/\/dia\/2026-10-07/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("and, or, not");
+  await expect(page.getByRole("complementary", { name: "Consejo del día" })).toContainText("2024 (sí)");
 
   const tasks = page.locator(".checklist input[type=checkbox]");
   await expect(tasks).toHaveCount(3);

@@ -35,6 +35,7 @@ export async function seedContent(db: Database, options: { reset?: boolean } = {
       for (const d of w.days) {
         const full = d as (typeof w.days)[number] & {
           concept?: string;
+          tip?: string;
           example?: string;
           language?: string;
           exampleOutput?: string;
@@ -48,6 +49,7 @@ export async function seedContent(db: Database, options: { reset?: boolean } = {
           title: d.title,
           summary: d.summary,
           concept: full.concept ?? "",
+          tip: full.tip ?? "",
           example: full.example ?? "",
           language: full.language ?? "python",
           exampleOutput: full.exampleOutput ?? "",
@@ -61,6 +63,25 @@ export async function seedContent(db: Database, options: { reset?: boolean } = {
     }
   });
   return true;
+}
+
+/**
+ * Bases creadas antes de que existiera el consejo del día: si ningún taller tiene consejo,
+ * se copian los del plan. Si el administrador ya escribió alguno, no se toca nada.
+ */
+export async function seedTips(db: Database): Promise<number> {
+  const [{ value: withTip }] = await db.select({ value: count() }).from(days).where(sql`${days.tip} <> ''`);
+  if (withTip > 0) return 0;
+  let filled = 0;
+  for (const w of (plan as PlanJson).weeks) {
+    for (const d of w.days) {
+      const tip = (d as { tip?: string }).tip;
+      if (!tip) continue;
+      const updated = await db.update(days).set({ tip }).where(eq(days.date, d.date)).returning({ date: days.date });
+      filled += updated.length;
+    }
+  }
+  return filled;
 }
 
 export async function seedSettings(db: Database): Promise<void> {
@@ -102,6 +123,7 @@ export async function seedUsers(db: Database, seed: Config["seed"]): Promise<str
 
 export async function seedAll(db: Database, config: Config, options: { resetContent?: boolean } = {}) {
   const content = await seedContent(db, { reset: options.resetContent });
+  if (!content) await seedTips(db);
   await seedSettings(db);
   const createdUsers = await seedUsers(db, config.seed);
   return { content, createdUsers };

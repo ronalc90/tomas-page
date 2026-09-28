@@ -1,5 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { AdminDay, AdminOverview, ReviewQueueItem, StudentDetail, UserRow } from "@tomas/shared";
+import { sql } from "drizzle-orm";
+import { seedTips } from "../src/db/seed";
 import { ADMIN, client, login, STUDENT, useTestApp } from "./helpers";
 
 const env = useTestApp("2026-10-05");
@@ -93,11 +95,13 @@ describe("contenido", () => {
     const res = await admin.put(`/api/admin/days/${DATE}`, {
       ...day,
       title: "if, else y comparaciones (editado)",
+      tip: "Consejo editado por el administrador.",
       tasks: [...day.tasks, "Tarea extra de práctica."],
     });
     expect(res.statusCode).toBe(200);
     const seen = (await student.get(`/api/days/${DATE}`)).json();
     expect(seen.day.title).toBe("if, else y comparaciones (editado)");
+    expect(seen.day.tip).toBe("Consejo editado por el administrador.");
     expect(seen.day.tasks).toHaveLength(4);
     const plan = (await student.get("/api/plan")).json();
     const planDay = plan.weeks.flatMap((w: { days: { date: string; title: string }[] }) => w.days).find((d: { date: string }) => d.date === DATE);
@@ -119,6 +123,25 @@ describe("contenido", () => {
     const weeks = (await admin.get("/api/admin/content")).json();
     expect(weeks).toHaveLength(15);
     expect(weeks[1].deliverable.criteria.length).toBeGreaterThan(0);
+  });
+});
+
+describe("consejo del día", () => {
+  it("todos los talleres traen un consejo", async () => {
+    const weeks = (await admin.get("/api/admin/content")).json() as { days: { date: string; kind: string }[] }[];
+    const workshops = weeks.flatMap((w) => w.days).filter((d) => d.kind === "workshop");
+    expect(workshops).toHaveLength(62);
+    for (const d of workshops) {
+      const day: AdminDay = (await admin.get(`/api/admin/days/${d.date}`)).json();
+      expect(day.tip.trim(), d.date).not.toBe("");
+    }
+  });
+
+  it("completa los consejos en bases creadas antes de que existieran, una sola vez", async () => {
+    await env.handle.db.execute(sql`UPDATE days SET tip = ''`);
+    expect(await seedTips(env.handle.db)).toBe(62);
+    expect((await student.get("/api/days/2026-10-05")).json().day.tip).toContain("`==` compara");
+    expect(await seedTips(env.handle.db)).toBe(0);
   });
 });
 

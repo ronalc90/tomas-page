@@ -82,6 +82,7 @@ interface FullDay {
   title: string;
   summary: string;
   concept: string;
+  tip: string;
   example: string;
   language: Language;
   exampleOutput: string;
@@ -115,6 +116,7 @@ function content(db: LocalDb) {
         title: base.title,
         summary: base.summary ?? "",
         concept: base.concept ?? "",
+        tip: base.tip ?? "",
         example: base.example ?? "",
         language: (base.language ?? "python") as Language,
         exampleOutput: base.exampleOutput ?? "",
@@ -426,6 +428,7 @@ route("GET", "/api/days/:date", ({ db, params }): DayResponse => {
           title: day.title,
           summary: day.summary,
           concept: day.concept,
+          tip: day.tip,
           example: day.example,
           language: day.language,
           exampleOutput: day.exampleOutput,
@@ -683,6 +686,7 @@ route("GET", "/api/admin/days/:date", ({ db, params }): AdminDay => {
     title: d.title,
     summary: d.summary,
     concept: d.concept,
+    tip: d.tip,
     example: d.example,
     language: d.language,
     exampleOutput: d.exampleOutput,

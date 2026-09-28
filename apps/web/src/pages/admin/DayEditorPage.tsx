@@ -129,6 +129,7 @@ export function DayEditorPage() {
         title: f.title,
         summary: f.summary,
         concept: f.concept,
+        tip: f.tip,
         example: f.example,
         language: f.language,
         exampleOutput: f.exampleOutput,
@@ -194,6 +195,9 @@ export function DayEditorPage() {
             <h2 style={{ fontSize: "1.2rem" }}>Concepto y ejemplo</h2>
             <Field id="concept" label="Concepto" hint="Usa `comillas invertidas` para marcar código en el texto.">
               <textarea id="concept" className="textarea" rows={6} value={f.concept} onChange={(e) => update({ concept: e.target.value })} />
+            </Field>
+            <Field id="tip" label="Consejo del día" hint="Un consejo corto: un error común, cómo estudiar o cómo depurar. Si lo dejas vacío, no se muestra." error={fields.tip}>
+              <textarea id="tip" className="textarea" rows={3} value={f.tip} onChange={(e) => update({ tip: e.target.value })} />
             </Field>
             <div className="form-grid">
               <Field id="example" label="Código de ejemplo">

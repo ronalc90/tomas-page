@@ -72,7 +72,7 @@ export function AppShell({ me }: { me: MeResponse }) {
 
   return (
     <div className={`shell ${open ? "open" : ""}`}>
-      <div className="topbar">
+      <header className="topbar">
         <NavLink to={isAdmin ? "/admin" : "/"} className="brand">
           <span className="brand-mark">
             <Icon name="code" size={18} />
@@ -82,7 +82,7 @@ export function AppShell({ me }: { me: MeResponse }) {
         <button className="btn secondary icon" type="button" aria-label="Abrir menú" onClick={() => setOpen(true)}>
           <Icon name="menu" />
         </button>
-      </div>
+      </header>
       <div className="scrim" onClick={() => setOpen(false)} aria-hidden="true" />
 
       <aside className="sidebar" aria-label="Navegación principal">

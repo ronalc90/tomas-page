@@ -110,6 +110,7 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext) {
             title: dayRow.title,
             summary: dayRow.summary,
             concept: dayRow.concept,
+            tip: dayRow.tip,
             example: dayRow.example,
             language: dayRow.language as Language,
             exampleOutput: dayRow.exampleOutput,

@@ -1,0 +1,1 @@
+ALTER TABLE "days" ADD COLUMN "tip" text DEFAULT '' NOT NULL;

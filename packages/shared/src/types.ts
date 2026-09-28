@@ -170,6 +170,8 @@ export interface DayContent {
   title: string;
   summary: string;
   concept: string;
+  /** Consejo práctico del día (errores comunes, cómo estudiar o depurar). */
+  tip: string;
   example: string;
   language: Language;
   exampleOutput: string;

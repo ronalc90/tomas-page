@@ -93,6 +93,7 @@ export const adminDaySchema = z.object({
   title: z.string().trim().min(1).max(200),
   summary: z.string().trim().max(2_000).default(""),
   concept: z.string().trim().max(5_000).default(""),
+  tip: z.string().trim().max(1_000).default(""),
   example: z.string().max(10_000).default(""),
   language: z.enum(["python", "sql", "bash"]),
   exampleOutput: z.string().max(10_000).default(""),

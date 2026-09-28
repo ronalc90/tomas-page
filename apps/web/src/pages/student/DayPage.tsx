@@ -68,6 +68,17 @@ function Workshop({ data }: { data: DayResponse }) {
           <RichText text={day.concept} />
         </p>
         <CodeBlock code={day.example} language={day.language} output={day.exampleOutput} />
+        {day.tip && (
+          <aside className="tip" aria-label="Consejo del día">
+            <Icon name="bulb" size={22} />
+            <div>
+              <strong>Consejo del día</strong>
+              <p>
+                <RichText text={day.tip} />
+              </p>
+            </div>
+          </aside>
+        )}
       </section>
 
       <section className="section">

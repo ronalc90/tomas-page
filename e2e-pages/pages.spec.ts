@@ -44,6 +44,7 @@ test("Tomás completa el taller y la evaluación", async () => {
   await page.getByRole("link", { name: "Empezar" }).click();
   await expect(page).toHaveURL(/dia\/2026-10-07/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("and, or, not");
+  await expect(page.getByRole("complementary", { name: "Consejo del día" })).toContainText("2024 (sí)");
   const tasks = page.locator(".checklist input[type=checkbox]");
   for (let i = 0; i < (await tasks.count()); i++) await tasks.nth(i).check();
   for (const [i, a] of answersFor("2026-10-07").entries()) await page.locator(`input[name="q${i}"][value="${a}"]`).check();

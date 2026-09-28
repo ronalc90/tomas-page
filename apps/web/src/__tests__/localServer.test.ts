@@ -108,6 +108,24 @@ describe("modo sin servidor", () => {
     expect((await call<MeResponse>("GET", "/api/auth/me")).settings.passScore).toBe(4);
   });
 
+  it("muestra el consejo del día y respeta ediciones guardadas antes de que existiera", async () => {
+    await login("tomas", "1234");
+    expect((await call<DayResponse>("GET", "/api/days/2026-10-07")).day?.tip).toContain("2024 (sí)");
+    await call("POST", "/api/auth/logout");
+
+    await login("admin", "admin-tomas-2026");
+    const day = await call<Record<string, unknown>>("GET", "/api/admin/days/2026-10-06");
+    await call("PUT", "/api/admin/days/2026-10-06", { ...day, tip: "Consejo nuevo." });
+    expect((await call<DayResponse>("GET", "/api/days/2026-10-06")).day?.tip).toBe("Consejo nuevo.");
+    // Una edición de una versión anterior no tiene el campo: se usa el consejo del plan.
+    const { db } = await exportBackup();
+    const { tip: _omit, ...oldOverride } = db.overrides.days["2026-10-06"]!;
+    importBackup(JSON.stringify({ ...db, overrides: { ...db.overrides, days: { "2026-10-05": { ...oldOverride, title: "Editado antes" } } } }));
+    const old = await call<DayResponse>("GET", "/api/days/2026-10-05");
+    expect(old.day?.title).toBe("Editado antes");
+    expect(old.day?.tip).toContain("`==` compara");
+  });
+
   it("exporta e importa una copia de seguridad", async () => {
     await login("tomas", "1234");
     await call("PUT", "/api/days/2026-10-05/progress", { tasks: [true, false, false] });

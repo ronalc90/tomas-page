@@ -25,6 +25,8 @@ export interface DayOverride {
   title: string;
   summary: string;
   concept: string;
+  /** Ausente en ediciones guardadas antes de que existiera el consejo del día. */
+  tip?: string;
   example: string;
   language: Language;
   exampleOutput: string;

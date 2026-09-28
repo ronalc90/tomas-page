@@ -24,7 +24,8 @@ export function CodeBlock({ code, language, output }: { code: string; language: 
           {copied ? "Copiado" : "Copiar"}
         </button>
       </div>
-      <pre>
+      {/* Enfocable para poder desplazar con el teclado los ejemplos largos en pantallas pequeñas. */}
+      <pre tabIndex={0}>
         <code dangerouslySetInnerHTML={{ __html: html }} />
       </pre>
       {output ? (
@@ -32,7 +33,7 @@ export function CodeBlock({ code, language, output }: { code: string; language: 
           <div className="code-tag">
             <span>Lo que muestra al correrlo</span>
           </div>
-          <pre className="output">
+          <pre className="output" tabIndex={0}>
             <code>{output}</code>
           </pre>
         </>

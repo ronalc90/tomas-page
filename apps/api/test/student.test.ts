@@ -39,6 +39,7 @@ describe("taller del día", () => {
     expect(res.statusCode).toBe(200);
     const day: DayResponse = res.json();
     expect(day.day?.title).toBe("Números y operadores");
+    expect(day.day?.tip).toContain("`//` da la parte entera");
     expect(day.questions).toHaveLength(4);
     expect(res.body).not.toContain("correctIndex");
     expect(res.body).not.toContain("explanation");
