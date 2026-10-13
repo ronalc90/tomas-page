@@ -527,7 +527,7 @@ export function ExercisesEditor({
   return (
     <div className="stack">
       {exercises.map((ex, i) => (
-        <div className="editor-item" key={i}>
+        <div className="editor-item exercise-edit" key={i}>
           <div className="row between">
             <h3>
               Ejercicio {i + 1} <span className="mono muted small">{ex.id}</span>

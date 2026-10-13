@@ -157,6 +157,10 @@ export function CalendarLegend() {
         Entregable
       </span>
       <span>
+        <i className="l-ex" />
+        Ejercicios resueltos (barra)
+      </span>
+      <span>
         <i className="l-rest" />
         Festivo o descanso
       </span>

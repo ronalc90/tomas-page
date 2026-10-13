@@ -18,6 +18,7 @@ interface HistoryItem {
   sql: string;
   at: string;
   ok: boolean;
+  stopped?: boolean;
 }
 
 function readSession(key: string): string | null {
@@ -126,18 +127,21 @@ export function LabPage() {
     async (text = sqlRef.current) => {
       if (!text.trim()) return;
       setStopped(false);
+      const remember = (item: Omit<HistoryItem, "sql" | "at">) =>
+        setHistory((h) => {
+          const next = [{ sql: text, at: new Date().toISOString(), ...item }, ...h.filter((x) => x.sql !== text)].slice(0, HISTORY_MAX);
+          saveHistory(next);
+          return next;
+        });
       try {
         const res = await engine.run({ mode: "lab", sql: text });
         lastRun = { res, sql: text };
         setRun(lastRun);
-        setHistory((h) => {
-          const next = [{ sql: text, at: new Date().toISOString(), ok: res.ok }, ...h.filter((x) => x.sql !== text)].slice(0, HISTORY_MAX);
-          saveHistory(next);
-          return next;
-        });
+        remember({ ok: res.ok });
         refreshSchema();
       } catch (err) {
         if (err instanceof StoppedError) {
+          remember({ ok: false, stopped: true });
           setStopped(true);
           lastRun = null;
           setRun(null);
@@ -287,7 +291,7 @@ export function LabPage() {
                   <li key={`${h.at}-${i}`}>
                     <button type="button" onClick={() => change(h.sql)} title="Llevar al editor">
                       <code>{h.sql.replace(/^--[^\n]*\n/, "").trim().slice(0, 160)}</code>
-                      <span className={h.ok ? "ok" : "bad"}>{h.ok ? "Bien" : "Error"}</span>
+                      <span className={h.ok ? "ok" : "bad"}>{h.ok ? "Bien" : h.stopped ? "Detenida" : "Error"}</span>
                     </button>
                   </li>
                 ))}

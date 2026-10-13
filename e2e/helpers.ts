@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 
 export const ADMIN = { username: "admin", password: "admin-e2e-password" };
 export const STUDENT = { username: "tomas", password: "1234" };
@@ -31,3 +31,15 @@ export async function answerQuiz(page: Page, answers: Answer[]) {
     else await page.locator(`[name="q${i}"]`).fill(a);
   }
 }
+
+/** Escribe en un editor de CodeMirror (reemplaza lo que tenga). */
+export async function typeSql(page: Page, editor: Locator, sql: string) {
+  await editor.locator(".cm-content").click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.press("Delete");
+  // insertText evita el autocompletado y el cierre automático de paréntesis y comillas.
+  await page.keyboard.insertText(sql);
+}
+
+/** La tarjeta de un ejercicio por su título. */
+export const exerciseCard = (page: Page, title: string) => page.locator("li.exercise", { has: page.getByRole("heading", { name: title }) });

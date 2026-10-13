@@ -817,3 +817,40 @@ kbd {
 .feed .dot.solution_revealed {
   background: var(--warn);
 }
+
+/* Sin ligaduras en el código: <> y >= deben verse tal como se escriben. */
+code,
+pre,
+kbd,
+.cm-editor .cm-scroller,
+.textarea.code,
+.input.code,
+.result-table table {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+}
+
+/* Agenda: los bloques cortos (10 min) no se aplastan; si no caben, bajan de línea. */
+.schedule-list {
+  flex-wrap: wrap;
+}
+
+.schedule-list li {
+  min-width: 112px;
+}
+
+/* En el celular no hay atajos de teclado a la vista: el texto queda solo para lectores de pantalla. */
+@media (max-width: 640px) {
+  .lab-editor-head .muted {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+.legend .l-ex {
+  background: linear-gradient(var(--ink-2), var(--ink-2)) 2px 2px / 7px 3px no-repeat, color-mix(in srgb, var(--accent) 13%, var(--surface));
+}

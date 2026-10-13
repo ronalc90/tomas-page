@@ -28,7 +28,9 @@ export default defineConfig({
       PORT: String(PORT),
       DATABASE_URL,
       AUTO_MIGRATE: "true",
-      FAKE_TODAY: "2026-10-07",
+      FAKE_TODAY: "2026-10-13",
+      // Plan de prueba pequeño: las pruebas no dependen del contenido real.
+      PLAN_FILE: "fixtures/plan.json",
       LOG_LEVEL: "warn",
       LOGIN_RATE_LIMIT: "1000",
       SEED_ADMIN_PASSWORD: "admin-e2e-password",
