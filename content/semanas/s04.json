@@ -1,0 +1,2149 @@
+{
+ "id": "s04",
+ "number": 4,
+ "phaseId": 2,
+ "title": "Consultas avanzadas",
+ "rangeLabel": "2 nov – 7 nov",
+ "days": [
+  {
+   "date": "2026-11-02",
+   "kind": "workshop",
+   "title": "Subconsultas",
+   "summary": "Usar el resultado de una consulta dentro de otra: comparar contra el promedio, filtrar con listas calculadas y agregar sobre tablas derivadas.",
+   "objectives": [
+    "Escribir una subconsulta escalar para comparar cada fila contra un promedio, un máximo o un total.",
+    "Usar una subconsulta escalar en el SELECT y en el HAVING, además de en el WHERE.",
+    "Filtrar con `IN` y `NOT IN` usando una lista que produce otra consulta, sin caer en la trampa de los NULL.",
+    "Agregar sobre un resultado ya agrupado con una subconsulta en el FROM (tabla derivada)."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Subconsulta escalar",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Subconsultas con IN y en FROM",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Subconsulta escalar",
+     "concept": "Hay preguntas que necesitan un dato calculado antes de poder filtrar: «¿qué productos cuestan más que el promedio?». Ya sabes que `WHERE precio > AVG(precio)` falla con `misuse of aggregate function`, porque WHERE revisa fila por fila y el promedio es un resultado de toda la tabla. La salida es una **subconsulta**: un SELECT completo, entre paréntesis, dentro de otra consulta.\n\nCuando la subconsulta devuelve exactamente una fila y una columna se llama **subconsulta escalar**, y se usa como si fuera un número escrito a mano: `WHERE precio > (SELECT AVG(precio) FROM productos)`. SQLite calcula primero el promedio (unos ₡10 145) y luego compara cada producto contra ese valor; 13 de los 42 productos lo superan. La ventaja frente a escribir `10145` a mano es que la consulta sigue siendo correcta cuando cambian los precios.\n\nUna subconsulta escalar puede ir en el WHERE, en el SELECT (para mostrar el valor de referencia o calcular una diferencia en cada fila) y en el HAVING (para comparar grupos contra un valor global). Un detalle importante de SQLite: si por error la subconsulta devuelve varias filas, no da ningún error y usa solo la primera, así que el resultado sale mal en silencio.",
+     "tip": "Antes de meter una subconsulta en la consulta grande, ejecútala sola. Si te devuelve un único número y es el que esperabas, ya solo te falta revisar la parte exterior.",
+     "example": "SELECT nombre, precio,\n       precio - (SELECT ROUND(AVG(precio)) FROM productos) AS sobre_promedio\nFROM productos\nWHERE precio > (SELECT AVG(precio) FROM productos)\nORDER BY precio DESC;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Calcula el valor de referencia por separado",
+       "body": "Empieza por la pieza interior: el precio promedio de los 42 productos. Anota el número (10145.24). Es el valor contra el que se comparará cada fila en el siguiente paso.",
+       "code": "SELECT ROUND(AVG(precio), 2) AS promedio\nFROM productos;",
+       "language": "sql"
+      },
+      {
+       "title": "Úsalo dentro del WHERE",
+       "body": "Pega la consulta anterior, sin el ROUND y entre paréntesis, a la derecha del `>`. SQLite la ejecuta una sola vez y compara cada producto contra ese número. Deben salir 13 productos.",
+       "code": "SELECT COUNT(*) AS sobre_promedio\nFROM productos\nWHERE precio > (SELECT AVG(precio) FROM productos);",
+       "language": "sql"
+      },
+      {
+       "title": "Encuentra el extremo con MAX",
+       "body": "«¿Cuál es el producto más caro?» se responde comparando contra el máximo. A diferencia de `ORDER BY precio DESC LIMIT 1`, esta forma devuelve todos los productos empatados si hubiera más de uno con el precio máximo.",
+       "code": "SELECT nombre, precio\nFROM productos\nWHERE precio = (SELECT MAX(precio) FROM productos);",
+       "language": "sql"
+      },
+      {
+       "title": "Muestra la referencia en cada fila",
+       "body": "Una subconsulta escalar también puede ir en el SELECT. Aquí calculas qué porcentaje de la planilla total se lleva cada empleado: la gerente, Laura Méndez, se lleva el 17,1 %. Fíjate en el `100.0`, que evita la división entera.",
+       "code": "SELECT nombre, apellido, salario,\n       ROUND(100.0 * salario / (SELECT SUM(salario) FROM empleados), 1) AS pct_planilla\nFROM empleados\nORDER BY salario DESC, id;",
+       "language": "sql"
+      },
+      {
+       "title": "Compara grupos en el HAVING",
+       "body": "Para saber qué categorías tienen un precio promedio mayor que el promedio general, agrupa y compara cada grupo contra la subconsulta en el HAVING. Salen tres: Artesanía, Hogar y cocina y Tecnología.",
+       "code": "SELECT c.nombre, ROUND(AVG(p.precio)) AS precio_promedio\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nGROUP BY c.id, c.nombre\nHAVING AVG(p.precio) > (SELECT AVG(precio) FROM productos);",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "misuse of aggregate function avg()",
+       "cause": "Escribiste la función de agregación directamente en el WHERE: `WHERE precio > AVG(precio)`. El WHERE se evalúa fila por fila, antes de agrupar.",
+       "fix": "Calcula el agregado en una subconsulta: `WHERE precio > (SELECT AVG(precio) FROM productos)`."
+      },
+      {
+       "error": "row value misused",
+       "cause": "La subconsulta escalar devuelve dos columnas, por ejemplo `(SELECT precio, costo FROM productos WHERE id = 1)`, y SQLite no sabe con cuál comparar.",
+       "fix": "Una subconsulta escalar devuelve una sola columna: deja en su SELECT únicamente el valor que necesitas."
+      },
+      {
+       "error": "El resultado no tiene sentido, pero no hay ningún error",
+       "cause": "La subconsulta devuelve varias filas (por ejemplo `(SELECT precio FROM productos WHERE categoria_id = 1)`) y SQLite usa solo la primera sin avisar.",
+       "fix": "Ejecuta la subconsulta sola: si devuelve más de una fila, usa una agregación (AVG, MAX, SUM) o cambia el `=` por `IN`."
+      }
+     ]
+    },
+    {
+     "title": "Subconsultas con IN y en FROM",
+     "concept": "Si la subconsulta devuelve una columna con varias filas, ya no es un número sino una lista, y se usa con `IN`: `WHERE id IN (SELECT cliente_id FROM pedidos)` deja los clientes que aparecen en pedidos, y con `NOT IN` los que no aparecen. A diferencia de un JOIN, `IN` no repite filas: un cliente con diez pedidos sale una sola vez, sin DISTINCT.\n\n**Cuidado con `NOT IN` y los NULL.** En `pedidos`, `empleado_id` es NULL en las compras en línea. Si preguntas `WHERE id NOT IN (SELECT empleado_id FROM pedidos)`, la lista contiene un NULL, SQLite no puede asegurar que un valor sea distinto de «desconocido» y la consulta devuelve cero filas. Agrega `WHERE empleado_id IS NOT NULL` dentro de la subconsulta (mañana verás que `NOT EXISTS` evita este problema).\n\nUna subconsulta también puede ir en el FROM: su resultado se trata como una tabla temporal, llamada **tabla derivada**. Sirve para agregar sobre algo que ya está agregado. Por ejemplo, el gasto promedio por cliente se calcula en dos pasos: primero se suma lo que gastó cada cliente y después se promedian esas sumas. Dale un alias (`AS g`) y nombres claros a sus columnas.",
+     "tip": "Cuando una consulta tenga paréntesis anidados, escríbela de adentro hacia afuera: primero la subconsulta, la pruebas, y solo entonces la envuelves con la consulta exterior.",
+     "example": "SELECT COUNT(*) AS clientes,\n       ROUND(AVG(gasto)) AS gasto_promedio,\n       ROUND(MAX(gasto)) AS gasto_maximo\nFROM (\n    SELECT p.cliente_id,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS gasto\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY p.cliente_id\n) AS g;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Filtra con una lista calculada",
+       "body": "La subconsulta produce la lista de `cliente_id` que alguna vez pagaron con transferencia; la consulta exterior trae nombre y apellido de esos clientes. Ejecuta primero solo la parte entre paréntesis para ver la lista.",
+       "code": "SELECT nombre, apellido\nFROM clientes\nWHERE id IN (SELECT cliente_id FROM pedidos WHERE metodo_pago = 'transferencia')\nORDER BY apellido, nombre;",
+       "language": "sql"
+      },
+      {
+       "title": "Compara IN con JOIN",
+       "body": "Con `IN` cada cliente aparece una vez (60 clientes con pedidos). Con un JOIN aparece una vez por cada pedido (420 filas). Si la pregunta es «quiénes», IN te ahorra el DISTINCT.",
+       "code": "SELECT COUNT(*) AS con_in FROM clientes WHERE id IN (SELECT cliente_id FROM pedidos);\nSELECT COUNT(*) AS con_join FROM clientes c JOIN pedidos p ON p.cliente_id = c.id;",
+       "language": "sql"
+      },
+      {
+       "title": "Cae en la trampa de NOT IN a propósito",
+       "body": "Busca los empleados que no han atendido ningún pedido. La primera consulta devuelve 0 filas porque la lista trae NULL (las compras en línea). La segunda excluye los NULL dentro de la subconsulta y devuelve los 9 empleados que no venden.",
+       "code": "SELECT nombre, puesto FROM empleados\nWHERE id NOT IN (SELECT empleado_id FROM pedidos);\n\nSELECT nombre, puesto FROM empleados\nWHERE id NOT IN (SELECT empleado_id FROM pedidos WHERE empleado_id IS NOT NULL);",
+       "language": "sql"
+      },
+      {
+       "title": "Arma una tabla derivada",
+       "body": "La subconsulta cuenta los pedidos de cada cliente; la consulta exterior agrupa ese resultado para responder «¿cuántos clientes hicieron 1 pedido, cuántos 2…?». Es un GROUP BY sobre otro GROUP BY, imposible en un solo nivel.",
+       "code": "SELECT pedidos, COUNT(*) AS clientes\nFROM (\n    SELECT cliente_id, COUNT(*) AS pedidos\n    FROM pedidos\n    GROUP BY cliente_id\n) AS t\nGROUP BY pedidos\nORDER BY pedidos;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "La consulta con NOT IN devuelve 0 filas aunque sabes que hay resultados",
+       "cause": "La subconsulta devuelve algún NULL. `x NOT IN (1, 2, NULL)` nunca es verdadero, porque x podría ser igual al valor desconocido.",
+       "fix": "Agrega `WHERE columna IS NOT NULL` dentro de la subconsulta, o usa `NOT EXISTS`."
+      },
+      {
+       "error": "sub-select returns 2 columns - expected 1",
+       "cause": "La subconsulta de un IN tiene dos columnas, por ejemplo `id IN (SELECT cliente_id, id FROM pedidos)`.",
+       "fix": "La lista de un IN es de una sola columna, y debe ser del mismo tipo de dato que la columna de afuera: `id IN (SELECT cliente_id FROM pedidos)`."
+      },
+      {
+       "error": "no such column: g.gasto",
+       "cause": "Dentro de la tabla derivada no le pusiste alias a la columna calculada (`SUM(...)` sin `AS gasto`), así que afuera se llama literalmente `SUM(...)`.",
+       "fix": "Nombra cada columna calculada de la subconsulta con AS y usa ese nombre en la consulta exterior."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-02-1",
+     "title": "Productos sobre el promedio",
+     "prompt": "La gerente quiere revisar los productos caros del catálogo. Muestra el `nombre` y el `precio` de los productos cuyo precio es mayor que el precio promedio de todos los productos, en ese orden.",
+     "hint": "Calcula el promedio en una subconsulta entre paréntesis y compáralo en el WHERE.",
+     "solution": "SELECT nombre, precio\nFROM productos\nWHERE precio > (SELECT AVG(precio) FROM productos);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-02-2",
+     "title": "Salarios por encima del promedio",
+     "prompt": "Recursos Humanos revisa la escala salarial. Muestra `nombre`, `apellido` y `salario` de los empleados que ganan más que el salario promedio de toda la empresa, en ese orden.",
+     "hint": "Es el mismo patrón que el ejercicio anterior, ahora sobre la tabla `empleados`.",
+     "solution": "SELECT nombre, apellido, salario\nFROM empleados\nWHERE salario > (SELECT AVG(salario) FROM empleados);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-02-3",
+     "title": "Clientes de artesanía",
+     "prompt": "Los artesanos de Sarchí quieren enviar un catálogo nuevo a quienes ya les han comprado. Muestra `nombre` y `apellido` de los clientes que tienen al menos un pedido no cancelado con algún producto de la categoría «Artesanía». Cada cliente debe salir una sola vez. Resuélvelo con subconsultas e IN, sin JOIN.",
+     "hint": "Trabaja de adentro hacia afuera: id de la categoría → productos de esa categoría → pedidos que tienen esos productos en `detalle_pedido` → clientes de esos pedidos (sin cancelados).",
+     "solution": "SELECT nombre, apellido\nFROM clientes\nWHERE id IN (\n    SELECT cliente_id FROM pedidos\n    WHERE estado <> 'cancelado'\n      AND id IN (\n        SELECT pedido_id FROM detalle_pedido\n        WHERE producto_id IN (\n            SELECT id FROM productos\n            WHERE categoria_id = (SELECT id FROM categorias WHERE nombre = 'Artesanía')\n        )\n    )\n);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-02-4",
+     "title": "Gasto promedio por cliente",
+     "prompt": "¿Cuánto gasta en promedio un cliente que compra en la tienda? Calcula el gasto total de cada cliente (suma de `cantidad * precio_unitario * (1 - descuento)` de sus pedidos no cancelados) y devuelve un solo número: el promedio de esos gastos entre los clientes que compraron, redondeado a colones enteros.",
+     "hint": "Primero una tabla derivada con `cliente_id` y su gasto (GROUP BY cliente_id); luego, afuera, `ROUND(AVG(gasto))`.",
+     "solution": "SELECT ROUND(AVG(gasto)) AS gasto_promedio\nFROM (\n    SELECT p.cliente_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS gasto\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY p.cliente_id\n) AS g;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-02-5",
+     "title": "Productos que nunca se vendieron",
+     "prompt": "Bodega quiere saber qué productos jamás han aparecido en un pedido (de ningún estado). Muestra el `nombre` del producto y el `nombre` de su categoría, en ese orden.",
+     "hint": "Une `productos` con `categorias` para tener el nombre de la categoría y filtra con `NOT IN` sobre `detalle_pedido.producto_id` (esa columna nunca es NULL, así que NOT IN es seguro aquí).",
+     "solution": "SELECT p.nombre AS producto, c.nombre AS categoria\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE p.id NOT IN (SELECT producto_id FROM detalle_pedido);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-02-6",
+     "title": "Categorías por encima del promedio",
+     "prompt": "Calcula el total vendido de cada categoría (suma de `cantidad * precio_unitario * (1 - descuento)`, sin pedidos cancelados) y muestra solo las categorías cuyo total supera el promedio de los totales de todas las categorías que tienen ventas. Columnas: `nombre` de la categoría y total vendido redondeado a colones enteros.",
+     "hint": "En el HAVING compara `SUM(...)` contra una subconsulta escalar que haga `AVG(total)` sobre una tabla derivada con el total por categoría. Es la misma suma escrita dos veces: una para cada grupo y otra dentro de la subconsulta.",
+     "solution": "SELECT c.nombre, ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM categorias c\nJOIN productos pr ON pr.categoria_id = c.id\nJOIN detalle_pedido d ON d.producto_id = pr.id\nJOIN pedidos p ON p.id = d.pedido_id\nWHERE p.estado <> 'cancelado'\nGROUP BY c.id, c.nombre\nHAVING SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) > (\n    SELECT AVG(total) FROM (\n        SELECT SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n        FROM detalle_pedido d\n        JOIN productos pr ON pr.id = d.producto_id\n        JOIN pedidos p ON p.id = d.pedido_id\n        WHERE p.estado <> 'cancelado'\n        GROUP BY pr.categoria_id\n    ) AS t\n);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "El pedido más grande",
+    "description": "Encuentra el pedido no cancelado con el mayor total (suma de `cantidad * precio_unitario * (1 - descuento)` de sus líneas) y muestra su `id`, su `fecha`, el nombre y apellido del cliente y el total redondeado. No uses `ORDER BY ... LIMIT 1`: compara contra el máximo con una subconsulta, para que salgan todos los pedidos empatados si los hubiera.",
+    "hint": "Arma una tabla derivada con el total de cada pedido. La condición final es `total = (SELECT MAX(total) FROM ...)`, donde el FROM de la subconsulta es otra vez esa misma tabla derivada.",
+    "solution": "SELECT t.id, t.fecha, c.nombre, c.apellido, ROUND(t.total) AS total\nFROM (\n    SELECT p.id, p.fecha, p.cliente_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY p.id\n) AS t\nJOIN clientes c ON c.id = t.cliente_id\nWHERE t.total = (\n    SELECT MAX(total) FROM (\n        SELECT SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n        FROM pedidos p\n        JOIN detalle_pedido d ON d.pedido_id = p.id\n        WHERE p.estado <> 'cancelado'\n        GROUP BY p.id\n    ) AS m\n);",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Subconsulta",
+     "definition": "Un SELECT escrito entre paréntesis dentro de otra consulta, que le entrega un valor, una lista o una tabla."
+    },
+    {
+     "term": "Subconsulta escalar",
+     "definition": "Subconsulta que devuelve exactamente una fila y una columna; se usa como si fuera un valor fijo."
+    },
+    {
+     "term": "Consulta externa",
+     "definition": "La consulta que contiene a la subconsulta y usa su resultado; también se llama consulta principal."
+    },
+    {
+     "term": "Tabla derivada",
+     "definition": "Subconsulta escrita en el FROM; su resultado se usa como una tabla temporal con su propio alias."
+    },
+    {
+     "term": "NOT IN",
+     "definition": "Operador que deja las filas cuyo valor no está en la lista; si la lista contiene un NULL, no deja ninguna."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: expresiones con subconsultas",
+     "url": "https://www.sqlite.org/lang_expr.html#subq"
+    },
+    {
+     "title": "SQLite: la sentencia SELECT",
+     "url": "https://www.sqlite.org/lang_select.html"
+    },
+    {
+     "title": "SQLite Tutorial: subconsultas",
+     "url": "https://www.sqlitetutorial.net/sqlite-subquery/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Por qué falla `SELECT nombre FROM productos WHERE precio > AVG(precio);`?",
+     "code": "",
+     "options": [
+      "Porque AVG solo funciona con GROUP BY",
+      "Porque `precio` es un número entero y AVG devuelve decimales",
+      "Porque el WHERE se evalúa fila por fila y no admite funciones de agregación; el promedio debe ir en una subconsulta",
+      "Porque falta un alias para AVG(precio)"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `SELECT AVG(precio) FROM productos` funciona sin GROUP BY y promedia toda la tabla.",
+      "No: SQLite compara enteros con decimales sin problema; el error es de dónde está escrita la función.",
+      "Correcto: el WHERE filtra cada fila antes de agrupar; `WHERE precio > (SELECT AVG(precio) FROM productos)` sí funciona.",
+      "No: los alias son opcionales y no tienen relación con el error `misuse of aggregate`."
+     ],
+     "explanation": "El WHERE trabaja fila por fila y no puede usar agregados; la subconsulta calcula el promedio aparte y lo entrega como un valor.",
+     "hint": "El mensaje de SQLite dice `misuse of aggregate function avg()`."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estas subconsultas es escalar (devuelve un solo valor) en la base Tienda?",
+     "code": "",
+     "options": [
+      "(SELECT nombre FROM productos WHERE categoria_id = 1)",
+      "(SELECT MAX(salario) FROM empleados)",
+      "(SELECT cliente_id, COUNT(*) FROM pedidos GROUP BY cliente_id)",
+      "(SELECT id FROM clientes WHERE provincia_id = 1)"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la categoría 1 (Café y bebidas) tiene 6 productos; devuelve 6 filas.",
+      "Correcto: MAX sin GROUP BY reduce toda la tabla a una fila y una columna.",
+      "No: devuelve dos columnas y una fila por cliente.",
+      "No: San José tiene 22 clientes; devuelve una lista, útil con IN pero no como valor."
+     ],
+     "explanation": "Una agregación sin GROUP BY siempre devuelve una fila; con una sola columna, es escalar.",
+     "hint": "Busca la que no puede devolver más de una fila."
+    },
+    {
+     "type": "choice",
+     "prompt": "Ejecutas `SELECT nombre FROM empleados WHERE id NOT IN (SELECT empleado_id FROM pedidos);` y obtienes 0 filas, aunque sabes que la gerente nunca ha vendido nada. ¿Por qué?",
+     "code": "",
+     "options": [
+      "Porque todos los empleados han atendido al menos un pedido",
+      "Porque NOT IN no funciona con subconsultas, solo con listas escritas a mano",
+      "Porque falta DISTINCT en la subconsulta",
+      "Porque `empleado_id` tiene NULL (compras en línea) y con un NULL en la lista NOT IN nunca es verdadero"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: 9 de los 14 empleados no aparecen en pedidos.",
+      "No: NOT IN funciona con subconsultas; el problema es el contenido de la lista.",
+      "No: los valores repetidos no afectan a IN ni a NOT IN.",
+      "Correcto: `x NOT IN (5, 6, NULL)` da desconocido, no verdadero; agrega `WHERE empleado_id IS NOT NULL` a la subconsulta."
+     ],
+     "explanation": "Un NULL en la lista hace que ninguna comparación de NOT IN sea verdadera; hay que excluirlo dentro de la subconsulta.",
+     "hint": "Recuerda qué representa `empleado_id` NULL en la tabla pedidos."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si una subconsulta escalar devuelve varias filas por error, SQLite detiene la consulta con un mensaje de error.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: otros motores sí dan error, pero SQLite usa la primera fila sin avisar.",
+      "Correcto: SQLite toma la primera fila y sigue, así que el resultado puede estar mal sin ningún mensaje."
+     ],
+     "explanation": "SQLite no valida que la subconsulta escalar tenga una sola fila; por eso conviene ejecutarla sola antes de usarla.",
+     "hint": "Piensa en el error común del tema 1 que «no tiene ningún mensaje»."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`SELECT nombre FROM clientes WHERE id IN (SELECT cliente_id FROM pedidos)` muestra a cada cliente tantas veces como pedidos tenga.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso pasaría con un JOIN; IN solo pregunta si el id está en la lista.",
+      "Correcto: IN filtra cada fila de clientes una vez; sale cada cliente con pedidos una sola vez (60 en total)."
+     ],
+     "explanation": "IN no multiplica filas: cada cliente se evalúa una vez contra la lista, tenga uno o diez pedidos.",
+     "hint": "Compara con lo que hace un JOIN entre clientes y pedidos."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta sobre la base Tienda?",
+     "code": "SELECT COUNT(*)\nFROM productos\nWHERE precio > (SELECT AVG(precio) FROM productos);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "13"
+     ],
+     "optionFeedback": [],
+     "explanation": "El promedio de los 42 precios es ₡10 145,24 y 13 productos cuestan más que eso.",
+     "hint": "Es el resultado del paso 2 del tema 1."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta sobre la base Tienda?",
+     "code": "SELECT COUNT(*)\nFROM clientes\nWHERE id NOT IN (SELECT cliente_id FROM pedidos);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "20"
+     ],
+     "optionFeedback": [],
+     "explanation": "Hay 80 clientes y 60 tienen al menos un pedido; los 20 restantes nunca han comprado. `cliente_id` nunca es NULL, así que NOT IN funciona.",
+     "hint": "80 clientes en total menos los que aparecen en pedidos."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa para listar los clientes que alguna vez pagaron en efectivo.",
+     "code": "SELECT nombre, apellido\nFROM clientes\nWHERE id ___ (SELECT cliente_id FROM pedidos WHERE metodo_pago = 'efectivo');",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "IN"
+     ],
+     "optionFeedback": [],
+     "explanation": "La subconsulta devuelve una lista de `cliente_id`; IN deja los clientes cuyo id está en esa lista.",
+     "hint": "Es el operador que compara un valor contra una lista."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-03",
+   "kind": "workshop",
+   "title": "Subconsultas correlacionadas",
+   "summary": "Comparar cada fila con su propio grupo y responder preguntas de existencia («nunca», «al menos uno») con EXISTS y NOT EXISTS.",
+   "objectives": [
+    "Escribir subconsultas correlacionadas que comparan cada fila con el promedio o el máximo de su grupo.",
+    "Usar alias distintos dentro y fuera de la subconsulta y explicar qué pasa si se omiten.",
+    "Responder preguntas de «al menos uno» con EXISTS y de «nunca» con NOT EXISTS.",
+    "Explicar por qué NOT EXISTS es más seguro que NOT IN cuando hay NULL."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Subconsultas correlacionadas",
+     "minutes": 75
+    },
+    {
+     "label": "Tema 2: EXISTS y NOT EXISTS",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Subconsultas correlacionadas",
+     "concept": "Ayer las subconsultas eran independientes: `(SELECT AVG(precio) FROM productos)` da el mismo número para todas las filas. Pero muchas preguntas comparan cada fila con **su propio grupo**: «productos más caros que el promedio de su categoría». El promedio de Café y bebidas no es el mismo que el de Tecnología, así que la subconsulta tiene que saber qué producto se está revisando en ese momento.\n\nEso es una **subconsulta correlacionada**: dentro de ella usas una columna de la consulta externa. En `WHERE p.precio > (SELECT AVG(x.precio) FROM productos x WHERE x.categoria_id = p.categoria_id)`, la condición `x.categoria_id = p.categoria_id` la conecta con la fila de afuera. Conceptualmente, SQLite vuelve a ejecutar la subconsulta para cada fila externa, con el valor de esa fila. Así salen 17 productos, frente a los 13 que superan el promedio general.\n\nComo la misma tabla aparece adentro y afuera, los **alias son obligatorios** en la práctica: `p` para la fila externa y `x` para la interna. Sin alias, `categoria_id = categoria_id` compara la tabla interna consigo misma y la correlación desaparece.",
+     "tip": "Lee una subconsulta correlacionada en voz alta con la palabra «su»: «el promedio de precio de los productos de SU categoría». Ese «su» es la condición que conecta los alias de adentro con los de afuera.",
+     "example": "SELECT p.nombre, p.precio,\n       (SELECT ROUND(AVG(x.precio)) FROM productos x\n        WHERE x.categoria_id = p.categoria_id) AS promedio_categoria\nFROM productos p\nWHERE p.precio > (SELECT AVG(x.precio) FROM productos x\n                  WHERE x.categoria_id = p.categoria_id)\nORDER BY p.categoria_id, p.precio DESC;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Mira los promedios de cada grupo",
+       "body": "Antes de correlacionar, calcula con GROUP BY el promedio de cada categoría. Esos son los números contra los que la subconsulta correlacionada comparará cada producto, uno por uno.",
+       "code": "SELECT categoria_id, ROUND(AVG(precio)) AS promedio, COUNT(*) AS productos\nFROM productos\nGROUP BY categoria_id;",
+       "language": "sql"
+      },
+      {
+       "title": "Correlaciona con alias",
+       "body": "La subconsulta usa `p.categoria_id`, que viene de afuera. Para cada producto `p` calcula el promedio de su categoría y lo compara. Cuenta el resultado: 17 productos. Compáralo con los 13 que superan el promedio general de ayer.",
+       "code": "SELECT COUNT(*) AS sobre_su_promedio\nFROM productos p\nWHERE p.precio > (SELECT AVG(x.precio) FROM productos x WHERE x.categoria_id = p.categoria_id);",
+       "language": "sql"
+      },
+      {
+       "title": "Usa una correlacionada en el SELECT",
+       "body": "Para cada cliente de Heredia, la subconsulta cuenta sus pedidos. Los clientes sin pedidos salen con 0, sin necesidad de LEFT JOIN, porque COUNT(*) sobre un conjunto vacío vale 0.",
+       "code": "SELECT c.nombre, c.apellido,\n       (SELECT COUNT(*) FROM pedidos p WHERE p.cliente_id = c.id) AS pedidos\nFROM clientes c\nWHERE c.provincia_id = 4\nORDER BY pedidos DESC, c.apellido, c.nombre;",
+       "language": "sql"
+      },
+      {
+       "title": "Encuentra el último registro de cada uno",
+       "body": "Un patrón muy usado: quedarse con la fila más reciente de cada grupo. Cada pedido se compara con la fecha máxima de los pedidos de su mismo cliente. Aquí lo ves para tres clientes frecuentes.",
+       "code": "SELECT p.cliente_id, p.id, p.fecha\nFROM pedidos p\nWHERE p.fecha = (SELECT MAX(x.fecha) FROM pedidos x WHERE x.cliente_id = p.cliente_id)\n  AND p.cliente_id IN (8, 20, 33)\nORDER BY p.cliente_id;",
+       "language": "sql"
+      },
+      {
+       "title": "Rompe la correlación para ver la diferencia",
+       "body": "Quita los alias de la condición interna y escribe `WHERE categoria_id = categoria_id`. Ahora la subconsulta compara su propia tabla consigo misma, es siempre verdadera y vuelve a dar el promedio general: el conteo regresa a 13.",
+       "code": "SELECT COUNT(*) AS sin_correlacion\nFROM productos p\nWHERE p.precio > (SELECT AVG(precio) FROM productos WHERE categoria_id = categoria_id);",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "El resultado es igual al de comparar contra el promedio general",
+       "cause": "La condición interna no usa el alias de afuera (`WHERE categoria_id = categoria_id`), así que no hay correlación.",
+       "fix": "Pon alias distintos adentro y afuera y conéctalos: `WHERE x.categoria_id = p.categoria_id`."
+      },
+      {
+       "error": "no such column: p.categoria_id",
+       "cause": "Usaste en la subconsulta un alias que no existe afuera, o le pusiste el mismo alias `p` a las dos tablas y la de adentro tapa a la de afuera.",
+       "fix": "Revisa que el alias externo esté definido en el FROM de afuera y que el interno sea distinto (`p` afuera, `x` adentro)."
+      },
+      {
+       "error": "La consulta tarda mucho con tablas grandes",
+       "cause": "Una subconsulta correlacionada se evalúa por cada fila externa; con millones de filas eso pesa.",
+       "fix": "Con los datos de la Tienda no es problema. En bases grandes se suele reescribir con JOIN a una tabla derivada o, desde el jueves, con funciones de ventana."
+      }
+     ]
+    },
+    {
+     "title": "EXISTS y NOT EXISTS",
+     "concept": "Muchas preguntas de negocio solo quieren saber **si existe** algo: «clientes que tienen al menos un pedido», «productos que nunca recibieron una reseña». Para eso está `EXISTS (subconsulta)`: es verdadero si la subconsulta devuelve al menos una fila y falso si no devuelve ninguna. No importa qué columnas devuelva, por eso se acostumbra escribir `SELECT 1`. Casi siempre es una subconsulta correlacionada: `WHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id)`.\n\n`NOT EXISTS` es lo contrario y es la forma más segura de encontrar lo que falta. A diferencia de `NOT IN`, **no le afectan los NULL**: ayer `NOT IN` sobre `empleado_id` devolvía cero empleados por culpa de las compras en línea, mientras que `NOT EXISTS (SELECT 1 FROM pedidos p WHERE p.empleado_id = e.id)` devuelve correctamente los 9 empleados que no venden. Equivale al anti-join con `LEFT JOIN ... IS NULL`, pero se lee como la pregunta.\n\nPuedes combinar varias condiciones de existencia: `EXISTS (...café...) AND EXISTS (...tecnología...)` da los clientes que compraron de las dos categorías, algo que con un JOIN simple no sale, porque una sola línea de pedido no puede ser de dos categorías a la vez.",
+     "tip": "Cuando la pregunta tenga las palabras «nunca», «ningún» o «sin», piensa primero en NOT EXISTS: es la opción que no te traiciona con los NULL.",
+     "example": "SELECT c.nombre, c.apellido, c.fecha_registro\nFROM clientes c\nWHERE NOT EXISTS (\n    SELECT 1 FROM pedidos p\n    WHERE p.cliente_id = c.id\n)\nORDER BY c.fecha_registro, c.id;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Pregunta si existe",
+       "body": "Cuenta los clientes que tienen al menos un pedido con EXISTS. Da 60, igual que con `IN`. Cambia `SELECT 1` por `SELECT NULL` o `SELECT *`: el resultado no cambia, porque EXISTS solo mira si hay filas.",
+       "code": "SELECT COUNT(*) AS con_pedidos\nFROM clientes c\nWHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id);",
+       "language": "sql"
+      },
+      {
+       "title": "Arregla la trampa de NOT IN",
+       "body": "Repite la búsqueda de ayer de los empleados que no han atendido pedidos, ahora con NOT EXISTS. Sin ningún filtro especial para los NULL salen los 9 correctos: la gerente, los jefes, bodega, servicio al cliente y el analista.",
+       "code": "SELECT e.nombre, e.puesto\nFROM empleados e\nWHERE NOT EXISTS (SELECT 1 FROM pedidos p WHERE p.empleado_id = e.id);",
+       "language": "sql"
+      },
+      {
+       "title": "Agrega condiciones dentro de la subconsulta",
+       "body": "La subconsulta puede tener más filtros. Aquí buscas clientes de Guanacaste que alguna vez pagaron con SINPE Móvil: la existencia se evalúa solo sobre sus pedidos con ese método de pago.",
+       "code": "SELECT c.nombre, c.apellido\nFROM clientes c\nWHERE c.provincia_id = 5\n  AND EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id AND p.metodo_pago = 'sinpe');",
+       "language": "sql"
+      },
+      {
+       "title": "Combina dos existencias",
+       "body": "«Clientes que compraron en 2025 y también en 2026» necesita dos EXISTS sobre la misma tabla, cada uno con su rango de fechas. Son 44 clientes que volvieron a comprar de un año a otro.",
+       "code": "SELECT COUNT(*) AS recurrentes\nFROM clientes c\nWHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id AND p.fecha BETWEEN '2025-01-01' AND '2025-12-31')\n  AND EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31');",
+       "language": "sql"
+      },
+      {
+       "title": "Ojo con la verdad vacía",
+       "body": "«Categorías sin productos agotados» con NOT EXISTS devuelve Artesanía y también Libros, porque Libros no tiene productos: no existe ninguno agotado. Si eso no es lo que quieres, agrega un EXISTS que exija al menos un producto.",
+       "code": "SELECT c.nombre\nFROM categorias c\nWHERE NOT EXISTS (SELECT 1 FROM productos p WHERE p.categoria_id = c.id AND p.stock = 0);",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "EXISTS devuelve todas las filas de la tabla externa",
+       "cause": "La subconsulta no está correlacionada (`EXISTS (SELECT 1 FROM pedidos)`): como la tabla pedidos tiene filas, la condición es verdadera para todos.",
+       "fix": "Conecta la subconsulta con la fila externa: `WHERE p.cliente_id = c.id`."
+      },
+      {
+       "error": "NOT IN devuelve 0 filas y NOT EXISTS sí devuelve resultados",
+       "cause": "La columna de la subconsulta tiene NULL; NOT IN se vuelve desconocido con cualquier NULL en la lista.",
+       "fix": "Prefiere NOT EXISTS para buscar lo que falta; si usas NOT IN, filtra `IS NOT NULL` dentro de la subconsulta."
+      },
+      {
+       "error": "Aparecen grupos vacíos que no esperabas",
+       "cause": "NOT EXISTS es verdadero cuando no hay ninguna fila relacionada, incluso si el grupo está vacío (la categoría Libros sin productos).",
+       "fix": "Si el grupo debe tener contenido, agrega `AND EXISTS (SELECT 1 FROM ... )` que exija al menos una fila."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-03-1",
+     "title": "Caros dentro de su categoría",
+     "prompt": "Un producto de ₡6 500 es barato en Tecnología pero caro en Café y bebidas. Muestra `nombre` y `precio` de los productos cuyo precio es mayor que el precio promedio de los productos de su misma categoría.",
+     "hint": "Usa alias distintos para la tabla de afuera y la de adentro y conecta las dos por `categoria_id`.",
+     "solution": "SELECT p.nombre, p.precio\nFROM productos p\nWHERE p.precio > (SELECT AVG(x.precio) FROM productos x WHERE x.categoria_id = p.categoria_id);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-03-2",
+     "title": "Mejor pagados de su departamento",
+     "prompt": "Muestra `nombre`, `apellido`, `departamento` y `salario` de los empleados que ganan más que el salario promedio de su propio departamento, en ese orden.",
+     "hint": "Correlaciona por `departamento`: `x.departamento = e.departamento`.",
+     "solution": "SELECT e.nombre, e.apellido, e.departamento, e.salario\nFROM empleados e\nWHERE e.salario > (SELECT AVG(x.salario) FROM empleados x WHERE x.departamento = e.departamento);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-03-3",
+     "title": "Registrados que nunca compraron",
+     "prompt": "Mercadeo quiere enviar un cupón de bienvenida a quienes se registraron pero nunca hicieron un pedido. Muestra `nombre`, `apellido` y `fecha_registro` de esos clientes. Usa NOT EXISTS.",
+     "hint": "La subconsulta busca pedidos del cliente: `SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id`.",
+     "solution": "SELECT c.nombre, c.apellido, c.fecha_registro\nFROM clientes c\nWHERE NOT EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-03-4",
+     "title": "Productos activos sin reseñas",
+     "prompt": "Servicio al cliente quiere pedir opiniones de los productos que nadie ha reseñado. Muestra el `nombre` de los productos activos (`activo = 1`) que no tienen ninguna reseña.",
+     "hint": "Combina `activo = 1` con un NOT EXISTS sobre `resenas`.",
+     "solution": "SELECT p.nombre\nFROM productos p\nWHERE p.activo = 1\n  AND NOT EXISTS (SELECT 1 FROM resenas r WHERE r.producto_id = p.id);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-03-5",
+     "title": "Café y tecnología",
+     "prompt": "La tienda prepara un combo «chorreado y cargador». Muestra `nombre` y `apellido` de los clientes que tienen pedidos no cancelados con productos de la categoría «Café y bebidas» y también pedidos no cancelados con productos de «Tecnología» (no tiene que ser en el mismo pedido).",
+     "hint": "Dos EXISTS unidos con AND. Cada subconsulta une pedidos, detalle_pedido y productos y filtra por una categoría distinta.",
+     "solution": "SELECT c.nombre, c.apellido\nFROM clientes c\nWHERE EXISTS (\n        SELECT 1 FROM pedidos p\n        JOIN detalle_pedido d ON d.pedido_id = p.id\n        JOIN productos pr ON pr.id = d.producto_id\n        WHERE p.cliente_id = c.id\n          AND p.estado <> 'cancelado'\n          AND pr.categoria_id = (SELECT id FROM categorias WHERE nombre = 'Café y bebidas')\n    )\n  AND EXISTS (\n        SELECT 1 FROM pedidos p\n        JOIN detalle_pedido d ON d.pedido_id = p.id\n        JOIN productos pr ON pr.id = d.producto_id\n        WHERE p.cliente_id = c.id\n          AND p.estado <> 'cancelado'\n          AND pr.categoria_id = (SELECT id FROM categorias WHERE nombre = 'Tecnología')\n    );",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-03-6",
+     "title": "Clientes que no han vuelto",
+     "prompt": "Muestra `nombre`, `apellido` y la fecha de su último pedido (de cualquier estado) de los clientes que tienen pedidos, pero cuyo último pedido fue antes del 1 de enero de 2026.",
+     "hint": "Calcula la fecha del último pedido con una subconsulta correlacionada con MAX. Puedes repetirla en el SELECT y en el WHERE; un cliente sin pedidos tiene MAX NULL, y NULL < '2026-01-01' no es verdadero.",
+     "solution": "SELECT c.nombre, c.apellido,\n       (SELECT MAX(p.fecha) FROM pedidos p WHERE p.cliente_id = c.id) AS ultimo_pedido\nFROM clientes c\nWHERE (SELECT MAX(p.fecha) FROM pedidos p WHERE p.cliente_id = c.id) < '2026-01-01';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Categorías sin productos agotados",
+    "description": "Bodega quiere felicitar a los encargados de las categorías que no tienen ningún producto con `stock = 0`. Muestra el `nombre` de esas categorías, pero solo las que tienen al menos un producto (la categoría Libros, que está vacía, no debe salir). Después cambia la condición a «ningún producto inactivo» y compara.",
+    "hint": "NOT EXISTS para «ningún producto agotado» y EXISTS para «al menos un producto», las dos correlacionadas por `p.categoria_id = c.id`.",
+    "solution": "SELECT c.nombre\nFROM categorias c\nWHERE EXISTS (SELECT 1 FROM productos p WHERE p.categoria_id = c.id)\n  AND NOT EXISTS (SELECT 1 FROM productos p WHERE p.categoria_id = c.id AND p.stock = 0);",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Subconsulta correlacionada",
+     "definition": "Subconsulta que usa una columna de la consulta externa, por lo que su resultado cambia para cada fila de afuera."
+    },
+    {
+     "term": "EXISTS",
+     "definition": "Condición que es verdadera si la subconsulta devuelve al menos una fila, sin importar sus columnas."
+    },
+    {
+     "term": "NOT EXISTS",
+     "definition": "Condición verdadera cuando la subconsulta no devuelve ninguna fila; no le afectan los NULL."
+    },
+    {
+     "term": "Alias de tabla",
+     "definition": "Nombre corto que se le da a una tabla en el FROM; distingue la tabla de afuera de la de adentro cuando son la misma."
+    },
+    {
+     "term": "Verdad vacía",
+     "definition": "Una condición de «ninguno cumple» es verdadera cuando el grupo no tiene elementos, como una categoría sin productos."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: el operador EXISTS",
+     "url": "https://www.sqlite.org/lang_expr.html#the_exists_operator"
+    },
+    {
+     "title": "SQLite: subconsultas correlacionadas",
+     "url": "https://www.sqlite.org/lang_expr.html#correlated_subqueries"
+    },
+    {
+     "title": "SQLite Tutorial: EXISTS",
+     "url": "https://www.sqlitetutorial.net/sqlite-exists/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué hace que una subconsulta sea correlacionada?",
+     "code": "",
+     "options": [
+      "Que esté escrita en el WHERE",
+      "Que use una columna de la consulta externa, como `p.categoria_id`",
+      "Que use una función de agregación como AVG",
+      "Que devuelva varias filas"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: una subconsulta en el WHERE puede ser independiente, como `(SELECT AVG(precio) FROM productos)`.",
+      "Correcto: al usar un valor de la fila externa, su resultado cambia para cada fila.",
+      "No: AVG puede estar en subconsultas independientes y correlacionadas.",
+      "No: el número de filas no tiene relación; una correlacionada escalar devuelve un valor por cada fila externa."
+     ],
+     "explanation": "La correlación es la referencia a la consulta externa; por eso la subconsulta se evalúa de nuevo para cada fila.",
+     "hint": "Busca la palabra «su» en la pregunta de negocio."
+    },
+    {
+     "type": "choice",
+     "prompt": "Quieres los empleados que no han atendido ningún pedido. Recuerda que `pedidos.empleado_id` es NULL en las compras en línea. ¿Qué condición da el resultado correcto sin filtros adicionales?",
+     "code": "",
+     "options": [
+      "WHERE e.id NOT IN (SELECT empleado_id FROM pedidos)",
+      "WHERE e.id <> (SELECT empleado_id FROM pedidos)",
+      "WHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.empleado_id <> e.id)",
+      "WHERE NOT EXISTS (SELECT 1 FROM pedidos p WHERE p.empleado_id = e.id)"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: con NULL en la lista, NOT IN devuelve 0 filas.",
+      "No: `<>` contra una subconsulta de varias filas solo compara con la primera.",
+      "No: para cualquier empleado existe algún pedido atendido por otra persona; esto devuelve a los 14.",
+      "Correcto: NOT EXISTS no se ve afectado por los NULL y devuelve los 9 empleados que no venden."
+     ],
+     "explanation": "NOT EXISTS solo pregunta si hay filas que cumplan la condición; los NULL simplemente no cumplen `= e.id`.",
+     "hint": "Una de las opciones es inmune a los NULL."
+    },
+    {
+     "type": "choice",
+     "prompt": "En `WHERE EXISTS (SELECT ... FROM pedidos p WHERE p.cliente_id = c.id)`, ¿qué conviene escribir en lugar de los puntos suspensivos?",
+     "code": "",
+     "options": [
+      "Las columnas que quieres mostrar del pedido",
+      "COUNT(*), para que EXISTS sepa cuántas filas hay",
+      "1 (o cualquier valor): EXISTS solo revisa si hay filas",
+      "DISTINCT cliente_id, para no repetir clientes"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: las columnas de la subconsulta de EXISTS no se muestran en ningún lado.",
+      "No: COUNT(*) siempre devuelve una fila (aunque valga 0), así que EXISTS sería verdadero para todos.",
+      "Correcto: `SELECT 1` es la convención; el valor no importa, solo la existencia de filas.",
+      "No: EXISTS no repite filas de la consulta externa; DISTINCT no aporta nada."
+     ],
+     "explanation": "EXISTS ignora el contenido de las filas; `SELECT 1` deja claro que solo importa si hay alguna.",
+     "hint": "Piensa qué pasa con COUNT(*) cuando no hay pedidos: ¿devuelve cero filas o una fila con 0?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si en una subconsulta correlacionada escribes `WHERE categoria_id = categoria_id` sin alias, SQLite compara cada producto con el promedio de su categoría igualmente.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: sin alias, las dos columnas son de la tabla interna y la condición es siempre verdadera.",
+      "Correcto: la correlación se pierde y la subconsulta devuelve el promedio general (el conteo vuelve a 13)."
+     ],
+     "explanation": "Una columna sin alias se busca primero en la tabla más cercana, la de la subconsulta; hay que nombrar la externa con su alias.",
+     "hint": "Es el paso 5 del tema 1."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`NOT EXISTS (SELECT 1 FROM productos p WHERE p.categoria_id = c.id AND p.stock = 0)` es verdadero para la categoría Libros, que no tiene productos.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: no existe ningún producto de Libros, así que tampoco uno agotado; NOT EXISTS da verdadero.",
+      "No: NOT EXISTS solo pregunta si hay filas; con cero productos no hay ninguna fila y la condición se cumple."
+     ],
+     "explanation": "Es la verdad vacía: «ningún producto agotado» se cumple trivialmente en un grupo sin productos.",
+     "hint": "¿Cuántas filas devuelve la subconsulta para una categoría vacía?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(*)\nFROM productos p\nWHERE p.precio > (SELECT AVG(x.precio) FROM productos x\n                  WHERE x.categoria_id = p.categoria_id);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "17"
+     ],
+     "optionFeedback": [],
+     "explanation": "Comparado con el promedio de su propia categoría, 17 productos están por encima; con el promedio general eran 13.",
+     "hint": "Es el resultado del paso 2 del tema 1."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(*)\nFROM clientes c\nWHERE NOT EXISTS (SELECT 1 FROM pedidos p\n                  WHERE p.cliente_id = c.id AND p.fecha >= '2026-01-01');",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "25"
+     ],
+     "optionFeedback": [],
+     "explanation": "Cuenta los clientes sin pedidos en 2026: los 20 que nunca compraron más 5 que compraron solo en 2025.",
+     "hint": "Incluye a quienes nunca compraron, porque tampoco tienen pedidos en 2026."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa para listar los productos que alguna vez se vendieron con 15 % de descuento.",
+     "code": "SELECT pr.nombre\nFROM productos pr\nWHERE ___ (SELECT 1 FROM detalle_pedido d\n             WHERE d.producto_id = pr.id AND d.descuento = 0.15);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "EXISTS"
+     ],
+     "optionFeedback": [],
+     "explanation": "EXISTS es verdadero cuando hay al menos una línea de ese producto con descuento de 0.15.",
+     "hint": "Es la palabra que pregunta si la subconsulta devuelve alguna fila."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-04",
+   "kind": "workshop",
+   "title": "Consultas con WITH (CTE)",
+   "summary": "Escribir consultas largas como una receta de pasos con WITH y generar jerarquías y calendarios con WITH RECURSIVE.",
+   "objectives": [
+    "Reescribir una subconsulta en el FROM como una CTE con nombre.",
+    "Encadenar varias CTE en las que cada una usa la anterior, y depurarlas paso a paso.",
+    "Escribir una CTE recursiva con parte inicial, parte recursiva y una condición de parada clara.",
+    "Recorrer la jerarquía de empleados y generar series de días y meses para mostrar periodos sin ventas."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: WITH y CTE encadenadas",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: WITH RECURSIVE",
+     "minutes": 80
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "WITH: ordenar las ideas en pasos",
+     "concept": "Las subconsultas anidadas funcionan, pero se leen de adentro hacia afuera y, con dos o tres niveles de paréntesis, cuesta seguirlas. `WITH` resuelve eso: le pones nombre a un resultado intermedio y después lo usas como si fuera una tabla. Ese resultado con nombre se llama **CTE** (Common Table Expression, expresión de tabla común). La consulta se lee de arriba abajo, como una receta: «primero calculo las ventas por provincia, después me quedo con las que superan el promedio».\n\nLa sintaxis es `WITH nombre AS (SELECT ...) SELECT ... FROM nombre`. Puedes definir **varias CTE separadas por comas**, y cada una puede usar las anteriores: `WITH ventas AS (...), vip AS (SELECT ... FROM ventas WHERE ...) SELECT ...`. Además, una CTE se puede usar varias veces en la consulta final, algo que con una tabla derivada te obliga a copiar la misma subconsulta.\n\nLo importante: **el WITH y el SELECT final son una sola sentencia**. No lleva punto y coma entre ellos, y la CTE solo existe mientras corre esa consulta: no se guarda en la base. Es la herramienta que más vas a usar de aquí en adelante, porque te permite construir una consulta difícil probando un paso a la vez.",
+     "tip": "Construye la consulta por capas: escribe la primera CTE y termina con `SELECT * FROM primera_cte;` para verla. Cuando esté bien, agrega la segunda y cambia el SELECT final. Así siempre sabes en qué paso aparece un error.",
+     "example": "WITH ventas_provincia AS (\n    SELECT pr.nombre AS provincia,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM pedidos p\n    JOIN clientes c ON c.id = p.cliente_id\n    JOIN provincias pr ON pr.id = c.provincia_id\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY pr.id, pr.nombre\n)\nSELECT provincia,\n       ROUND(total) AS total,\n       ROUND(100.0 * total / (SELECT SUM(total) FROM ventas_provincia), 1) AS porcentaje\nFROM ventas_provincia\nORDER BY total DESC;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Convierte una tabla derivada en CTE",
+       "body": "El gasto promedio por cliente de ayer, reescrito con WITH. El resultado es el mismo (₡197 186), pero ahora la consulta se lee en orden: primero el gasto de cada cliente, luego el promedio.",
+       "code": "WITH gasto_cliente AS (\n    SELECT p.cliente_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS gasto\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY p.cliente_id\n)\nSELECT ROUND(AVG(gasto)) AS gasto_promedio\nFROM gasto_cliente;",
+       "language": "sql"
+      },
+      {
+       "title": "Mira la CTE por dentro",
+       "body": "Para depurar, deja el WITH igual y cambia solo el SELECT final por `SELECT *`. Ves la tabla intermedia completa: las 7 provincias con su total. San José encabeza la lista.",
+       "code": "WITH ventas_provincia AS (\n    SELECT pr.nombre AS provincia, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM pedidos p\n    JOIN clientes c ON c.id = p.cliente_id\n    JOIN provincias pr ON pr.id = c.provincia_id\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY pr.id, pr.nombre\n)\nSELECT * FROM ventas_provincia ORDER BY total DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Encadena dos CTE",
+       "body": "La segunda CTE usa la primera. `gasto_2026` suma lo que gastó cada cliente este año; `vip` se queda con los que pasan de ₡200 000. El SELECT final solo agrega nombres. Fíjate en la coma entre las dos CTE y en que la palabra WITH va una sola vez.",
+       "code": "WITH gasto_2026 AS (\n    SELECT p.cliente_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS gasto\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\n    GROUP BY p.cliente_id\n),\nvip AS (\n    SELECT cliente_id, gasto FROM gasto_2026 WHERE gasto >= 200000\n)\nSELECT c.nombre, c.apellido, ROUND(v.gasto) AS gasto\nFROM vip v\nJOIN clientes c ON c.id = v.cliente_id\nORDER BY v.gasto DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Usa la misma CTE dos veces",
+       "body": "La CTE `gasto_2026` se usa en el FROM y otra vez dentro de una subconsulta escalar para calcular el promedio. Con una tabla derivada tendrías que escribir el mismo GROUP BY dos veces.",
+       "code": "WITH gasto_2026 AS (\n    SELECT p.cliente_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS gasto\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\n    GROUP BY p.cliente_id\n)\nSELECT COUNT(*) AS sobre_el_promedio\nFROM gasto_2026\nWHERE gasto > (SELECT AVG(gasto) FROM gasto_2026);",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "near \";\": syntax error",
+       "cause": "Pusiste punto y coma al cerrar la CTE, antes del SELECT final: `WITH a AS (...); SELECT ...`.",
+       "fix": "El WITH y su SELECT final son una sola sentencia; el único punto y coma va al final de todo."
+      },
+      {
+       "error": "near \"vip\": syntax error",
+       "cause": "Faltó la coma entre dos CTE, o repetiste la palabra WITH antes de la segunda.",
+       "fix": "Escribe WITH una sola vez y separa las CTE con comas: `WITH a AS (...), b AS (...) SELECT ...`."
+      },
+      {
+       "error": "no such table: ventas_provincia",
+       "cause": "Ejecutaste solo el SELECT final en otra consulta, o escribiste mal el nombre de la CTE. La CTE no existe fuera de su sentencia.",
+       "fix": "Ejecuta el bloque completo, desde WITH hasta el punto y coma, y revisa que el nombre sea idéntico en la definición y en el uso."
+      }
+     ]
+    },
+    {
+     "title": "WITH RECURSIVE: jerarquías y series",
+     "concept": "Una CTE recursiva es una CTE que **se usa a sí misma** para generar filas nuevas a partir de las anteriores. Tiene siempre dos partes unidas por `UNION ALL`: la **parte inicial**, que produce las primeras filas, y la **parte recursiva**, que lee las filas generadas en la vuelta anterior y produce las siguientes. SQLite repite la parte recursiva hasta que una vuelta no genera filas nuevas.\n\nPor eso **toda recursión necesita una condición de parada** clara. En una serie es un WHERE: `SELECT n + 1 FROM serie WHERE n < 12` deja de producir filas cuando `n` llega a 12. Sin ese WHERE, la serie no terminaría nunca. En una jerarquía, la parada es natural: `JOIN org o ON e.jefe_id = o.id` no produce filas cuando la vuelta anterior no tiene subordinados, y un tope como `WHERE o.nivel < 10` protege contra datos con ciclos.\n\nLos usos típicos son recorrer una **jerarquía** y generar una **serie** de números, días o meses. La serie sirve para mostrar también los días o meses sin ventas: un GROUP BY nunca muestra un día que no está en la tabla, pero si generas el calendario y le haces LEFT JOIN, aparece con cero. En SQLite RECURSIVE es opcional, pero escríbela siempre: otros motores la exigen.",
+     "tip": "Antes de ejecutar una CTE recursiva, señala con el dedo la condición de parada y pregúntate en qué vuelta deja de ser verdadera. Si no la encuentras, no la ejecutes.",
+     "example": "WITH RECURSIVE org(id, nombre, puesto, nivel) AS (\n    -- parte inicial: la gerente, que no tiene jefe\n    SELECT id, nombre || ' ' || apellido, puesto, 1\n    FROM empleados\n    WHERE jefe_id IS NULL\n    UNION ALL\n    -- parte recursiva: los subordinados de la vuelta anterior\n    SELECT e.id, e.nombre || ' ' || e.apellido, e.puesto, o.nivel + 1\n    FROM empleados e\n    JOIN org o ON e.jefe_id = o.id\n    WHERE o.nivel < 10           -- tope de seguridad\n)\nSELECT nivel, nombre, puesto\nFROM org\nORDER BY nivel, nombre;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Genera una serie de números",
+       "body": "La parte inicial produce el 1. La parte recursiva toma cada `n` de la vuelta anterior y produce `n + 1`, pero solo mientras `n < 5`. En la quinta vuelta el WHERE ya no se cumple, no sale ninguna fila nueva y la recursión termina.",
+       "code": "WITH RECURSIVE serie(n) AS (\n    SELECT 1\n    UNION ALL\n    SELECT n + 1 FROM serie WHERE n < 5\n)\nSELECT n FROM serie;",
+       "language": "sql"
+      },
+      {
+       "title": "Genera los días de un mes",
+       "body": "Con fechas, la parte recursiva suma un día con `date(dia, '+1 day')` y se detiene al llegar al 30 de septiembre. Obtienes las 30 fechas del mes, existan o no pedidos en ellas.",
+       "code": "WITH RECURSIVE dias(dia) AS (\n    SELECT '2026-09-01'\n    UNION ALL\n    SELECT date(dia, '+1 day') FROM dias WHERE dia < '2026-09-30'\n)\nSELECT COUNT(*) AS dias, MIN(dia) AS desde, MAX(dia) AS hasta FROM dias;",
+       "language": "sql"
+      },
+      {
+       "title": "Rellena los huecos con LEFT JOIN",
+       "body": "Une el calendario con los pedidos. Los días sin pedidos aparecen con 0 gracias al LEFT JOIN y a `COUNT(p.id)`. Así descubres que en septiembre de 2026 hubo 14 días sin ningún pedido.",
+       "code": "WITH RECURSIVE dias(dia) AS (\n    SELECT '2026-09-01'\n    UNION ALL\n    SELECT date(dia, '+1 day') FROM dias WHERE dia < '2026-09-30'\n)\nSELECT d.dia, COUNT(p.id) AS pedidos\nFROM dias d\nLEFT JOIN pedidos p ON p.fecha = d.dia\nGROUP BY d.dia\nORDER BY d.dia;",
+       "language": "sql"
+      },
+      {
+       "title": "Genera una serie de meses",
+       "body": "Para meses, guarda el mes como texto `'AAAA-MM'` y súmale un mes con `strftime('%Y-%m', mes || '-01', '+1 month')`: se le pega el día 1 para que sea una fecha válida. La serie se detiene en septiembre de 2026.",
+       "code": "WITH RECURSIVE meses(mes) AS (\n    SELECT '2025-11'\n    UNION ALL\n    SELECT strftime('%Y-%m', mes || '-01', '+1 month') FROM meses WHERE mes < '2026-09'\n)\nSELECT mes FROM meses;",
+       "language": "sql"
+      },
+      {
+       "title": "Recorre la jerarquía hacia arriba",
+       "body": "Ahora al revés: parte de Cristian Murillo (id 12) y en cada vuelta busca al jefe del empleado anterior. Se detiene sola cuando llega a la gerente, porque su `jefe_id` es NULL y el JOIN ya no encuentra a nadie.",
+       "code": "WITH RECURSIVE cadena(id, nombre, jefe_id, paso) AS (\n    SELECT id, nombre, jefe_id, 0 FROM empleados WHERE id = 12\n    UNION ALL\n    SELECT e.id, e.nombre, e.jefe_id, c.paso + 1\n    FROM empleados e\n    JOIN cadena c ON e.id = c.jefe_id\n    WHERE c.paso < 10\n)\nSELECT paso, nombre FROM cadena ORDER BY paso;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "La consulta no termina y el laboratorio se queda pegado",
+       "cause": "La parte recursiva no tiene condición de parada (`SELECT n + 1 FROM serie` sin WHERE) o la condición nunca deja de cumplirse.",
+       "fix": "Recarga la página y agrega un WHERE que deje de cumplirse (`WHERE n < 12`, `WHERE dia < '2026-09-30'`). En jerarquías, agrega un tope de nivel."
+      },
+      {
+       "error": "circular reference: serie",
+       "cause": "La CTE recursiva no tiene parte inicial: solo existe el SELECT que se usa a sí mismo, así que no hay de dónde arrancar.",
+       "fix": "Escribe primero un SELECT que no use la CTE (la semilla), luego UNION ALL y después la parte recursiva."
+      },
+      {
+       "error": "table serie has 1 values for 2 columns",
+       "cause": "Declaraste más columnas en `serie(n, m)` que las que devuelve cada SELECT.",
+       "fix": "La parte inicial, la recursiva y la lista de columnas deben tener exactamente el mismo número de columnas."
+      },
+      {
+       "error": "recursive aggregate queries not supported",
+       "cause": "Usaste una agregación (MAX, COUNT, SUM) en la parte recursiva.",
+       "fix": "Haz la recursión fila por fila y agrega después, en el SELECT final o en otra CTE."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-04-1",
+     "title": "Provincias sobre el promedio",
+     "prompt": "Con una CTE que calcule el total vendido por provincia (suma de `cantidad * precio_unitario * (1 - descuento)`, sin pedidos cancelados, según la provincia del cliente), muestra el `nombre` de las provincias cuyo total supera el promedio de los totales de las 7 provincias, y su total redondeado a colones enteros.",
+     "hint": "Define `ventas_provincia` con WITH y úsala dos veces: en el FROM y en una subconsulta `(SELECT AVG(total) FROM ventas_provincia)`.",
+     "solution": "WITH ventas_provincia AS (\n    SELECT pr.nombre, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM pedidos p\n    JOIN clientes c ON c.id = p.cliente_id\n    JOIN provincias pr ON pr.id = c.provincia_id\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY pr.id, pr.nombre\n)\nSELECT nombre, ROUND(total) AS total\nFROM ventas_provincia\nWHERE total > (SELECT AVG(total) FROM ventas_provincia);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-04-2",
+     "title": "Clientes VIP de 2026",
+     "prompt": "La tienda lanza un programa VIP para quienes gastaron al menos ₡200 000 en 2026 (pedidos no cancelados con fecha desde '2026-01-01'). Usa dos CTE encadenadas, una para el gasto de cada cliente en 2026 y otra para filtrar a los VIP, y muestra `nombre`, `apellido` y el gasto redondeado a colones enteros.",
+     "hint": "Primera CTE: GROUP BY cliente_id con la suma de importes. Segunda CTE: `SELECT ... FROM primera WHERE gasto >= 200000`. Al final, JOIN con clientes.",
+     "solution": "WITH gasto_2026 AS (\n    SELECT p.cliente_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS gasto\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\n    GROUP BY p.cliente_id\n),\nvip AS (\n    SELECT cliente_id, gasto FROM gasto_2026 WHERE gasto >= 200000\n)\nSELECT c.nombre, c.apellido, ROUND(v.gasto) AS gasto\nFROM vip v\nJOIN clientes c ON c.id = v.cliente_id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-04-3",
+     "title": "Días sin pedidos en septiembre",
+     "prompt": "El jefe de ventas sospecha que hubo muchos días sin movimiento en septiembre de 2026. Genera con WITH RECURSIVE los días del 1 al 30 de septiembre de 2026 y muestra solo las fechas en las que no hubo ningún pedido (de ningún estado).",
+     "hint": "Serie de días con `date(dia, '+1 day')` y parada en `dia < '2026-09-30'`. Después filtra con NOT EXISTS o con LEFT JOIN ... IS NULL.",
+     "solution": "WITH RECURSIVE dias(dia) AS (\n    SELECT '2026-09-01'\n    UNION ALL\n    SELECT date(dia, '+1 day') FROM dias WHERE dia < '2026-09-30'\n)\nSELECT dia\nFROM dias\nWHERE NOT EXISTS (SELECT 1 FROM pedidos p WHERE p.fecha = dias.dia);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-04-4",
+     "title": "Organigrama por niveles",
+     "prompt": "Muestra el organigrama de la tienda: `nombre`, `apellido`, `puesto` y `nivel` de cada empleado, donde la gerente (sin jefe) es el nivel 1, sus subordinados directos el nivel 2, y así sucesivamente.",
+     "hint": "Parte inicial: `WHERE jefe_id IS NULL` con nivel 1. Parte recursiva: JOIN de empleados con la CTE por `e.jefe_id = o.id` y nivel + 1. Agrega un tope `WHERE o.nivel < 10`.",
+     "solution": "WITH RECURSIVE org(id, nombre, apellido, puesto, nivel) AS (\n    SELECT id, nombre, apellido, puesto, 1\n    FROM empleados\n    WHERE jefe_id IS NULL\n    UNION ALL\n    SELECT e.id, e.nombre, e.apellido, e.puesto, o.nivel + 1\n    FROM empleados e\n    JOIN org o ON e.jefe_id = o.id\n    WHERE o.nivel < 10\n)\nSELECT nombre, apellido, puesto, nivel\nFROM org;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-04-5",
+     "title": "Tecnología mes a mes",
+     "prompt": "Muestra, para cada mes de enero a septiembre de 2026, el mes en formato `'AAAA-MM'` y las unidades vendidas de productos de la categoría «Tecnología» en pedidos no cancelados. Los meses sin ventas deben aparecer con 0. Ordena por mes.",
+     "hint": "Genera los 9 meses con WITH RECURSIVE. En otra CTE suma `cantidad` por `strftime('%Y-%m', p.fecha)`. Une con LEFT JOIN y usa `COALESCE(..., 0)`.",
+     "solution": "WITH RECURSIVE meses(mes) AS (\n    SELECT '2026-01'\n    UNION ALL\n    SELECT strftime('%Y-%m', mes || '-01', '+1 month') FROM meses WHERE mes < '2026-09'\n),\nunidades AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes, SUM(d.cantidad) AS unidades\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    JOIN productos pr ON pr.id = d.producto_id\n    JOIN categorias c ON c.id = pr.categoria_id\n    WHERE p.estado <> 'cancelado' AND c.nombre = 'Tecnología'\n    GROUP BY strftime('%Y-%m', p.fecha)\n)\nSELECT m.mes, COALESCE(u.unidades, 0) AS unidades\nFROM meses m\nLEFT JOIN unidades u ON u.mes = m.mes\nORDER BY m.mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-04-6",
+     "title": "Participación de cada vendedor",
+     "prompt": "Calcula las ventas de 2026 (pedidos no cancelados desde '2026-01-01') de cada vendedor y qué porcentaje representan del total vendido en 2026 por toda la tienda, incluidas las ventas en línea. Muestra `nombre`, `apellido`, las ventas redondeadas a colones enteros y el porcentaje redondeado a 1 decimal.",
+     "hint": "Una CTE con las ventas por `empleado_id` (las compras en línea quedan en un grupo con NULL). El total de la tienda es la suma de esa CTE. Al unir con empleados mediante INNER JOIN, el grupo NULL desaparece solo.",
+     "solution": "WITH ventas AS (\n    SELECT p.empleado_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\n    GROUP BY p.empleado_id\n)\nSELECT e.nombre, e.apellido, ROUND(v.total) AS ventas,\n       ROUND(100.0 * v.total / (SELECT SUM(total) FROM ventas), 1) AS porcentaje\nFROM ventas v\nJOIN empleados e ON e.id = v.empleado_id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Organigrama con ruta",
+    "description": "Muestra cada empleado con su ruta completa desde la gerente, por ejemplo «Laura > Mónica > Cristian», y su nivel. Ordena el resultado por la ruta para que cada jefe quede justo antes de su equipo.",
+    "hint": "En la parte inicial la ruta es solo el nombre de la gerente. En la parte recursiva concatena: `o.ruta || ' > ' || e.nombre`. No olvides la condición de parada sobre el nivel.",
+    "solution": "WITH RECURSIVE org(id, nombre, ruta, nivel) AS (\n    SELECT id, nombre, nombre, 1\n    FROM empleados\n    WHERE jefe_id IS NULL\n    UNION ALL\n    SELECT e.id, e.nombre, o.ruta || ' > ' || e.nombre, o.nivel + 1\n    FROM empleados e\n    JOIN org o ON e.jefe_id = o.id\n    WHERE o.nivel < 10\n)\nSELECT ruta, nivel\nFROM org\nORDER BY ruta;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "CTE",
+     "definition": "Common Table Expression: resultado intermedio con nombre, definido con WITH, que la consulta usa como si fuera una tabla."
+    },
+    {
+     "term": "WITH",
+     "definition": "Palabra que abre una o varias CTE antes del SELECT final; forman una sola sentencia."
+    },
+    {
+     "term": "CTE recursiva",
+     "definition": "CTE que se usa a sí misma para generar filas nuevas a partir de las de la vuelta anterior."
+    },
+    {
+     "term": "Parte inicial",
+     "definition": "El primer SELECT de una CTE recursiva, que no se usa a sí misma y produce las filas de arranque."
+    },
+    {
+     "term": "Condición de parada",
+     "definition": "Condición de la parte recursiva que en algún momento deja de cumplirse, para que la recursión termine."
+    },
+    {
+     "term": "Serie",
+     "definition": "Secuencia de números, días o meses generada con WITH RECURSIVE, útil para mostrar también los periodos sin datos."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: la cláusula WITH y las CTE recursivas",
+     "url": "https://www.sqlite.org/lang_with.html"
+    },
+    {
+     "title": "SQLite: funciones de fecha y hora",
+     "url": "https://www.sqlite.org/lang_datefunc.html"
+    },
+    {
+     "title": "SQLite Tutorial: CTE",
+     "url": "https://www.sqlitetutorial.net/sqlite-cte/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué ventaja tiene una CTE frente a una subconsulta en el FROM?",
+     "code": "",
+     "options": [
+      "Es más rápida siempre",
+      "Se guarda en la base y se puede usar en otras consultas",
+      "Tiene nombre, se lee de arriba abajo y se puede usar varias veces en la misma consulta",
+      "Permite usar funciones de agregación en el WHERE"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: SQLite suele ejecutar ambas de forma parecida; la ventaja principal es la claridad.",
+      "No: la CTE solo existe mientras se ejecuta su sentencia.",
+      "Correcto: le pones nombre a un paso, la consulta se lee en orden y puedes reutilizarla sin copiarla.",
+      "No: los agregados siguen sin poder ir en el WHERE de la misma consulta; la CTE los calcula antes, como paso aparte."
+     ],
+     "explanation": "Una CTE organiza la consulta en pasos con nombre y evita repetir la misma subconsulta.",
+     "hint": "Piensa en el paso «Usa la misma CTE dos veces»."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué parte de esta CTE recursiva garantiza que termine?",
+     "code": "WITH RECURSIVE serie(n) AS (\n    SELECT 1\n    UNION ALL\n    SELECT n + 1 FROM serie WHERE n < 12\n)\nSELECT n FROM serie;",
+     "options": [
+      "El SELECT 1 inicial",
+      "El UNION ALL",
+      "El SELECT n FROM serie final",
+      "El WHERE n < 12 de la parte recursiva"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la semilla arranca la recursión, pero no la detiene.",
+      "No: UNION ALL junta las vueltas; no limita cuántas hay.",
+      "No: el SELECT final lee la CTE ya generada; no controla la generación.",
+      "Correcto: cuando n llega a 12, la parte recursiva no produce filas nuevas y la recursión se detiene."
+     ],
+     "explanation": "La recursión termina cuando una vuelta no genera filas; el WHERE de la parte recursiva es lo que lo provoca.",
+     "hint": "Busca la condición que en algún momento deja de cumplirse."
+    },
+    {
+     "type": "choice",
+     "prompt": "Quieres un reporte de pedidos por día de septiembre que muestre también los días sin pedidos. ¿Cuál es el enfoque correcto?",
+     "code": "",
+     "options": [
+      "GROUP BY fecha sobre pedidos con WHERE fecha LIKE '2026-09%'",
+      "Generar los 30 días con WITH RECURSIVE y hacer LEFT JOIN con pedidos",
+      "Usar INNER JOIN entre pedidos y una serie de días",
+      "Usar HAVING COUNT(*) >= 0"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: un día sin pedidos no existe en la tabla, así que GROUP BY nunca lo muestra.",
+      "Correcto: el calendario tiene todos los días y el LEFT JOIN conserva los que no tienen pedidos, con COUNT(p.id) = 0.",
+      "No: el INNER JOIN descarta los días sin pareja, justo los que querías ver.",
+      "No: HAVING filtra grupos existentes; no puede crear grupos para días sin filas."
+     ],
+     "explanation": "Para mostrar lo que no está en los datos hay que generarlo: serie de días + LEFT JOIN.",
+     "hint": "¿De dónde saldría una fila para un día en que no hubo ningún pedido?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Después de ejecutar `WITH vip AS (...) SELECT * FROM vip;`, puedes escribir otra consulta `SELECT * FROM vip;` y funciona.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la CTE desaparece al terminar su sentencia; la segunda consulta da `no such table: vip`.",
+      "Correcto: una CTE solo existe dentro de la sentencia que la define; para guardarla necesitarías una vista o una tabla (semana 5)."
+     ],
+     "explanation": "Las CTE son temporales y locales a una sentencia; no crean nada en la base.",
+     "hint": "¿La CTE se guarda en el archivo de la base?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "En una CTE recursiva, la parte recursiva puede usar las filas que produjo la vuelta anterior.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: cada vuelta lee lo que generó la anterior (n pasa a n + 1, el jefe a sus subordinados).",
+      "No: precisamente eso es la recursión; si no leyera las filas anteriores, no podría avanzar."
+     ],
+     "explanation": "La parte recursiva hace referencia a la propia CTE y trabaja sobre las filas generadas en la vuelta previa.",
+     "hint": "Piensa cómo pasa la serie de 1 a 2 y de 2 a 3."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "WITH RECURSIVE serie(n) AS (\n    SELECT 1\n    UNION ALL\n    SELECT n + 1 FROM serie WHERE n < 12\n)\nSELECT SUM(n) FROM serie;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "78"
+     ],
+     "optionFeedback": [],
+     "explanation": "La serie va de 1 a 12 y 1 + 2 + … + 12 = 78. La fila 12 se genera desde n = 11, que todavía cumple n < 12.",
+     "hint": "Primero piensa cuál es el último número de la serie."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "WITH RECURSIVE org(id, nivel) AS (\n    SELECT id, 1 FROM empleados WHERE jefe_id IS NULL\n    UNION ALL\n    SELECT e.id, o.nivel + 1\n    FROM empleados e JOIN org o ON e.jefe_id = o.id\n    WHERE o.nivel < 10\n)\nSELECT MAX(nivel) FROM org;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "3"
+     ],
+     "optionFeedback": [],
+     "explanation": "La jerarquía de la Tienda tiene tres niveles: la gerente, los jefes de área y el analista, y el personal de cada área.",
+     "hint": "Gerente → jefes → vendedores, bodegueros y agentes."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la parte recursiva para sumar un mes a la serie.",
+     "code": "WITH RECURSIVE meses(mes) AS (\n    SELECT '2026-01'\n    UNION ALL\n    SELECT strftime('%Y-%m', mes || '-01', '___') FROM meses WHERE mes < '2026-09'\n)\nSELECT mes FROM meses;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "+1 month",
+      "+1 months"
+     ],
+     "optionFeedback": [],
+     "explanation": "El modificador `'+1 month'` avanza la fecha un mes; strftime la vuelve a dejar como 'AAAA-MM'.",
+     "hint": "Es un modificador de fecha como '+7 days', pero en meses."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-05",
+   "kind": "workshop",
+   "title": "Funciones de ventana I",
+   "summary": "Comparar cada fila con su grupo sin perder el detalle y armar rankings y tops por grupo con ROW_NUMBER, RANK y DENSE_RANK.",
+   "objectives": [
+    "Explicar la diferencia entre una agregación con GROUP BY y una función de ventana con OVER.",
+    "Usar PARTITION BY para calcular promedios, máximos y porcentajes por grupo junto a cada fila.",
+    "Distinguir ROW_NUMBER, RANK y DENSE_RANK por cómo tratan los empates.",
+    "Resolver un top N por grupo con una CTE, un ranking con desempate y un filtro en la consulta exterior."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: OVER y PARTITION BY",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: ROW_NUMBER, RANK y DENSE_RANK",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "OVER y PARTITION BY",
+     "concept": "Con GROUP BY puedes calcular el salario promedio de cada departamento, pero pierdes el detalle: 14 empleados se convierten en 4 filas. ¿Y si quieres ver a cada empleado **junto** al promedio de su departamento? Las **funciones de ventana** lo resuelven de forma más directa: calculan un agregado sobre un grupo de filas relacionadas, pero **sin colapsar las filas**.\n\nLa clave es la cláusula `OVER`. `AVG(salario) OVER ()` calcula el promedio de todas las filas y lo repite en cada una. `AVG(salario) OVER (PARTITION BY departamento)` divide las filas en particiones (una por departamento) y a cada empleado le pone el promedio de la suya. Funciona con SUM, COUNT, MIN, MAX y AVG. Con eso comparas una fila con su grupo en una sola pasada: la diferencia contra el promedio, el porcentaje que representa del total de su grupo o cuántos compañeros tiene.\n\nLas funciones de ventana se calculan **después** del WHERE, del GROUP BY y del HAVING, justo antes del ORDER BY. Por eso no se pueden usar en el WHERE (`misuse of window function`): si quieres filtrar por su resultado, calcúlalas en una CTE y filtra afuera. SQLite las tiene desde la versión 3.25.",
+     "tip": "Si la pregunta dice «cada fila junto a algo de su grupo», piensa en ventana; si dice «una fila por grupo», piensa en GROUP BY.",
+     "example": "SELECT nombre, apellido, departamento, salario,\n       ROUND(AVG(salario) OVER (PARTITION BY departamento)) AS promedio_depto,\n       salario - ROUND(AVG(salario) OVER (PARTITION BY departamento)) AS diferencia\nFROM empleados\nORDER BY departamento, salario DESC, id;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Una ventana sobre toda la tabla",
+       "body": "`OVER ()` con los paréntesis vacíos toma todas las filas como una sola ventana. Cada empleado conserva su fila y además recibe el promedio general y el número total de empleados.",
+       "code": "SELECT nombre, salario,\n       ROUND(AVG(salario) OVER ()) AS promedio_general,\n       COUNT(*) OVER () AS total_empleados\nFROM empleados;",
+       "language": "sql"
+      },
+      {
+       "title": "Divide la ventana en particiones",
+       "body": "Agrega `PARTITION BY departamento`. Ahora el promedio y el conteo son los de cada departamento: Ventas tiene 6 empleados y un promedio de ₡909 167, Gerencia 2 y ₡1 800 000.",
+       "code": "SELECT nombre, departamento, salario,\n       ROUND(AVG(salario) OVER (PARTITION BY departamento)) AS promedio_depto,\n       COUNT(*) OVER (PARTITION BY departamento) AS en_depto\nFROM empleados\nORDER BY departamento, id;",
+       "language": "sql"
+      },
+      {
+       "title": "Compara con GROUP BY",
+       "body": "La misma información con GROUP BY da 4 filas, una por departamento, y ya no puedes mostrar el nombre de cada empleado. Esa es la diferencia esencial: GROUP BY resume, la ventana acompaña.",
+       "code": "SELECT departamento, COUNT(*) AS empleados, ROUND(AVG(salario)) AS promedio\nFROM empleados\nGROUP BY departamento;",
+       "language": "sql"
+      },
+      {
+       "title": "Calcula la participación dentro del grupo",
+       "body": "Divide el salario de cada persona entre la suma de su departamento. En Ventas, el jefe Ricardo Solano se lleva el 30,2 % de la planilla del departamento.",
+       "code": "SELECT nombre, salario,\n       ROUND(100.0 * salario / SUM(salario) OVER (PARTITION BY departamento), 1) AS pct_depto\nFROM empleados\nWHERE departamento = 'Ventas'\nORDER BY salario DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Filtra por el resultado de la ventana",
+       "body": "Para quedarte con quienes ganan más que el promedio de su departamento, calcula la ventana en una CTE y filtra afuera. Salen los mismos 4 que ayer con la subconsulta correlacionada.",
+       "code": "WITH e AS (\n    SELECT nombre, apellido, departamento, salario,\n           AVG(salario) OVER (PARTITION BY departamento) AS promedio_depto\n    FROM empleados\n)\nSELECT nombre, apellido, departamento, salario\nFROM e\nWHERE salario > promedio_depto;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "misuse of window function AVG()",
+       "cause": "Usaste una función de ventana en el WHERE (o en el HAVING). Se calculan después de filtrar, así que ahí todavía no existen.",
+       "fix": "Calcula la ventana en una CTE o tabla derivada y filtra en la consulta exterior."
+      },
+      {
+       "error": "Todas las filas tienen el mismo promedio",
+       "cause": "Escribiste `OVER ()` sin PARTITION BY, así que la ventana es toda la tabla.",
+       "fix": "Agrega `PARTITION BY columna_del_grupo` dentro de los paréntesis de OVER."
+      },
+      {
+       "error": "Sale una sola fila en vez de una por empleado",
+       "cause": "Escribiste `AVG(salario)` sin OVER: es una agregación normal y, sin GROUP BY, resume toda la tabla en una fila.",
+       "fix": "Para no colapsar las filas, la función necesita su cláusula `OVER (...)`."
+      }
+     ]
+    },
+    {
+     "title": "ROW_NUMBER, RANK y DENSE_RANK",
+     "concept": "Hay tres funciones de ventana para numerar filas según un orden, y se diferencian en **cómo tratan los empates**. Todas necesitan un `ORDER BY` dentro del OVER. `ROW_NUMBER()` da 1, 2, 3, 4… sin repetir nunca, aunque haya empates. `RANK()` da el mismo número a los empatados y luego salta: 1, 2, 3, 3, 5, como en una carrera. `DENSE_RANK()` también repite en los empates pero no salta: 1, 2, 3, 3, 4.\n\nCon `PARTITION BY` la numeración vuelve a empezar en cada grupo, y eso resuelve un problema clásico: el **top N por grupo** («los 3 productos más vendidos de cada categoría», «el primer pedido de cada cliente»). Se calcula el número en una CTE y afuera se filtra `WHERE puesto <= 3`, porque, como ya viste, la ventana no puede ir en el WHERE de su misma consulta.\n\n**Cuidado con ROW_NUMBER y los empates.** Si dos productos empatan y ordenas solo por unidades, SQLite decide cuál va primero y la respuesta puede cambiar de un día a otro. Cuando el resultado dependa del orden, agrega siempre un **desempate**: `ORDER BY unidades DESC, nombre`. Si quieres que los empatados compartan puesto, usa RANK en vez de ROW_NUMBER.",
+     "tip": "Elige la función según la pregunta: «exactamente N filas por grupo» es ROW_NUMBER con desempate; «todos los que estén en el top N, aunque sean más» es RANK; «los N primeros valores distintos» es DENSE_RANK.",
+     "example": "WITH unidades AS (\n    SELECT pr.categoria_id, pr.nombre, SUM(d.cantidad) AS unidades\n    FROM detalle_pedido d\n    JOIN pedidos p ON p.id = d.pedido_id\n    JOIN productos pr ON pr.id = d.producto_id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY pr.id, pr.categoria_id, pr.nombre\n)\nSELECT nombre, unidades,\n       ROW_NUMBER() OVER (ORDER BY unidades DESC, nombre) AS fila,\n       RANK()       OVER (ORDER BY unidades DESC) AS rango,\n       DENSE_RANK() OVER (ORDER BY unidades DESC) AS rango_denso\nFROM unidades\nWHERE categoria_id = 4\nORDER BY fila;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Numera todo el catálogo",
+       "body": "ROW_NUMBER asigna un número consecutivo según el orden del OVER. Aquí numeras los productos del más caro al más barato, con `id` como desempate para que la numeración sea siempre la misma.",
+       "code": "SELECT ROW_NUMBER() OVER (ORDER BY precio DESC, id) AS puesto, nombre, precio\nFROM productos\nORDER BY puesto;",
+       "language": "sql"
+      },
+      {
+       "title": "Observa los empates",
+       "body": "En Hogar y cocina, la Bolsita de chorreador y la Taza de cerámica vendieron 9 unidades cada una. Compara las tres columnas: RANK les da 4 a las dos, DENSE_RANK también, y ROW_NUMBER les da 4 y 5 según el desempate por nombre.",
+       "code": "WITH unidades AS (\n    SELECT pr.categoria_id, pr.nombre, SUM(d.cantidad) AS unidades\n    FROM detalle_pedido d\n    JOIN pedidos p ON p.id = d.pedido_id\n    JOIN productos pr ON pr.id = d.producto_id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY pr.id, pr.categoria_id, pr.nombre\n)\nSELECT nombre, unidades,\n       ROW_NUMBER() OVER (ORDER BY unidades DESC, nombre) AS fila,\n       RANK() OVER (ORDER BY unidades DESC) AS rango,\n       DENSE_RANK() OVER (ORDER BY unidades DESC) AS rango_denso\nFROM unidades\nWHERE categoria_id = 5\nORDER BY fila;",
+       "language": "sql"
+      },
+      {
+       "title": "Reinicia la numeración por grupo",
+       "body": "Con `PARTITION BY categoria_id` el puesto vuelve a 1 en cada categoría. Ejecuta y observa cómo cada categoría tiene su propio 1, 2, 3…",
+       "code": "WITH unidades AS (\n    SELECT pr.categoria_id, pr.nombre, SUM(d.cantidad) AS unidades\n    FROM detalle_pedido d\n    JOIN pedidos p ON p.id = d.pedido_id\n    JOIN productos pr ON pr.id = d.producto_id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY pr.id, pr.categoria_id, pr.nombre\n)\nSELECT categoria_id, nombre, unidades,\n       RANK() OVER (PARTITION BY categoria_id ORDER BY unidades DESC) AS puesto\nFROM unidades\nORDER BY categoria_id, puesto, nombre;",
+       "language": "sql"
+      },
+      {
+       "title": "Quédate con el top 2 de cada categoría",
+       "body": "Envuelve el cálculo en una segunda CTE y filtra afuera con `WHERE puesto <= 2`. Con ROW_NUMBER salen exactamente 2 productos por categoría, 14 en total.",
+       "code": "WITH unidades AS (\n    SELECT pr.categoria_id, pr.nombre, SUM(d.cantidad) AS unidades\n    FROM detalle_pedido d\n    JOIN pedidos p ON p.id = d.pedido_id\n    JOIN productos pr ON pr.id = d.producto_id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY pr.id, pr.categoria_id, pr.nombre\n),\nranking AS (\n    SELECT categoria_id, nombre, unidades,\n           ROW_NUMBER() OVER (PARTITION BY categoria_id ORDER BY unidades DESC, nombre) AS puesto\n    FROM unidades\n)\nSELECT categoria_id, puesto, nombre, unidades\nFROM ranking\nWHERE puesto <= 2\nORDER BY categoria_id, puesto;",
+       "language": "sql"
+      },
+      {
+       "title": "El primer pedido de cada cliente",
+       "body": "Numera los pedidos de cada cliente por fecha y quédate con el número 1. Como un cliente puede tener dos pedidos el mismo día, el desempate por `id` decide cuál fue primero de forma estable.",
+       "code": "WITH numerados AS (\n    SELECT cliente_id, id, fecha,\n           ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY fecha, id) AS n\n    FROM pedidos\n)\nSELECT cliente_id, id AS primer_pedido, fecha\nFROM numerados\nWHERE n = 1\nORDER BY fecha, cliente_id;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "misuse of window function row_number()",
+       "cause": "Escribiste `WHERE ROW_NUMBER() OVER (...) <= 3` en la misma consulta que calcula el número.",
+       "fix": "Calcula el número en una CTE y filtra en el SELECT de afuera: `WHERE puesto <= 3`."
+      },
+      {
+       "error": "misuse of aliased window function puesto",
+       "cause": "Intentaste filtrar por el alias de la ventana en el WHERE de la misma consulta (`WHERE puesto <= 3`).",
+       "fix": "El alias de una ventana solo se puede usar en el ORDER BY de esa consulta; para filtrar, usa una CTE."
+      },
+      {
+       "error": "El top 3 cambia de un día a otro o no coincide con la solución",
+       "cause": "Hay empates en el ORDER BY de ROW_NUMBER y SQLite elige el orden de los empatados como le convenga.",
+       "fix": "Agrega una columna de desempate al ORDER BY del OVER (`, nombre` o `, id`), o usa RANK si los empatados deben compartir puesto."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-05-1",
+     "title": "Salario frente a su departamento",
+     "prompt": "Muestra `nombre`, `apellido`, `departamento`, `salario` y el salario promedio del departamento de cada empleado, redondeado a colones enteros, en ese orden. Deben salir los 14 empleados.",
+     "hint": "`AVG(salario) OVER (PARTITION BY departamento)` y redondea con ROUND.",
+     "solution": "SELECT nombre, apellido, departamento, salario,\n       ROUND(AVG(salario) OVER (PARTITION BY departamento)) AS promedio_depto\nFROM empleados;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-05-2",
+     "title": "Precio frente al más caro de su categoría",
+     "prompt": "Para revisar los precios de cada categoría, muestra para cada producto su `nombre`, su `precio`, el precio más alto de su categoría y cuánto le falta para llegar a ese precio (precio máximo menos su precio), en ese orden.",
+     "hint": "`MAX(precio) OVER (PARTITION BY categoria_id)`; la diferencia es esa misma expresión menos `precio`.",
+     "solution": "SELECT nombre, precio,\n       MAX(precio) OVER (PARTITION BY categoria_id) AS maximo_categoria,\n       MAX(precio) OVER (PARTITION BY categoria_id) - precio AS diferencia\nFROM productos;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-05-3",
+     "title": "Escalafón salarial",
+     "prompt": "Recursos Humanos quiere un escalafón donde los salarios iguales compartan puesto y no haya saltos en la numeración. Muestra `nombre`, `apellido`, `salario` y el puesto (1 para el salario más alto).",
+     "hint": "Compartir puesto sin saltos es DENSE_RANK con `ORDER BY salario DESC`.",
+     "solution": "SELECT nombre, apellido, salario,\n       DENSE_RANK() OVER (ORDER BY salario DESC) AS puesto\nFROM empleados;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-05-4",
+     "title": "Top 3 por categoría",
+     "prompt": "Muestra los 3 productos con más unidades vendidas de cada categoría (pedidos no cancelados). Columnas: `nombre` de la categoría, `nombre` del producto, unidades vendidas y puesto (1, 2 o 3). Deben salir exactamente 3 por categoría: si hay empate en unidades, va primero el producto cuyo nombre es menor alfabéticamente.",
+     "hint": "Una CTE con las unidades por producto; otra con `ROW_NUMBER() OVER (PARTITION BY categoria_id ORDER BY unidades DESC, nombre)`; afuera, `WHERE puesto <= 3` y JOIN con categorías.",
+     "solution": "WITH unidades AS (\n    SELECT pr.categoria_id, pr.nombre AS producto, SUM(d.cantidad) AS unidades\n    FROM detalle_pedido d\n    JOIN pedidos p ON p.id = d.pedido_id\n    JOIN productos pr ON pr.id = d.producto_id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY pr.id, pr.categoria_id, pr.nombre\n),\nranking AS (\n    SELECT categoria_id, producto, unidades,\n           ROW_NUMBER() OVER (PARTITION BY categoria_id ORDER BY unidades DESC, producto) AS puesto\n    FROM unidades\n)\nSELECT c.nombre AS categoria, r.producto, r.unidades, r.puesto\nFROM ranking r\nJOIN categorias c ON c.id = r.categoria_id\nWHERE r.puesto <= 3;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-05-5",
+     "title": "Clientes nuevos de 2026",
+     "prompt": "Mercadeo quiere saber cómo llegaron los clientes que hicieron su primera compra en 2026. Muestra `nombre`, `apellido`, la fecha y el `metodo_pago` del primer pedido de cada cliente (de cualquier estado), solo para los clientes cuyo primer pedido fue el 1 de enero de 2026 o después. Si un cliente tiene dos pedidos el mismo día, el primero es el de menor `id`.",
+     "hint": "ROW_NUMBER con `PARTITION BY cliente_id ORDER BY fecha, id` en una CTE. Afuera: `n = 1`, la condición de fecha y el JOIN con clientes.",
+     "solution": "WITH numerados AS (\n    SELECT cliente_id, fecha, metodo_pago,\n           ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY fecha, id) AS n\n    FROM pedidos\n)\nSELECT c.nombre, c.apellido, x.fecha, x.metodo_pago\nFROM numerados x\nJOIN clientes c ON c.id = x.cliente_id\nWHERE x.n = 1 AND x.fecha >= '2026-01-01';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-05-6",
+     "title": "Mejor vendedor de cada año",
+     "prompt": "Calcula las ventas de cada vendedor por año (suma de `cantidad * precio_unitario * (1 - descuento)`, pedidos no cancelados, solo pedidos con `empleado_id`) y muestra el mejor de cada año: año (`'2025'` o `'2026'`), `nombre`, `apellido` y ventas redondeadas a colones enteros. Si dos vendedores empataran, deben salir los dos.",
+     "hint": "Agrupa por `strftime('%Y', p.fecha)` y `empleado_id` en una CTE; en otra aplica `RANK() OVER (PARTITION BY anio ORDER BY total DESC)`; afuera filtra el puesto 1.",
+     "solution": "WITH ventas AS (\n    SELECT strftime('%Y', p.fecha) AS anio, p.empleado_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado' AND p.empleado_id IS NOT NULL\n    GROUP BY strftime('%Y', p.fecha), p.empleado_id\n),\nranking AS (\n    SELECT anio, empleado_id, total,\n           RANK() OVER (PARTITION BY anio ORDER BY total DESC) AS puesto\n    FROM ventas\n)\nSELECT r.anio, e.nombre, e.apellido, ROUND(r.total) AS ventas\nFROM ranking r\nJOIN empleados e ON e.id = r.empleado_id\nWHERE r.puesto = 1;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Los dos mejores clientes de cada provincia",
+    "description": "Para un evento de agradecimiento, la tienda invitará a los 2 clientes que más han gastado en cada provincia (pedidos no cancelados). Muestra la provincia, el nombre y apellido del cliente, su gasto total redondeado y su puesto dentro de la provincia, ordenado por provincia y puesto. Si hubiera un empate en el segundo lugar, deben ir todos los empatados.",
+    "hint": "CTE con el gasto por cliente (incluye `provincia_id`), otra con `RANK() OVER (PARTITION BY provincia_id ORDER BY gasto DESC)`, y afuera `WHERE puesto <= 2` con JOIN a provincias.",
+    "solution": "WITH gasto AS (\n    SELECT c.id, c.nombre, c.apellido, c.provincia_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM clientes c\n    JOIN pedidos p ON p.cliente_id = c.id\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY c.id, c.nombre, c.apellido, c.provincia_id\n),\nranking AS (\n    SELECT *, RANK() OVER (PARTITION BY provincia_id ORDER BY total DESC) AS puesto\n    FROM gasto\n)\nSELECT pr.nombre AS provincia, r.nombre, r.apellido, ROUND(r.total) AS gasto, r.puesto\nFROM ranking r\nJOIN provincias pr ON pr.id = r.provincia_id\nWHERE r.puesto <= 2\nORDER BY pr.nombre, r.puesto, r.apellido;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Función de ventana",
+     "definition": "Función que calcula un valor sobre un conjunto de filas relacionadas sin colapsarlas en una sola."
+    },
+    {
+     "term": "OVER",
+     "definition": "Cláusula que convierte una función en función de ventana y define sobre qué filas se calcula."
+    },
+    {
+     "term": "PARTITION BY",
+     "definition": "Parte del OVER que divide las filas en grupos; la función se calcula por separado en cada uno."
+    },
+    {
+     "term": "ROW_NUMBER",
+     "definition": "Numera las filas 1, 2, 3… según el orden indicado, sin repetir aunque haya empates."
+    },
+    {
+     "term": "RANK",
+     "definition": "Da el mismo puesto a los empatados y salta los siguientes: 1, 2, 2, 4."
+    },
+    {
+     "term": "DENSE_RANK",
+     "definition": "Da el mismo puesto a los empatados sin saltar números: 1, 2, 2, 3."
+    },
+    {
+     "term": "Desempate",
+     "definition": "Columna extra en un ORDER BY que decide el orden cuando el criterio principal empata."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: funciones de ventana",
+     "url": "https://www.sqlite.org/windowfunctions.html"
+    },
+    {
+     "title": "SQLite Tutorial: RANK",
+     "url": "https://www.sqlitetutorial.net/sqlite-window-functions/sqlite-rank/"
+    },
+    {
+     "title": "SQLite Tutorial: ROW_NUMBER",
+     "url": "https://www.sqlitetutorial.net/sqlite-window-functions/sqlite-row_number/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Cuántas filas devuelve `SELECT nombre, AVG(salario) OVER (PARTITION BY departamento) FROM empleados;`?",
+     "code": "",
+     "options": [
+      "4, una por departamento",
+      "1, el promedio general",
+      "14, una por empleado",
+      "Da error porque falta GROUP BY"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso haría un GROUP BY departamento; la ventana no colapsa las filas.",
+      "No: eso haría AVG(salario) sin OVER ni GROUP BY.",
+      "Correcto: la ventana conserva cada una de las 14 filas y le agrega el promedio de su departamento.",
+      "No: las funciones de ventana no necesitan GROUP BY."
+     ],
+     "explanation": "Una función de ventana agrega información a cada fila sin reducir su número.",
+     "hint": "¿La ventana resume o acompaña?"
+    },
+    {
+     "type": "choice",
+     "prompt": "Las ventas en unidades de la categoría Ropa ordenadas de mayor a menor son 99, 90, 47, 47 y 3. ¿Qué puesto le da RANK() al producto con 3 unidades?",
+     "code": "",
+     "options": [
+      "4",
+      "3",
+      "5",
+      "6"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ese sería el puesto de DENSE_RANK, que no salta números.",
+      "No: el 3 lo comparten los dos productos con 47 unidades.",
+      "Correcto: los dos empatados ocupan el 3, RANK salta el 4 y el siguiente queda en 5.",
+      "No: solo hay cinco productos; RANK nunca pasa del número de filas."
+     ],
+     "explanation": "RANK repite el puesto en los empates y deja un hueco del tamaño del empate: 1, 2, 3, 3, 5.",
+     "hint": "Piensa en una carrera con dos atletas empatados en el tercer lugar."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Por qué falla `SELECT nombre, RANK() OVER (ORDER BY precio DESC) AS puesto FROM productos WHERE puesto <= 3;`?",
+     "code": "",
+     "options": [
+      "Porque RANK necesita PARTITION BY",
+      "Porque el WHERE se evalúa antes que las funciones de ventana; hay que calcular el ranking en una CTE y filtrar afuera",
+      "Porque los alias no se pueden usar con RANK",
+      "Porque falta un GROUP BY nombre"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: PARTITION BY es opcional; sin ella el ranking es sobre toda la tabla.",
+      "Correcto: en el WHERE la ventana todavía no existe; SQLite responde `misuse of aliased window function puesto`.",
+      "No: el alias es válido; el problema es dónde se usa.",
+      "No: GROUP BY colapsaría filas y no tiene relación con el error."
+     ],
+     "explanation": "Las ventanas se calculan después del WHERE; para filtrar por ellas se necesita un paso previo (CTE).",
+     "hint": "Recuerda el orden lógico de ejecución de una consulta."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si dos filas empatan en el ORDER BY de ROW_NUMBER() OVER (...), las dos reciben el mismo número.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ROW_NUMBER nunca repite números; a los empatados les da números distintos en un orden que SQLite elige.",
+      "Correcto: ROW_NUMBER siempre numera 1, 2, 3…; por eso conviene agregar un desempate para que el orden sea estable."
+     ],
+     "explanation": "Repetir puesto en empates es cosa de RANK y DENSE_RANK; ROW_NUMBER siempre da números distintos.",
+     "hint": "Compara las tres columnas del paso «Observa los empates»."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Con `PARTITION BY categoria_id`, ROW_NUMBER vuelve a empezar en 1 en cada categoría.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: cada partición tiene su propia numeración; así se resuelve el top N por grupo.",
+      "No: esa es justamente la función de PARTITION BY: reiniciar el cálculo en cada grupo."
+     ],
+     "explanation": "PARTITION BY divide las filas y la función se calcula por separado en cada grupo.",
+     "hint": "Piensa en el top 3 de cada categoría."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(*) FROM (\n    SELECT DENSE_RANK() OVER (ORDER BY salario DESC) AS puesto\n    FROM empleados\n) AS t\nWHERE puesto = 13;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2"
+     ],
+     "optionFeedback": [],
+     "explanation": "Hugo Sibaja y Wendy Aguilar ganan ₡610 000, el salario más bajo; los dos comparten el puesto 13.",
+     "hint": "Busca los dos empleados con el mismo salario."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT ROUND(AVG(salario) OVER (PARTITION BY departamento))\nFROM empleados\nWHERE nombre = 'Álvaro';",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "1150000"
+     ],
+     "optionFeedback": [],
+     "explanation": "El WHERE se aplica antes que la ventana: solo queda la fila de Álvaro, así que el promedio de su «departamento» es su propio salario.",
+     "hint": "Piensa qué filas quedan cuando se calcula la ventana."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa para numerar los pedidos de cada cliente del más antiguo al más reciente.",
+     "code": "SELECT cliente_id, id, fecha,\n       ROW_NUMBER() OVER (___ cliente_id ORDER BY fecha, id) AS n\nFROM pedidos;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "PARTITION BY"
+     ],
+     "optionFeedback": [],
+     "explanation": "PARTITION BY cliente_id hace que la numeración reinicie en cada cliente.",
+     "hint": "Son dos palabras que dividen las filas en grupos dentro del OVER."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-06",
+   "kind": "workshop",
+   "title": "Funciones de ventana II",
+   "summary": "Construir reportes de tendencia: totales acumulados, promedios móviles, crecimiento mes a mes y segmentación de clientes por cuartiles.",
+   "objectives": [
+    "Calcular totales acumulados con SUM OVER (ORDER BY ...) y reiniciarlos por año con PARTITION BY.",
+    "Definir un marco con ROWS BETWEEN para calcular promedios móviles y explicar la diferencia entre ROWS y RANGE.",
+    "Comparar cada periodo con el anterior usando LAG y LEAD y calcular el crecimiento porcentual.",
+    "Segmentar clientes en grupos del mismo tamaño con NTILE."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Totales acumulados y marcos",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: LAG, LEAD y NTILE",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Totales acumulados y marcos",
+     "concept": "Ayer el `ORDER BY` dentro del OVER servía para numerar. Con funciones de agregación hace algo más: convierte la suma en un **total acumulado**. `SUM(ventas) OVER (ORDER BY mes)` suma, para cada mes, las ventas de ese mes y de todos los anteriores. Con `PARTITION BY` el acumulado vuelve a cero en cada grupo, por ejemplo al empezar cada año.\n\nLas filas que entran en el cálculo de cada fila forman el **marco** (frame) de la ventana, y puedes definirlo tú: `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW` toma la fila actual y las dos anteriores. Con AVG eso es un **promedio móvil de 3 meses**, que suaviza los picos (como diciembre) y deja ver la tendencia. También existen `UNBOUNDED PRECEDING` y `1 FOLLOWING`.\n\nUn detalle que confunde: cuando escribes ORDER BY sin marco, SQLite usa `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`, y **RANGE trata como una sola las filas empatadas en el orden**. Si acumulas pedidos por fecha y hay tres pedidos el mismo día, los tres reciben el total del día completo. Para avanzar fila por fila usa `ROWS` y un orden sin empates (`ORDER BY fecha, id`). ",
+     "tip": "Agrega primero por periodo en una CTE (una fila por mes) y aplica la ventana después. Acumular sobre filas de detalle mezcla dos niveles y casi siempre da números difíciles de explicar.",
+     "example": "WITH mensual AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ventas\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', p.fecha)\n)\nSELECT mes,\n       ROUND(ventas) AS ventas,\n       ROUND(SUM(ventas) OVER (PARTITION BY substr(mes, 1, 4) ORDER BY mes)) AS acumulado_anio\nFROM mensual\nORDER BY mes;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Acumula sin particiones",
+       "body": "Ordena los meses y suma con OVER (ORDER BY mes). El acumulado del último mes, septiembre de 2026, es el total vendido en toda la historia de la tienda: ₡11 831 135.",
+       "code": "WITH mensual AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ventas\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', p.fecha)\n)\nSELECT mes, ROUND(ventas) AS ventas,\n       ROUND(SUM(ventas) OVER (ORDER BY mes)) AS acumulado\nFROM mensual\nORDER BY mes;",
+       "language": "sql"
+      },
+      {
+       "title": "Reinicia el acumulado cada año",
+       "body": "Agrega `PARTITION BY substr(mes, 1, 4)`: el año son los primeros 4 caracteres del mes. Ahora enero de 2026 empieza de nuevo en ₡529 000 en lugar de seguir sumando sobre 2025.",
+       "code": "WITH mensual AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ventas\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', p.fecha)\n)\nSELECT mes, ROUND(ventas) AS ventas,\n       ROUND(SUM(ventas) OVER (PARTITION BY substr(mes, 1, 4) ORDER BY mes)) AS acumulado_anio\nFROM mensual\nORDER BY mes;",
+       "language": "sql"
+      },
+      {
+       "title": "Calcula un promedio móvil",
+       "body": "Cuenta los pedidos no cancelados de cada mes y promedia con el marco `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW`. Los dos primeros meses promedian menos filas porque no tienen dos meses anteriores.",
+       "code": "WITH por_mes AS (\n    SELECT strftime('%Y-%m', fecha) AS mes, COUNT(*) AS pedidos\n    FROM pedidos\n    WHERE estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', fecha)\n)\nSELECT mes, pedidos,\n       ROUND(AVG(pedidos) OVER (ORDER BY mes ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 1) AS promedio_3m\nFROM por_mes\nORDER BY mes;",
+       "language": "sql"
+      },
+      {
+       "title": "Mira la trampa de RANGE con empates",
+       "body": "El 12 de septiembre de 2026 hubo tres pedidos. Con `ORDER BY fecha` (RANGE por defecto) los tres muestran 7, el acumulado al final del día. Con `ROWS` y `ORDER BY fecha, id` avanzan 5, 6 y 7, uno por fila.",
+       "code": "SELECT id, fecha,\n       COUNT(*) OVER (ORDER BY fecha) AS con_range,\n       COUNT(*) OVER (ORDER BY fecha, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS con_rows\nFROM pedidos\nWHERE fecha BETWEEN '2026-09-01' AND '2026-09-15'\nORDER BY fecha, id;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Varias filas seguidas muestran el mismo acumulado",
+       "cause": "Hay empates en el ORDER BY de la ventana y el marco por defecto (RANGE) suma juntas todas las filas empatadas.",
+       "fix": "Agrega un desempate (`ORDER BY fecha, id`) y declara el marco con ROWS: `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`."
+      },
+      {
+       "error": "El acumulado no vuelve a cero al cambiar de año",
+       "cause": "Falta `PARTITION BY` con el año, así que la ventana es una sola para toda la tabla.",
+       "fix": "Particiona por el año: `PARTITION BY substr(mes, 1, 4)` o `PARTITION BY strftime('%Y', fecha)`."
+      },
+      {
+       "error": "SUM(ventas) OVER (...) da el mismo número en todas las filas",
+       "cause": "Escribiste el OVER sin ORDER BY: sin orden no hay «filas anteriores», así que cada fila recibe el total de la partición.",
+       "fix": "Para acumular, el OVER necesita `ORDER BY` con la columna que define el avance (mes, fecha)."
+      }
+     ]
+    },
+    {
+     "title": "LAG, LEAD y NTILE",
+     "concept": "`LAG(columna)` devuelve el valor de esa columna en la **fila anterior** según el orden del OVER, y `LEAD(columna)` el de la **fila siguiente**. Así comparas cada periodo con el anterior: `ventas - LAG(ventas) OVER (ORDER BY mes)` es cuánto subieron o bajaron las ventas respecto al mes anterior, y dividido entre `LAG(ventas)` da el **crecimiento porcentual mes a mes**. La primera fila no tiene anterior y LAG devuelve NULL (o el valor por defecto que pongas como tercer argumento: `LAG(ventas, 1, 0)`).\n\n**Ojo con el WHERE.** Si filtras solo 2026 en la misma consulta, enero no tiene fila anterior y su crecimiento sale NULL, aunque diciembre de 2025 sí existe en los datos. La solución es calcular LAG sobre todos los meses en una CTE y filtrar el año afuera. Con `PARTITION BY cliente_id`, LAG compara cada pedido con el pedido anterior del mismo cliente, útil para medir cada cuántos días vuelve a comprar.\n\n`NTILE(n)` reparte las filas ordenadas en n grupos del mismo tamaño (o casi) y numera cada grupo: con `NTILE(4) OVER (ORDER BY gasto DESC)` obtienes **cuartiles** de clientes, donde el 1 es el 25 % que más gasta. Como corta por posición, agrega un desempate al orden.",
+     "tip": "Cuando calcules un porcentaje de crecimiento, multiplica por `100.0` y divide entre el valor anterior, no entre el actual: pasar de 100 a 150 es crecer 50 %, no 33 %.",
+     "example": "WITH mensual AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ventas\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', p.fecha)\n)\nSELECT mes,\n       ROUND(ventas) AS ventas,\n       ROUND(LAG(ventas) OVER (ORDER BY mes)) AS mes_anterior,\n       ROUND(100.0 * (ventas - LAG(ventas) OVER (ORDER BY mes))\n             / LAG(ventas) OVER (ORDER BY mes), 1) AS crecimiento_pct\nFROM mensual\nORDER BY mes;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Trae el valor anterior y el siguiente",
+       "body": "LAG mira una fila atrás y LEAD una fila adelante. Fíjate en la primera fila (LAG es NULL) y en la última (LEAD es NULL): no tienen vecino en esa dirección.",
+       "code": "WITH por_mes AS (\n    SELECT strftime('%Y-%m', fecha) AS mes, COUNT(*) AS pedidos\n    FROM pedidos\n    WHERE estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', fecha)\n)\nSELECT mes, pedidos,\n       LAG(pedidos) OVER (ORDER BY mes) AS mes_anterior,\n       LEAD(pedidos) OVER (ORDER BY mes) AS mes_siguiente\nFROM por_mes\nORDER BY mes;",
+       "language": "sql"
+      },
+      {
+       "title": "Calcula el crecimiento y filtra afuera",
+       "body": "Calcula LAG sobre los 21 meses en una CTE y filtra 2026 en la consulta exterior. Enero de 2026 se compara con diciembre de 2025 y muestra una caída del 57,2 %, normal después de la temporada navideña.",
+       "code": "WITH mensual AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ventas\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', p.fecha)\n),\ncon_lag AS (\n    SELECT mes, ventas, LAG(ventas) OVER (ORDER BY mes) AS anterior\n    FROM mensual\n)\nSELECT mes, ROUND(ventas) AS ventas, ROUND(100.0 * (ventas - anterior) / anterior, 1) AS crecimiento_pct\nFROM con_lag\nWHERE mes >= '2026-01'\nORDER BY mes;",
+       "language": "sql"
+      },
+      {
+       "title": "Mide los días entre compras de un cliente",
+       "body": "Gabriela Vargas (cliente 72) es la clienta más frecuente, con 32 pedidos. LAG con `ORDER BY fecha, id` trae la fecha de su pedido anterior, y julianday calcula los días entre uno y otro. En promedio vuelve cada 19 días.",
+       "code": "WITH compras AS (\n    SELECT id, fecha, LAG(fecha) OVER (ORDER BY fecha, id) AS anterior\n    FROM pedidos\n    WHERE cliente_id = 72\n)\nSELECT id, fecha, anterior,\n       julianday(fecha) - julianday(anterior) AS dias\nFROM compras\nORDER BY fecha, id;",
+       "language": "sql"
+      },
+      {
+       "title": "Reparte a los clientes en cuartiles",
+       "body": "Suma el gasto de cada cliente y aplica `NTILE(4)` ordenando de mayor a menor gasto, con `cliente_id` como desempate. Los 60 clientes con compras quedan en 4 grupos de 15.",
+       "code": "WITH gasto AS (\n    SELECT p.cliente_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY p.cliente_id\n)\nSELECT cliente_id, ROUND(total) AS total,\n       NTILE(4) OVER (ORDER BY total DESC, cliente_id) AS cuartil\nFROM gasto\nORDER BY cuartil, total DESC;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "El primer mes del año muestra crecimiento NULL",
+       "cause": "Filtraste el año en el WHERE de la misma consulta que calcula LAG, así que el mes anterior ya no estaba disponible.",
+       "fix": "Calcula LAG en una CTE con todos los meses y filtra el año en la consulta exterior."
+      },
+      {
+       "error": "LAG compara pedidos de clientes distintos",
+       "cause": "Falta `PARTITION BY cliente_id`: la fila anterior puede ser el pedido de otra persona.",
+       "fix": "Cuando la comparación es dentro de un grupo, particiona: `LAG(fecha) OVER (PARTITION BY cliente_id ORDER BY fecha, id)`."
+      },
+      {
+       "error": "El crecimiento sale 0 o redondeado de forma extraña",
+       "cause": "Las ventas por mes pueden ser enteras y la división entre enteros descarta los decimales.",
+       "fix": "Multiplica por `100.0` antes de dividir para forzar una división con decimales."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-06-1",
+     "title": "Ventas acumuladas de 2026",
+     "prompt": "La gerente quiere ver cuánto lleva vendido la tienda en 2026 al cierre de cada mes. Para cada mes de 2026 muestra el mes (`'AAAA-MM'`), las ventas del mes (suma de `cantidad * precio_unitario * (1 - descuento)`, sin pedidos cancelados) y el acumulado del año, ambos redondeados a colones enteros. Ordena por mes.",
+     "hint": "CTE con las ventas por mes de 2026; afuera `SUM(ventas) OVER (ORDER BY mes)`. Redondea solo al final, no dentro de la suma.",
+     "solution": "WITH mensual AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ventas\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\n    GROUP BY strftime('%Y-%m', p.fecha)\n)\nSELECT mes, ROUND(ventas) AS ventas, ROUND(SUM(ventas) OVER (ORDER BY mes)) AS acumulado\nFROM mensual\nORDER BY mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-06-2",
+     "title": "Promedio móvil de pedidos",
+     "prompt": "Para ver la tendencia sin el ruido de diciembre, muestra para cada mes de toda la historia el mes (`'AAAA-MM'`), el número de pedidos no cancelados y el promedio móvil de pedidos de ese mes y los dos anteriores, redondeado a 1 decimal. Ordena por mes.",
+     "hint": "Marco `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW` dentro del OVER de AVG.",
+     "solution": "WITH por_mes AS (\n    SELECT strftime('%Y-%m', fecha) AS mes, COUNT(*) AS pedidos\n    FROM pedidos\n    WHERE estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', fecha)\n)\nSELECT mes, pedidos,\n       ROUND(AVG(pedidos) OVER (ORDER BY mes ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 1) AS promedio_3m\nFROM por_mes\nORDER BY mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-06-3",
+     "title": "Crecimiento mes a mes en 2026",
+     "prompt": "Para cada mes de 2026 muestra el mes, las ventas del mes y las del mes anterior (ambas redondeadas a colones enteros) y el crecimiento porcentual respecto al mes anterior, redondeado a 1 decimal. Enero de 2026 se compara con diciembre de 2025. Ventas: suma de `cantidad * precio_unitario * (1 - descuento)` sin pedidos cancelados. Ordena por mes.",
+     "hint": "Calcula LAG sobre todos los meses en una CTE y filtra `mes >= '2026-01'` en la consulta exterior. Crecimiento: `100.0 * (ventas - anterior) / anterior`.",
+     "solution": "WITH mensual AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ventas\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', p.fecha)\n),\ncon_lag AS (\n    SELECT mes, ventas, LAG(ventas) OVER (ORDER BY mes) AS anterior\n    FROM mensual\n)\nSELECT mes, ROUND(ventas) AS ventas, ROUND(anterior) AS anterior,\n       ROUND(100.0 * (ventas - anterior) / anterior, 1) AS crecimiento_pct\nFROM con_lag\nWHERE mes >= '2026-01'\nORDER BY mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-06-4",
+     "title": "Ritmo de compra de Gabriela",
+     "prompt": "Para entender a la clienta más fiel, Gabriela Vargas (`cliente_id = 72`), muestra cada uno de sus pedidos (de cualquier estado) con el `id`, la `fecha` y los días transcurridos desde su pedido anterior (NULL en el primero). Ordena por fecha y, si dos pedidos son del mismo día, por `id`; usa ese mismo orden para decidir cuál es el anterior.",
+     "hint": "`julianday(fecha) - julianday(LAG(fecha) OVER (ORDER BY fecha, id))`, filtrando `cliente_id = 72`.",
+     "solution": "SELECT id, fecha,\n       julianday(fecha) - julianday(LAG(fecha) OVER (ORDER BY fecha, id)) AS dias\nFROM pedidos\nWHERE cliente_id = 72\nORDER BY fecha, id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-06-5",
+     "title": "Cuartiles de clientes",
+     "prompt": "¿Qué tan concentradas están las ventas? Reparte con NTILE(4) a los clientes que han comprado según su gasto total (pedidos no cancelados), del que más gasta al que menos, con `cliente_id` como desempate. Muestra para cada cuartil: el número de cuartil, cuántos clientes tiene, el gasto total del cuartil redondeado a colones enteros y el porcentaje que representa de las ventas totales, redondeado a 1 decimal.",
+     "hint": "Tres pasos: CTE con el gasto por cliente, CTE con `NTILE(4) OVER (ORDER BY total DESC, cliente_id)`, y un GROUP BY cuartil. El porcentaje divide entre `(SELECT SUM(total) FROM la_primera_cte)`.",
+     "solution": "WITH gasto AS (\n    SELECT p.cliente_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY p.cliente_id\n),\ncuartiles AS (\n    SELECT cliente_id, total, NTILE(4) OVER (ORDER BY total DESC, cliente_id) AS cuartil\n    FROM gasto\n)\nSELECT cuartil, COUNT(*) AS clientes, ROUND(SUM(total)) AS gasto,\n       ROUND(100.0 * SUM(total) / (SELECT SUM(total) FROM gasto), 1) AS porcentaje\nFROM cuartiles\nGROUP BY cuartil;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-06-6",
+     "title": "Recompras rápidas",
+     "prompt": "Mercadeo quiere identificar compras impulsivas: pedidos no cancelados hechos 3 días o menos después del pedido no cancelado anterior del mismo cliente (incluye el mismo día). Muestra `nombre`, `apellido`, la fecha del pedido anterior, la fecha del pedido y los días entre ambos. Para decidir cuál es el anterior, ordena los pedidos de cada cliente por fecha y luego por `id`.",
+     "hint": "En una CTE, `LAG(fecha) OVER (PARTITION BY cliente_id ORDER BY fecha, id)` solo sobre pedidos no cancelados. Afuera calcula la diferencia con julianday, filtra `<= 3` y une con clientes.",
+     "solution": "WITH compras AS (\n    SELECT cliente_id, fecha,\n           LAG(fecha) OVER (PARTITION BY cliente_id ORDER BY fecha, id) AS anterior\n    FROM pedidos\n    WHERE estado <> 'cancelado'\n)\nSELECT c.nombre, c.apellido, x.anterior, x.fecha,\n       julianday(x.fecha) - julianday(x.anterior) AS dias\nFROM compras x\nJOIN clientes c ON c.id = x.cliente_id\nWHERE julianday(x.fecha) - julianday(x.anterior) <= 3;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "El mes récord de cada año",
+    "description": "Para cada año (2025 y 2026) encuentra el mes con más ventas (sin pedidos cancelados) y muestra el año, el mes, las ventas de ese mes redondeadas y qué porcentaje representan de las ventas de su año, redondeado a 1 decimal. Resuélvelo con funciones de ventana, sin LIMIT. Ten en cuenta que 2026 solo tiene datos hasta septiembre.",
+    "hint": "Sobre la CTE de ventas mensuales calcula en otra CTE dos ventanas particionadas por año: `RANK() OVER (PARTITION BY anio ORDER BY ventas DESC)` y `SUM(ventas) OVER (PARTITION BY anio)`. Afuera, puesto 1.",
+    "solution": "WITH mensual AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ventas\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', p.fecha)\n),\ncon_anio AS (\n    SELECT substr(mes, 1, 4) AS anio, mes, ventas,\n           RANK() OVER (PARTITION BY substr(mes, 1, 4) ORDER BY ventas DESC) AS puesto,\n           SUM(ventas) OVER (PARTITION BY substr(mes, 1, 4)) AS total_anio\n    FROM mensual\n)\nSELECT anio, mes, ROUND(ventas) AS ventas, ROUND(100.0 * ventas / total_anio, 1) AS pct_anio\nFROM con_anio\nWHERE puesto = 1\nORDER BY anio;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Total acumulado",
+     "definition": "Suma de un valor desde la primera fila hasta la actual según un orden; se calcula con SUM OVER (ORDER BY ...)."
+    },
+    {
+     "term": "Marco (frame)",
+     "definition": "Conjunto de filas, dentro de la partición, que entra en el cálculo de la ventana para cada fila."
+    },
+    {
+     "term": "ROWS BETWEEN",
+     "definition": "Define el marco contando filas físicas, por ejemplo las 2 anteriores y la actual."
+    },
+    {
+     "term": "Promedio móvil",
+     "definition": "Promedio de la fila actual y algunas vecinas; suaviza los picos y muestra la tendencia."
+    },
+    {
+     "term": "LAG",
+     "definition": "Función de ventana que devuelve el valor de una columna en la fila anterior según el orden del OVER."
+    },
+    {
+     "term": "LEAD",
+     "definition": "Función de ventana que devuelve el valor de una columna en la fila siguiente según el orden del OVER."
+    },
+    {
+     "term": "NTILE",
+     "definition": "Reparte las filas ordenadas en n grupos de tamaño parecido y devuelve el número de grupo de cada una."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: funciones de ventana y marcos",
+     "url": "https://www.sqlite.org/windowfunctions.html#frame_specifications"
+    },
+    {
+     "title": "SQLite: LAG, LEAD, NTILE y otras funciones de ventana",
+     "url": "https://www.sqlite.org/windowfunctions.html#builtins"
+    },
+    {
+     "title": "SQLite Tutorial: LAG",
+     "url": "https://www.sqlitetutorial.net/sqlite-window-functions/sqlite-lag/"
+    },
+    {
+     "title": "SQLite Tutorial: NTILE",
+     "url": "https://www.sqlitetutorial.net/sqlite-window-functions/sqlite-ntile/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué calcula `SUM(ventas) OVER (ORDER BY mes)` en cada fila de una tabla con una fila por mes?",
+     "code": "",
+     "options": [
+      "Las ventas totales de toda la tabla",
+      "Las ventas de ese mes más las de todos los meses anteriores",
+      "Las ventas del mes anterior",
+      "El promedio de ventas hasta ese mes"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso sería `SUM(ventas) OVER ()`, sin ORDER BY.",
+      "Correcto: con ORDER BY el marco va desde la primera fila hasta la actual; es un total acumulado.",
+      "No: eso lo hace `LAG(ventas) OVER (ORDER BY mes)`.",
+      "No: para un promedio la función sería AVG, no SUM."
+     ],
+     "explanation": "Agregar ORDER BY al OVER de una suma la convierte en acumulado: desde el inicio hasta la fila actual.",
+     "hint": "Piensa en el «llevamos vendido» de un reporte."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué marco calcula un promedio móvil del mes actual y los dos anteriores?",
+     "code": "",
+     "options": [
+      "ROWS BETWEEN 2 PRECEDING AND CURRENT ROW",
+      "ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING",
+      "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+      "ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: dos filas antes más la actual, tres meses en total.",
+      "No: ese marco mira hacia adelante, el actual y los dos siguientes.",
+      "No: eso toma todas las filas desde el inicio; sería un promedio acumulado.",
+      "No: es un marco de tres meses centrado (anterior, actual y siguiente), no el actual y los dos anteriores."
+     ],
+     "explanation": "PRECEDING cuenta filas hacia atrás y CURRENT ROW es la fila actual.",
+     "hint": "Busca el marco que solo mira hacia atrás."
+    },
+    {
+     "type": "choice",
+     "prompt": "Quieres el crecimiento de cada mes de 2026 respecto al mes anterior. Si pones `WHERE mes >= '2026-01'` en la misma consulta que calcula LAG, ¿qué pasa con enero de 2026?",
+     "code": "",
+     "options": [
+      "Se compara con diciembre de 2025 sin problema",
+      "La consulta da error",
+      "Se compara con febrero de 2026",
+      "Su mes anterior sale NULL, porque diciembre de 2025 ya fue filtrado antes de calcular la ventana"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el WHERE se aplica antes que la ventana; diciembre de 2025 ya no está disponible.",
+      "No: la consulta es válida; el problema es el resultado, no la sintaxis.",
+      "No: LAG mira hacia atrás; febrero sería LEAD.",
+      "Correcto: por eso LAG se calcula en una CTE con todos los meses y el filtro va afuera."
+     ],
+     "explanation": "Las ventanas se calculan sobre las filas que sobreviven al WHERE; si quieres usar filas que no se mostrarán, filtra después.",
+     "hint": "Recuerda en qué orden se ejecutan WHERE y las funciones de ventana."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Con `ORDER BY fecha` y sin marco explícito, si tres pedidos tienen la misma fecha, `COUNT(*) OVER (ORDER BY fecha)` les da el mismo valor a los tres.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: el marco por defecto es RANGE y trata las filas empatadas como una sola; las tres reciben el acumulado del día completo.",
+      "No: ese es justamente el comportamiento de RANGE; para avanzar fila por fila necesitas ROWS y un desempate."
+     ],
+     "explanation": "RANGE agrupa las filas empatadas en el orden; ROWS avanza una fila a la vez.",
+     "hint": "Es el paso «Mira la trampa de RANGE con empates»."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`NTILE(4)` sobre 60 clientes los reparte en 4 grupos de 15.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: 60 entre 4 da 15 exactos; si no fuera exacto, los primeros grupos tendrían una fila más.",
+      "No: NTILE reparte por posición en grupos lo más parecidos posible; con 60 filas son 15 por grupo."
+     ],
+     "explanation": "NTILE divide el número de filas entre n; cuando no es exacto, los primeros grupos se llevan una fila extra.",
+     "hint": "Haz la división."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(*) FROM (\n    SELECT LAG(fecha) OVER (ORDER BY fecha, id) AS anterior\n    FROM pedidos\n    WHERE cliente_id = 72\n) AS t\nWHERE anterior IS NULL;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "1"
+     ],
+     "optionFeedback": [],
+     "explanation": "Solo el primer pedido de la clienta no tiene uno anterior; LAG devuelve NULL únicamente en esa fila.",
+     "hint": "¿Cuántas filas no tienen fila anterior?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT MAX(acumulado) FROM (\n    SELECT SUM(costo_envio) OVER (ORDER BY fecha, id) AS acumulado\n    FROM pedidos\n    WHERE fecha BETWEEN '2026-09-01' AND '2026-09-30'\n) AS t;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "21500"
+     ],
+     "optionFeedback": [],
+     "explanation": "El acumulado de la última fila es la suma de todos los costos de envío de septiembre de 2026: ₡21 500.",
+     "hint": "El máximo de un acumulado de valores positivos es el total."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa para traer las ventas del mes anterior.",
+     "code": "SELECT mes, ventas,\n       ___(ventas) OVER (ORDER BY mes) AS mes_anterior\nFROM ventas_mensuales;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "LAG"
+     ],
+     "optionFeedback": [],
+     "explanation": "LAG devuelve el valor de la fila anterior según el orden del OVER.",
+     "hint": "Es lo contrario de LEAD."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-11-07",
+  "kind": "weekly",
+  "path": "Laboratorio SQL",
+  "description": "Informe «Análisis avanzado de clientes»: 10 preguntas sobre los clientes de la Tienda Pura Vida que se responden con subconsultas, EXISTS, CTE (incluida WITH RECURSIVE) y funciones de ventana, y que se califican solas en el laboratorio. Cierra con una conclusión escrita que le explique a la gerente qué descubriste sobre sus clientes.",
+  "criteria": [
+   "Los 10 ejercicios coinciden con el resultado esperado en el laboratorio.",
+   "Las consultas largas están organizadas con CTE de nombres claros, no con paréntesis anidados de tres o más niveles.",
+   "Toda CTE recursiva tiene una condición de parada explícita en su parte recursiva.",
+   "Los rankings y comparaciones con la fila anterior usan un ORDER BY con desempate cuando el resultado depende del orden.",
+   "La conclusión escrita tiene entre 150 y 300 palabras, cita al menos 4 cifras obtenidas de las consultas y propone al menos una acción concreta."
+  ],
+  "steps": [
+   "Lee las 10 preguntas completas antes de escribir SQL y anota, junto a cada una, qué herramienta de la semana usarías: subconsulta, EXISTS, CTE, WITH RECURSIVE o ventana.",
+   "Escribe primero la CTE de gasto por cliente (pedidos no cancelados) y ejecútala sola con `SELECT * FROM gasto;`. La vas a reutilizar en varias preguntas: guárdala aparte.",
+   "Resuelve las preguntas de filtros y existencia (1, 2 y 3). Comprueba los totales: la pregunta 2 debe sumar los 20 clientes que nunca compraron.",
+   "Resuelve las de comparación y ranking por grupo (4, 5 y 6). Antes de filtrar el puesto 1, mira la tabla completa del ranking para entender los empates.",
+   "Resuelve las de tiempo (7, 8, 9 y 10). En las que generan meses con WITH RECURSIVE, ejecuta primero solo la serie y confirma que tiene 9 meses.",
+   "Envía cada ejercicio en el laboratorio y, si no coincide, compara columnas y orden con el enunciado antes de cambiar la lógica.",
+   "Escribe la conclusión: quiénes son los clientes que más gastan, qué provincias destacan, cuántos clientes están dormidos, cómo llegan los compradores nuevos y qué harías."
+  ],
+  "tips": [
+   "Casi todas las preguntas empiezan igual: el gasto por cliente sin pedidos cancelados. Escribirla bien una vez te ahorra la mitad del trabajo.",
+   "Si un ejercicio pide «si hubiera empate, deben salir todos», usa RANK; si pide exactamente uno por grupo con un criterio de desempate, usa ROW_NUMBER con ese desempate.",
+   "Las fechas relativas se calculan contra '2026-09-30', nunca contra date('now'): los datos terminan ese día.",
+   "Para la conclusión, vuelve a correr tus consultas con pequeñas variaciones (por ejemplo, contar cuántas filas devuelve cada una) para tener cifras exactas que citar."
+  ],
+  "stretch": "Construye una tabla de cohortes: para cada mes de primera compra de 2025, cuántos de esos clientes volvieron a comprar en 2026. Usa una CTE con la primera compra de cada cliente, un EXISTS para la recompra y GROUP BY por mes de cohorte.",
+  "checklist": [
+   "Los 10 ejercicios aparecen como correctos en el laboratorio.",
+   "Ninguna consulta usa date('now'), CURRENT_DATE ni LIMIT para elegir «el mejor».",
+   "Cada WITH RECURSIVE tiene un WHERE que detiene la recursión.",
+   "Los porcentajes y montos están redondeados como pide cada enunciado.",
+   "La conclusión cita cifras que salen de tus consultas, no estimaciones.",
+   "Releíste la conclusión en voz alta y se entiende sin ver el SQL."
+  ],
+  "exercises": [
+   {
+    "id": "s04-1",
+    "title": "Clientes sobre el gasto promedio",
+    "prompt": "Calcula el gasto total de cada cliente (suma de `cantidad * precio_unitario * (1 - descuento)` de sus pedidos no cancelados) y muestra `nombre`, `apellido` y gasto redondeado a colones enteros de los clientes cuyo gasto supera el promedio de gasto de todos los clientes que han comprado.",
+    "hint": "Una CTE con el gasto por cliente, usada dos veces: en el FROM y en la subconsulta del promedio.",
+    "solution": "WITH gasto AS (\n    SELECT p.cliente_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY p.cliente_id\n)\nSELECT c.nombre, c.apellido, ROUND(g.total) AS gasto\nFROM gasto g\nJOIN clientes c ON c.id = g.cliente_id\nWHERE g.total > (SELECT AVG(total) FROM gasto);",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s04-2",
+    "title": "Registrados sin compras por provincia",
+    "prompt": "Para planear la campaña de bienvenida, muestra cada provincia (`nombre`) y cuántos de sus clientes registrados no tienen ningún pedido (de ningún estado). Deben salir las 7 provincias.",
+    "hint": "NOT EXISTS sobre pedidos para encontrar a los clientes sin compras, y luego GROUP BY por provincia.",
+    "solution": "SELECT pr.nombre AS provincia, COUNT(*) AS sin_compras\nFROM clientes c\nJOIN provincias pr ON pr.id = c.provincia_id\nWHERE NOT EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id)\nGROUP BY pr.id, pr.nombre;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s04-3",
+    "title": "Clientes sin reseñas",
+    "prompt": "Servicio al cliente quiere pedir opiniones a quienes ya recibieron productos pero nunca han escrito una reseña. Muestra `nombre`, `apellido` y cuántos pedidos entregados (`estado = 'entregado'`) tiene cada uno, solo para los clientes con al menos un pedido entregado y ninguna reseña.",
+    "hint": "Un EXISTS para «al menos un pedido entregado», un NOT EXISTS sobre `resenas` y una subconsulta correlacionada con COUNT(*) en el SELECT.",
+    "solution": "SELECT c.nombre, c.apellido,\n       (SELECT COUNT(*) FROM pedidos p WHERE p.cliente_id = c.id AND p.estado = 'entregado') AS entregados\nFROM clientes c\nWHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id AND p.estado = 'entregado')\n  AND NOT EXISTS (SELECT 1 FROM resenas r WHERE r.cliente_id = c.id);",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s04-4",
+    "title": "Destacados de su provincia",
+    "prompt": "Muestra `nombre`, `apellido`, la provincia, el gasto total del cliente (pedidos no cancelados) y el gasto promedio de los clientes con compras de su misma provincia, ambos redondeados a colones enteros, solo para los clientes cuyo gasto supera ese promedio de su provincia.",
+    "hint": "En una CTE el gasto por cliente con su `provincia_id`; en otra, `AVG(total) OVER (PARTITION BY provincia_id)`; afuera filtra y une con provincias.",
+    "solution": "WITH gasto AS (\n    SELECT c.id, c.nombre, c.apellido, c.provincia_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM clientes c\n    JOIN pedidos p ON p.cliente_id = c.id\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY c.id, c.nombre, c.apellido, c.provincia_id\n),\ncon_promedio AS (\n    SELECT *, AVG(total) OVER (PARTITION BY provincia_id) AS promedio_prov\n    FROM gasto\n)\nSELECT x.nombre, x.apellido, pr.nombre AS provincia, ROUND(x.total) AS gasto, ROUND(x.promedio_prov) AS promedio_provincia\nFROM con_promedio x\nJOIN provincias pr ON pr.id = x.provincia_id\nWHERE x.total > x.promedio_prov;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s04-5",
+    "title": "El mejor cliente de cada provincia",
+    "prompt": "Muestra, para cada provincia, el cliente que más ha gastado (pedidos no cancelados): provincia, `nombre`, `apellido` y gasto redondeado a colones enteros. Si hubiera un empate en el primer lugar, deben salir todos los empatados.",
+    "hint": "RANK() particionado por provincia y ordenado por gasto descendente; afuera, puesto 1.",
+    "solution": "WITH gasto AS (\n    SELECT c.id, c.nombre, c.apellido, c.provincia_id, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n    FROM clientes c\n    JOIN pedidos p ON p.cliente_id = c.id\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY c.id, c.nombre, c.apellido, c.provincia_id\n),\nranking AS (\n    SELECT *, RANK() OVER (PARTITION BY provincia_id ORDER BY total DESC) AS puesto\n    FROM gasto\n)\nSELECT pr.nombre AS provincia, r.nombre, r.apellido, ROUND(r.total) AS gasto\nFROM ranking r\nJOIN provincias pr ON pr.id = r.provincia_id\nWHERE r.puesto = 1;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s04-6",
+    "title": "Categoría favorita en Cartago",
+    "prompt": "Para cada cliente de la provincia de Cartago que ha comprado, muestra `nombre`, `apellido`, el nombre de la categoría en la que más ha gastado (pedidos no cancelados) y cuánto gastó en ella, redondeado a colones enteros. Si dos categorías empataran, elige la de nombre menor alfabéticamente.",
+    "hint": "CTE con el gasto por cliente y categoría (solo Cartago); otra con `ROW_NUMBER() OVER (PARTITION BY cliente ORDER BY gasto DESC, nombre_categoria)`; afuera, la fila 1.",
+    "solution": "WITH por_categoria AS (\n    SELECT c.id AS cliente_id, c.nombre, c.apellido, cat.nombre AS categoria,\n           SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS gasto\n    FROM clientes c\n    JOIN provincias pr ON pr.id = c.provincia_id\n    JOIN pedidos p ON p.cliente_id = c.id\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    JOIN productos prod ON prod.id = d.producto_id\n    JOIN categorias cat ON cat.id = prod.categoria_id\n    WHERE p.estado <> 'cancelado' AND pr.nombre = 'Cartago'\n    GROUP BY c.id, c.nombre, c.apellido, cat.id, cat.nombre\n),\nranking AS (\n    SELECT *, ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY gasto DESC, categoria) AS n\n    FROM por_categoria\n)\nSELECT nombre, apellido, categoria, ROUND(gasto) AS gasto\nFROM ranking\nWHERE n = 1;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s04-7",
+    "title": "Gabriela mes a mes",
+    "prompt": "Muestra el gasto de Gabriela Vargas (`cliente_id = 72`) en cada mes de enero a septiembre de 2026, incluidos los meses en que no compró (con 0), y su gasto acumulado del año. Columnas: mes (`'AAAA-MM'`), gasto del mes y acumulado, ambos redondeados a colones enteros; pedidos no cancelados. Ordena por mes.",
+    "hint": "Serie de meses con WITH RECURSIVE (con su condición de parada), LEFT JOIN con su gasto por mes, `COALESCE(..., 0)` y `SUM(...) OVER (ORDER BY mes)` para el acumulado.",
+    "solution": "WITH RECURSIVE meses(mes) AS (\n    SELECT '2026-01'\n    UNION ALL\n    SELECT strftime('%Y-%m', mes || '-01', '+1 month') FROM meses WHERE mes < '2026-09'\n),\ngasto_mes AS (\n    SELECT strftime('%Y-%m', p.fecha) AS mes, SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS gasto\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    WHERE p.cliente_id = 72 AND p.estado <> 'cancelado'\n    GROUP BY strftime('%Y-%m', p.fecha)\n),\nserie AS (\n    SELECT m.mes, COALESCE(g.gasto, 0) AS gasto\n    FROM meses m\n    LEFT JOIN gasto_mes g ON g.mes = m.mes\n)\nSELECT mes, ROUND(gasto) AS gasto, ROUND(SUM(gasto) OVER (ORDER BY mes)) AS acumulado\nFROM serie\nORDER BY mes;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s04-8",
+    "title": "Frecuencia de compra",
+    "prompt": "Para los clientes con al menos 10 pedidos no cancelados, muestra `nombre`, `apellido`, cuántos pedidos no cancelados tienen y cada cuántos días compran en promedio (promedio de los días entre cada pedido no cancelado y el anterior del mismo cliente, redondeado a 1 decimal). Para ordenar los pedidos de un cliente usa la fecha y luego el `id`.",
+    "hint": "CTE con `LAG(fecha) OVER (PARTITION BY cliente_id ORDER BY fecha, id)` sobre pedidos no cancelados. Afuera agrupa por cliente: `COUNT(*)` da los pedidos y `AVG(julianday(fecha) - julianday(anterior))` ignora sola el NULL del primero.",
+    "solution": "WITH compras AS (\n    SELECT cliente_id, fecha,\n           LAG(fecha) OVER (PARTITION BY cliente_id ORDER BY fecha, id) AS anterior\n    FROM pedidos\n    WHERE estado <> 'cancelado'\n)\nSELECT c.nombre, c.apellido, COUNT(*) AS pedidos,\n       ROUND(AVG(julianday(x.fecha) - julianday(x.anterior)), 1) AS dias_promedio\nFROM compras x\nJOIN clientes c ON c.id = x.cliente_id\nGROUP BY c.id, c.nombre, c.apellido\nHAVING COUNT(*) >= 10;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s04-9",
+    "title": "Clientes dormidos",
+    "prompt": "Tomando como fecha de hoy el 30 de septiembre de 2026, muestra `nombre`, `apellido`, la fecha de su último pedido no cancelado y los días que han pasado desde entonces, para los clientes que llevan más de 180 días sin comprar (solo clientes que han comprado alguna vez).",
+    "hint": "MAX(fecha) por cliente en una CTE y `julianday('2026-09-30') - julianday(ultimo)` para los días. No uses `date('now')`.",
+    "solution": "WITH ultimo AS (\n    SELECT cliente_id, MAX(fecha) AS ultima_compra\n    FROM pedidos\n    WHERE estado <> 'cancelado'\n    GROUP BY cliente_id\n)\nSELECT c.nombre, c.apellido, u.ultima_compra,\n       julianday('2026-09-30') - julianday(u.ultima_compra) AS dias_sin_comprar\nFROM ultimo u\nJOIN clientes c ON c.id = u.cliente_id\nWHERE julianday('2026-09-30') - julianday(u.ultima_compra) > 180;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s04-10",
+    "title": "Nuevos compradores por mes",
+    "prompt": "Un cliente se convierte en comprador el mes de su primer pedido no cancelado. Muestra cada mes de enero a septiembre de 2026 (`'AAAA-MM'`) y cuántos clientes hicieron su primera compra ese mes, con 0 en los meses sin compradores nuevos. Ordena por mes.",
+    "hint": "Serie de meses con WITH RECURSIVE; otra CTE con la primera compra de cada cliente (`MIN(fecha)` o ROW_NUMBER); LEFT JOIN y `COUNT(columna)` para que los meses vacíos den 0.",
+    "solution": "WITH RECURSIVE meses(mes) AS (\n    SELECT '2026-01'\n    UNION ALL\n    SELECT strftime('%Y-%m', mes || '-01', '+1 month') FROM meses WHERE mes < '2026-09'\n),\nprimera AS (\n    SELECT cliente_id, MIN(fecha) AS primera_compra\n    FROM pedidos\n    WHERE estado <> 'cancelado'\n    GROUP BY cliente_id\n)\nSELECT m.mes, COUNT(p.cliente_id) AS nuevos\nFROM meses m\nLEFT JOIN primera p ON strftime('%Y-%m', p.primera_compra) = m.mes\nGROUP BY m.mes\nORDER BY m.mes;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   }
+  ]
+ }
+}

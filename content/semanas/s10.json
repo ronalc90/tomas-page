@@ -1,0 +1,1958 @@
+{
+ "id": "s10",
+ "number": 10,
+ "phaseId": 4,
+ "title": "Analizar datos y empezar el proyecto",
+ "rangeLabel": "14 dic – 19 dic",
+ "days": [
+  {
+   "date": "2026-12-14",
+   "kind": "workshop",
+   "title": "pandas + SQL",
+   "summary": "Llevas el resultado de tus consultas a pandas, lo filtras y agrupas, y compruebas que groupby y merge dan lo mismo que GROUP BY y JOIN.",
+   "objectives": [
+    "Cargar el resultado de una consulta SQL en un DataFrame con `pd.read_sql_query`, usando parámetros cuando haga falta.",
+    "Explorar un DataFrame con `shape`, `dtypes`, `head` y `describe`, y filtrarlo con máscaras booleanas.",
+    "Unir DataFrames con `merge` (interno e izquierdo) y explicar su equivalencia con INNER JOIN y LEFT JOIN.",
+    "Resumir con `groupby` y `agg`, y verificar que el resultado coincide con la consulta SQL equivalente.",
+    "Exportar un resumen a CSV para usarlo en la gráfica de mañana."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: read_sql_query y DataFrame",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: groupby y merge frente a GROUP BY y JOIN",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: consultas en el laboratorio y tareas en analisis_pandas.py",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "read_sql_query y DataFrame",
+     "concept": "pandas es la biblioteca de Python para trabajar con tablas en memoria. Su pieza central es el `DataFrame`: filas con un índice (0, 1, 2…) y columnas con nombre, donde cada columna es una `Series` de un solo tipo. Hasta ahora sacabas filas de SQLite con `fetchall()` y recibías una lista de tuplas; con `pd.read_sql_query(consulta, con)` la misma consulta llega como un DataFrame, y los alias del SELECT se vuelven los nombres de las columnas.\n\nLo primero es mirar qué llegó: `df.shape` da `(filas, columnas)`, `df.head()` las primeras cinco filas, `df.dtypes` el tipo de cada columna y `df.describe()` un resumen de las numéricas. Una columna se toma con `df[\"precio\"]`; varias, con una lista: `df[[\"nombre\", \"precio\"]]`.\n\nFiltrar es una **máscara booleana**: `df[\"precio\"] >= 20000` produce una columna de True y False, y `df[mascara]` se queda con las filas verdaderas, como un WHERE. Ordenar es `sort_values`, el ORDER BY de pandas. La regla para este curso: **lo que SQL hace bien (filtrar, unir, agrupar sobre la base) se queda en SQL**; pandas sirve para explorar, calcular y, mañana, graficar.",
+     "tip": "Antes de calcular nada, compara `len(df)` con un `SELECT COUNT(*)` de la misma consulta en el laboratorio. Si no coinciden, el problema está en la consulta o en el archivo `.db`, no en pandas.",
+     "example": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\nconsulta = \"\"\"\nSELECT p.nombre, c.nombre AS categoria, p.precio, p.costo, p.stock\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE p.activo = 1\n\"\"\"\ndf = pd.read_sql_query(consulta, con)\ncon.close()\n\nprint(df.shape)\nprint(list(df.columns))\nprint()\ndf[\"margen\"] = df[\"precio\"] - df[\"costo\"]\ncaros = df[df[\"precio\"] >= 20000].sort_values(\"margen\", ascending=False)\nprint(caros[[\"nombre\", \"precio\", \"margen\"]].to_string(index=False))\n",
+     "language": "python",
+     "exampleOutput": "(37, 5)\n['nombre', 'categoria', 'precio', 'costo', 'stock']\n\n                               nombre  precio  margen\n               Máscara boruca tallada   45000   15750\n                    Hamaca de algodón   32000   10550\nParlante bluetooth resistente al agua   29900    8050\n               Audífonos inalámbricos   24900    6200",
+     "steps": [
+      {
+       "title": "Conecta y trae la consulta",
+       "body": "Crea `analisis-tienda/analisis_pandas.py` junto a tu `tienda.db`. Abre la conexión como en la semana 9 y pásala a `pd.read_sql_query` con la consulta. Mira el resultado con `head()` y confirma con `shape` cuántas filas trajo: deben ser los 37 productos activos.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\nproductos = pd.read_sql_query(\"SELECT id, nombre, precio, stock FROM productos WHERE activo = 1\", con)\nprint(productos.head())\nprint(productos.shape)\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "Revisa tipos y resumen",
+       "body": "`dtypes` dice cómo entendió pandas cada columna: `int64` para enteros, `float64` para decimales y `str` u `object` para texto, según tu versión de pandas. `describe()` calcula cantidad, promedio, mínimo, máximo y cuartiles de una columna numérica. Fíjate en que las fechas llegan como texto, igual que en SQLite.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\ndf = pd.read_sql_query(\"SELECT nombre, precio, stock, fecha_lanzamiento FROM productos\", con)\nprint(df.dtypes)\nprint(df[\"precio\"].describe().round(0))\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "Filtra con máscaras: el WHERE de pandas",
+       "body": "Escribe la condición sobre la columna y ponla entre corchetes. Para combinar condiciones usa `&` (AND) y `|` (OR), con cada condición entre paréntesis; `and` y `or` no funcionan con columnas. Compara con el WHERE que escribirías en el laboratorio.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\ndf = pd.read_sql_query(\"SELECT nombre, precio, stock, activo FROM productos\", con)\nagotados = df[(df[\"stock\"] == 0) & (df[\"activo\"] == 1)]\nprint(agotados[[\"nombre\", \"precio\"]])\nprint(len(agotados), \"productos activos sin stock\")\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "Columnas calculadas y orden",
+       "body": "Una operación sobre una columna se aplica a todas las filas a la vez, sin bucle. Crea `margen` y `margen_pct`, y ordena con `sort_values`; con `ascending=False` el orden es descendente. `head(5)` después de ordenar es el `ORDER BY … LIMIT 5` de pandas.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\ndf = pd.read_sql_query(\"SELECT nombre, precio, costo FROM productos WHERE activo = 1\", con)\ndf[\"margen\"] = df[\"precio\"] - df[\"costo\"]\ndf[\"margen_pct\"] = (df[\"margen\"] / df[\"precio\"] * 100).round(1)\nprint(df.sort_values(\"margen_pct\", ascending=False).head(5))\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "Usa parámetros, también con pandas",
+       "body": "Lo que aprendiste de `?` e inyección SQL sigue valiendo: nunca armes la consulta con f-strings. `read_sql_query` acepta `params` con una tupla, igual que `execute`. Así puedes reutilizar una consulta para cualquier categoría o rango de fechas.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\nconsulta = \"\"\"\nSELECT fecha, estado, metodo_pago\nFROM pedidos\nWHERE fecha BETWEEN ? AND ?\nORDER BY fecha, id\n\"\"\"\ndiciembre = pd.read_sql_query(consulta, con, params=(\"2025-12-01\", \"2025-12-31\"))\nprint(len(diciembre), \"pedidos en diciembre de 2025\")\nprint(diciembre[\"metodo_pago\"].value_counts())\ncon.close()\n",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "KeyError: 'Precio'",
+       "cause": "El nombre de la columna no coincide exactamente con el del SELECT: mayúsculas, tildes o un alias distinto.",
+       "fix": "Imprime `list(df.columns)` y copia el nombre tal cual. Si quieres otro nombre, cámbialo en la consulta con `AS`."
+      },
+      {
+       "error": "ValueError: The truth value of a Series is ambiguous",
+       "cause": "Combinaste condiciones con `and` u `or`, o pusiste una columna completa dentro de un `if`. Esos operadores esperan un solo True o False.",
+       "fix": "Usa `&` y `|` con paréntesis: `df[(df[\"stock\"] == 0) & (df[\"activo\"] == 1)]`."
+      },
+      {
+       "error": "pandas.errors.DatabaseError: Execution failed on sql … no such table: productos",
+       "cause": "La conexión abrió un archivo vacío: `sqlite3.connect` crea una base nueva si no encuentra `tienda.db` en la carpeta desde donde ejecutas el programa.",
+       "fix": "Ejecuta el programa desde la carpeta que contiene `tienda.db` (o usa la ruta completa) y borra el `tienda.db` vacío que se creó por error."
+      }
+     ]
+    },
+    {
+     "title": "groupby y merge frente a GROUP BY y JOIN",
+     "concept": "Ya resuelves en SQL «ventas por categoría» con JOIN y GROUP BY. pandas tiene las mismas dos operaciones con otro nombre. `merge` es el JOIN: `a.merge(b, left_on=\"categoria_id\", right_on=\"id\")` une las filas cuyas claves coinciden; `how=\"inner\"` es el valor por defecto y `how=\"left\"` conserva todas las filas de la izquierda, como LEFT JOIN. Si ambas tablas tienen columnas con el mismo nombre (`id`, `nombre`), pandas les agrega sufijos; con `suffixes` eliges cuáles.\n\n`groupby` es el GROUP BY y se lee en tres partes: por qué columna agrupar, qué columna resumir y qué cálculo aplicar: `df.groupby(\"categoria\")[\"total\"].sum()`. Con `agg([\"count\", \"sum\", \"mean\"])` pides varios cálculos a la vez. El HAVING es un filtro sobre el resultado: `totales[totales > 1000000]`.\n\n¿Cuándo usar cada uno? **Si los datos están en la base, une y agrupa en SQL**: es más corto, más rápido y lo puedes probar en el laboratorio. pandas brilla cuando ya tienes el DataFrame y quieres probar varias agrupaciones sin volver a consultar, o cuando combinas datos que no están en la misma base, como un CSV con metas de ventas. Lo más valioso de hoy es comprobar que **los dos caminos dan los mismos números**.",
+     "tip": "Después de un `merge`, compara `len()` antes y después. Si el número de filas creció, la clave de la derecha tenía repetidos y estás duplicando datos; si bajó, había claves sin pareja y quizá necesitabas `how=\"left\"`.",
+     "example": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\nproductos = pd.read_sql_query(\n    \"SELECT id, nombre, categoria_id, precio, stock FROM productos WHERE activo = 1\", con)\ncategorias = pd.read_sql_query(\"SELECT id, nombre FROM categorias\", con)\n\n# JOIN en pandas: merge\ndf = productos.merge(categorias, left_on=\"categoria_id\", right_on=\"id\",\n                     suffixes=(\"\", \"_cat\"))\ndf[\"valor\"] = df[\"precio\"] * df[\"stock\"]\n\n# GROUP BY en pandas: groupby\npor_cat = df.groupby(\"nombre_cat\")[\"valor\"].sum().sort_values(ascending=False)\nprint(por_cat)\nprint()\n\n# La misma pregunta, resuelta en SQL\nsql = \"\"\"\nSELECT c.nombre, SUM(p.precio * p.stock) AS valor\nFROM productos p JOIN categorias c ON c.id = p.categoria_id\nWHERE p.activo = 1\nGROUP BY c.nombre\nORDER BY valor DESC\n\"\"\"\nprint(pd.read_sql_query(sql, con).to_string(index=False))\ncon.close()\n",
+     "language": "python",
+     "exampleOutput": "nombre_cat\nRopa                3220000\nTecnología          3090300\nCafé y bebidas      2290000\nSnacks y dulces     1784500\nHogar y cocina      1764400\nArtesanía           1517500\nCuidado personal    1424100\nName: valor, dtype: int64\n\n          nombre   valor\n            Ropa 3220000\n      Tecnología 3090300\n  Café y bebidas 2290000\n Snacks y dulces 1784500\n  Hogar y cocina 1764400\n       Artesanía 1517500\nCuidado personal 1424100",
+     "steps": [
+      {
+       "title": "merge: une productos con categorías",
+       "body": "Trae cada tabla por separado y únelas con `merge`. Como las dos tienen `id` y `nombre`, `suffixes` deja los de productos sin cambio y marca los de categorías con `_cat`. Mira las columnas que quedaron y compara `len()` antes y después.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\nproductos = pd.read_sql_query(\"SELECT id, nombre, categoria_id, precio FROM productos\", con)\ncategorias = pd.read_sql_query(\"SELECT id, nombre FROM categorias\", con)\ndf = productos.merge(categorias, left_on=\"categoria_id\", right_on=\"id\", suffixes=(\"\", \"_cat\"))\nprint(list(df.columns))\nprint(len(productos), len(df))\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "how=\"left\": el LEFT JOIN de pandas",
+       "body": "Al revés, partiendo de las categorías: «Libros» no tiene productos, así que un merge normal la pierde. Con `how=\"left\"` se conserva con NaN, el NULL de pandas, y `count()` cuenta 0 porque ignora los NaN, igual que `COUNT(columna)` en SQL.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\ncategorias = pd.read_sql_query(\"SELECT id, nombre FROM categorias\", con)\nproductos = pd.read_sql_query(\"SELECT id, categoria_id FROM productos\", con)\ninterno = categorias.merge(productos, left_on=\"id\", right_on=\"categoria_id\", suffixes=(\"\", \"_prod\"))\nizquierdo = categorias.merge(productos, left_on=\"id\", right_on=\"categoria_id\", how=\"left\", suffixes=(\"\", \"_prod\"))\nprint(interno[\"nombre\"].nunique(), izquierdo[\"nombre\"].nunique())\nprint(izquierdo.groupby(\"nombre\")[\"id_prod\"].count().sort_values())\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "groupby con una línea por venta",
+       "body": "Trae las líneas de venta de pedidos entregados ya calculadas en SQL (la fórmula del total la conoces bien). Con un solo DataFrame puedes agrupar de muchas formas sin volver a consultar: por categoría, por método de pago, por mes.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\nlineas = pd.read_sql_query(\"\"\"\nSELECT p.fecha, p.metodo_pago, c.nombre AS categoria,\n       d.cantidad * d.precio_unitario * (1 - d.descuento) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado = 'entregado'\n\"\"\", con)\nprint(lineas.groupby(\"categoria\")[\"total\"].sum().round(0).sort_values(ascending=False))\nprint(lineas.groupby(\"metodo_pago\")[\"total\"].sum().round(0))\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "Varios cálculos con agg y el HAVING de pandas",
+       "body": "Con `agg` pides cantidad de líneas, suma y promedio por categoría en una sola tabla. Luego filtra el resultado, como harías con HAVING, para quedarte con las categorías que superan 1 500 000 colones.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\nlineas = pd.read_sql_query(\"\"\"\nSELECT p.fecha, p.metodo_pago, c.nombre AS categoria,\n       d.cantidad * d.precio_unitario * (1 - d.descuento) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado = 'entregado'\n\"\"\", con)\nresumen = lineas.groupby(\"categoria\")[\"total\"].agg([\"count\", \"sum\", \"mean\"]).round(0)\nprint(resumen)\nprint(resumen[resumen[\"sum\"] > 1500000])\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "Agrupa por mes y exporta a CSV",
+       "body": "El mes sale de los primeros 7 caracteres de la fecha con `str[:7]`, igual que `substr(fecha, 1, 7)` en SQL. Guarda el resumen con `to_csv(..., index=False)`: mañana lo usarás para la gráfica de líneas. Comprueba que el archivo quedó bien leyéndolo con `pd.read_csv`.",
+       "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\nlineas = pd.read_sql_query(\"\"\"\nSELECT p.fecha, p.metodo_pago, c.nombre AS categoria,\n       d.cantidad * d.precio_unitario * (1 - d.descuento) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado = 'entregado'\n\"\"\", con)\nlineas[\"mes\"] = lineas[\"fecha\"].str[:7]\nmensual = lineas.groupby(\"mes\")[\"total\"].sum().round(0).reset_index()\nmensual.to_csv(\"ventas_mensuales.csv\", index=False)\nprint(pd.read_csv(\"ventas_mensuales.csv\").tail(3))\ncon.close()\n",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "KeyError: 'nombre'",
+       "cause": "Después del merge, las dos tablas tenían `nombre` y pandas las renombró a `nombre_x` y `nombre_y`.",
+       "fix": "Imprime `list(df.columns)` después del merge y usa `suffixes=(\"\", \"_cat\")` para elegir nombres claros, o renombra antes con `rename(columns={\"nombre\": \"categoria\"})`."
+      },
+      {
+       "error": "Los totales en pandas no coinciden con los de SQL",
+       "cause": "Casi siempre es un filtro que falta en uno de los dos lados (por ejemplo, el estado `'entregado'`) o un merge que duplicó filas por claves repetidas.",
+       "fix": "Compara el número de filas en cada paso y aplica exactamente los mismos filtros. Si una suma da más, busca claves repetidas con `df[\"id\"].duplicated().sum()`."
+      },
+      {
+       "error": "pandas da 932362 y SQL da 932363",
+       "cause": "Al redondear a 0 decimales un valor terminado en ,5, pandas redondea al par más cercano y `ROUND` de SQLite redondea alejándose de cero. No es un error de tu cálculo.",
+       "fix": "Compara los totales sin redondear (o redondeados a 2 decimales) y redondea a 0 solo para mostrar el resultado."
+      },
+      {
+       "error": "TypeError o una suma con textos pegados",
+       "cause": "Hiciste `df.groupby(\"categoria\").sum()` sin elegir columna, y pandas intentó sumar también las columnas de texto.",
+       "fix": "Elige la columna antes del cálculo: `df.groupby(\"categoria\")[\"total\"].sum()`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-14-1",
+     "title": "Ventas por categoría",
+     "prompt": "Para comparar después con pandas, la gerente quiere el total vendido por categoría en pedidos con estado `'entregado'`. Muestra el nombre de la categoría y el total vendido (`cantidad * precio_unitario * (1 - descuento)`), redondeado a 0 decimales, en ese orden.",
+     "hint": "Necesitas cuatro tablas: pedidos, detalle_pedido, productos y categorias. Filtra el estado en WHERE y agrupa por el nombre de la categoría.",
+     "solution": "SELECT c.nombre, ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado = 'entregado'\nGROUP BY c.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "SELECT c.nombre, \nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\n",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-14-2",
+     "title": "Clientes por provincia",
+     "prompt": "Mercadeo quiere saber cuántos clientes tiene registrados cada provincia, incluidas las que pudieran no tener ninguno. Muestra el nombre de la provincia y la cantidad de clientes, en ese orden.",
+     "hint": "Parte de `provincias` con LEFT JOIN a `clientes` y cuenta una columna de clientes, no `*`, para que una provincia sin clientes dé 0.",
+     "solution": "SELECT pv.nombre, COUNT(c.id) AS clientes\nFROM provincias pv\nLEFT JOIN clientes c ON c.provincia_id = pv.id\nGROUP BY pv.id, pv.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-14-3",
+     "title": "Monto promedio por método de pago",
+     "prompt": "Finanzas quiere saber si los pedidos pagados por SINPE son más pequeños que los pagados con tarjeta. Para los pedidos `'entregado'`, calcula primero el total de cada pedido (suma de sus líneas, sin el costo de envío) y luego muestra, por método de pago: el método, la cantidad de pedidos y el monto promedio por pedido redondeado a 0 decimales, en ese orden.",
+     "hint": "Son dos niveles de agrupación: primero un total por pedido (en una CTE o subconsulta en FROM) y después el promedio por método de pago sobre esos totales.",
+     "solution": "WITH por_pedido AS (\n  SELECT p.id, p.metodo_pago,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.estado = 'entregado'\n  GROUP BY p.id, p.metodo_pago\n)\nSELECT metodo_pago, COUNT(*) AS pedidos, ROUND(AVG(total)) AS promedio\nFROM por_pedido\nGROUP BY metodo_pago;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "En `analisis-tienda/analisis_pandas.py`, carga con `read_sql_query` la consulta del ejercicio «Ventas por categoría» e imprime el DataFrame ordenado de mayor a menor. Comprueba que los números son los mismos que te dio el laboratorio.",
+    "Trae en un DataFrame `lineas` cada línea de venta de pedidos entregados con su fecha, método de pago, nombre de categoría y total de la línea. Calcula con `groupby` las ventas por categoría y verifica con un `assert` que la categoría con más ventas es la misma que en el punto anterior.",
+    "Carga `clientes` y `provincias` en dos DataFrames separados, únelos con `merge` y cuenta los clientes por provincia con `groupby`. Prueba `how=\"inner\"` y `how=\"left\"` partiendo de provincias y escribe en un comentario por qué en este caso dan lo mismo y en qué caso no lo darían.",
+    "Agrega a `lineas` la columna `mes` y guarda las ventas mensuales en `ventas_mensuales.csv` con las columnas `mes` y `total` (sin índice). Mañana harás la gráfica con este archivo.",
+    "Ordena tu código en una clase `AnalizadorVentas` que reciba la ruta de la base en `__init__`, cargue `lineas` una sola vez y tenga los métodos `por_categoria()`, `por_metodo_pago()` y `por_mes()`, cada uno devolviendo una Series ordenada. Al final del archivo, bajo `if __name__ == \"__main__\":`, imprime los tres resúmenes."
+   ],
+   "taskHints": [
+    "Copia la consulta del ejercicio tal cual dentro de una cadena con triple comilla y agrega `ORDER BY total DESC` al final.",
+    "`lineas.groupby(\"categoria\")[\"total\"].sum().idxmax()` devuelve el nombre de la categoría con el mayor total.",
+    "Las 7 provincias tienen clientes, así que el LEFT no agrega filas. Daría distinto si una provincia no tuviera ningún cliente: el INNER la perdería.",
+    "`lineas[\"fecha\"].str[:7]` toma `AAAA-MM`. Después del `groupby`, `reset_index()` convierte el índice en columna para que `to_csv(..., index=False)` la escriba.",
+    "Guarda el DataFrame en `self.lineas` dentro de `__init__` y cierra la conexión ahí mismo; los métodos solo trabajan con `self.lineas`."
+   ],
+   "challenge": {
+    "title": "Los 5 mejores clientes, dos veces",
+    "description": "Escribe `clientes_vip.py`: carga con `read_sql_query` las líneas de venta de pedidos entregados (solo `cliente_id` y el total de la línea) y, por separado, los clientes con su nombre completo. Con pandas, suma el total por cliente, únelo con `merge` a los nombres y muestra los 5 clientes que más compraron (de mayor a menor y, si empatan, por nombre). Luego resuelve lo mismo con una sola consulta SQL y comprueba con `assert` que los cinco totales coinciden.",
+    "hint": "El orden con desempate en pandas es `sort_values([\"total\", \"cliente\"], ascending=[False, True])`. Compara los totales redondeados a 2 decimales en los dos caminos: si redondeas a 0, un total terminado en ,5 puede diferir en un colón entre pandas y SQLite.",
+    "solution": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\nlineas = pd.read_sql_query(\"\"\"\nSELECT p.cliente_id, d.cantidad * d.precio_unitario * (1 - d.descuento) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado = 'entregado'\n\"\"\", con)\nclientes = pd.read_sql_query(\"SELECT id, nombre || ' ' || apellido AS cliente FROM clientes\", con)\n\npor_cliente = lineas.groupby(\"cliente_id\")[\"total\"].sum().reset_index()\nvip = por_cliente.merge(clientes, left_on=\"cliente_id\", right_on=\"id\")\nvip = vip.sort_values([\"total\", \"cliente\"], ascending=[False, True]).head(5)\nvip[\"total\"] = vip[\"total\"].round(2)\nprint(vip[[\"cliente\", \"total\"]].to_string(index=False))\n\nsql = \"\"\"\nSELECT c.nombre || ' ' || c.apellido AS cliente,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)), 2) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN clientes c ON c.id = p.cliente_id\nWHERE p.estado = 'entregado'\nGROUP BY c.id\nORDER BY total DESC, cliente\nLIMIT 5\n\"\"\"\nen_sql = pd.read_sql_query(sql, con)\nassert list(en_sql[\"total\"]) == list(vip[\"total\"]), \"pandas y SQL no coinciden\"\nprint(\"pandas y SQL coinciden\")\ncon.close()\n",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "pandas",
+     "definition": "Biblioteca de Python para analizar tablas en memoria; se importa como pd."
+    },
+    {
+     "term": "DataFrame",
+     "definition": "Tabla de pandas con filas indexadas y columnas con nombre."
+    },
+    {
+     "term": "Series",
+     "definition": "Una sola columna de un DataFrame: una secuencia de valores de un mismo tipo con su índice."
+    },
+    {
+     "term": "read_sql_query",
+     "definition": "Función de pandas que ejecuta una consulta en una conexión y devuelve el resultado como DataFrame."
+    },
+    {
+     "term": "Máscara booleana",
+     "definition": "Series de True y False que se usa entre corchetes para quedarse solo con algunas filas, como un WHERE."
+    },
+    {
+     "term": "merge",
+     "definition": "Operación de pandas que une dos DataFrames por columnas clave; es el JOIN de pandas."
+    },
+    {
+     "term": "groupby",
+     "definition": "Operación de pandas que agrupa filas por una columna para resumir otra; es el GROUP BY de pandas."
+    }
+   ],
+   "resources": [
+    {
+     "title": "pandas: comparación con SQL",
+     "url": "https://pandas.pydata.org/docs/getting_started/comparison/comparison_with_sql.html"
+    },
+    {
+     "title": "pandas: read_sql_query",
+     "url": "https://pandas.pydata.org/docs/reference/api/pandas.read_sql_query.html"
+    },
+    {
+     "title": "pandas: 10 minutos con pandas",
+     "url": "https://pandas.pydata.org/docs/user_guide/10min.html"
+    },
+    {
+     "title": "pandas: DataFrame.merge",
+     "url": "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Tienes un DataFrame `df` con las columnas `nombre`, `precio` y `stock`. ¿Cuál expresión devuelve los productos con precio mayor a 10 000 y stock mayor a 0?",
+     "code": "",
+     "options": [
+      "df[df[\"precio\"] > 10000 and df[\"stock\"] > 0]",
+      "df[(df[\"precio\"] > 10000) & (df[\"stock\"] > 0)]",
+      "df.where(precio > 10000, stock > 0)",
+      "df[\"precio\" > 10000 & \"stock\" > 0]"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `and` espera un solo True o False y una columna tiene muchos; pandas lanza «The truth value of a Series is ambiguous».",
+      "Correcto: cada condición entre paréntesis y unidas con `&`, el AND de pandas.",
+      "No: `precio` y `stock` no existen como variables sueltas; las columnas se escriben `df[\"precio\"]`.",
+      "No: compara los textos \"precio\" y \"stock\" con números, no las columnas, y sin paréntesis `&` se evalúa antes que `>`."
+     ],
+     "explanation": "Una máscara se arma con condiciones sobre columnas, cada una entre paréntesis, combinadas con `&` (y) o `|` (o).",
+     "hint": "Piensa en por qué `and` no sirve cuando cada lado es una columna completa."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué hace `productos.merge(categorias, left_on=\"categoria_id\", right_on=\"id\", how=\"left\")`?",
+     "code": "",
+     "options": [
+      "Agrupa los productos por categoría.",
+      "Une solo las categorías que tienen productos y descarta los productos sin categoría.",
+      "Une cada producto con su categoría y conserva todos los productos aunque no tengan pareja.",
+      "Copia la tabla categorias dentro de la base de datos."
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: agrupar es `groupby`; `merge` une tablas.",
+      "No: eso describe un INNER JOIN, y además al revés.",
+      "Correcto: `how=\"left\"` conserva todas las filas de la tabla izquierda (productos), como LEFT JOIN.",
+      "No: `merge` trabaja en memoria con DataFrames; no escribe en la base."
+     ],
+     "explanation": "`merge` es el JOIN de pandas; `how=\"left\"` lo convierte en LEFT JOIN, que conserva todas las filas de la izquierda.",
+     "hint": "Busca el equivalente en SQL de cada parámetro."
+    },
+    {
+     "type": "choice",
+     "prompt": "En SQL escribes `SELECT metodo_pago, SUM(costo_envio) FROM pedidos GROUP BY metodo_pago`. Con `df` igual a la tabla `pedidos`, ¿cuál es el equivalente en pandas?",
+     "code": "",
+     "options": [
+      "df.groupby(\"metodo_pago\")[\"costo_envio\"].sum()",
+      "df[\"costo_envio\"].sum().groupby(\"metodo_pago\")",
+      "df.sum(\"costo_envio\").groupby(\"metodo_pago\")",
+      "df.groupby(\"costo_envio\")[\"metodo_pago\"].sum()"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: primero por qué agrupar, luego qué columna resumir y al final el cálculo.",
+      "No: `sum()` sobre la columna da un solo número, y a un número ya no se le puede agrupar.",
+      "No: `sum` no recibe así el nombre de una columna, y el orden de las operaciones está invertido.",
+      "No: agrupa por el costo de envío y suma los métodos de pago, que son textos: está al revés."
+     ],
+     "explanation": "`groupby` se lee en tres partes: agrupar por, columna a resumir, cálculo.",
+     "hint": "El orden es: agrupar, elegir columna, calcular."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si `tienda.db` no está en la carpeta desde donde ejecutas el programa, `sqlite3.connect(\"tienda.db\")` lanza un error de archivo no encontrado.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ese es justamente el problema; no hay error al conectar.",
+      "Correcto: `connect` crea un archivo vacío con ese nombre, y el error aparece después, en la consulta: «no such table»."
+     ],
+     "explanation": "SQLite crea la base si no existe. Por eso el error real aparece en la primera consulta, con «no such table», y queda un `tienda.db` vacío que hay que borrar.",
+     "hint": "Recuerda qué pasaba en la semana 9 cuando escribías mal el nombre del archivo."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Para responder «ventas por categoría» con datos que ya están en la base, lo más directo es un JOIN con GROUP BY en SQL; pandas es útil cuando quieres explorar varias agrupaciones del mismo DataFrame o combinar datos de fuera de la base.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: SQL resuelve uniones y agrupaciones sobre la base de forma directa, y pandas complementa.",
+      "No: los dos sirven, pero cuando los datos están en la base, SQL es más corto y se puede probar en el laboratorio."
+     ],
+     "explanation": "No es una competencia: SQL trae los datos ya filtrados y unidos; pandas los explora y, mañana, los grafica.",
+     "hint": "Piensa en dónde están los datos y qué herramienta los toca primero."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "import pandas as pd\n\ndf = pd.DataFrame({\n    \"categoria\": [\"Café\", \"Ropa\", \"Café\", \"Ropa\", \"Café\"],\n    \"total\": [6500, 9500, 3800, 8500, 1900],\n})\nprint(df.groupby(\"categoria\")[\"total\"].sum()[\"Café\"])",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "12200"
+     ],
+     "optionFeedback": [],
+     "explanation": "Las filas de Café suman 6500 + 3800 + 1900 = 12200. El resultado de groupby es una Series indexada por categoría, así que `[\"Café\"]` toma ese valor.",
+     "hint": "Suma solo las filas cuya categoría es Café."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código? Escribe los dos números separados por un espacio.",
+     "code": "import pandas as pd\n\nproductos = pd.DataFrame({\"id\": [1, 2, 3], \"categoria_id\": [1, 1, 9]})\ncategorias = pd.DataFrame({\"id\": [1, 2], \"nombre\": [\"Café\", \"Ropa\"]})\ninterno = productos.merge(categorias, left_on=\"categoria_id\", right_on=\"id\")\nizquierdo = productos.merge(categorias, left_on=\"categoria_id\", right_on=\"id\", how=\"left\")\nprint(len(interno), len(izquierdo))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2 3"
+     ],
+     "optionFeedback": [],
+     "explanation": "El producto 3 tiene `categoria_id` 9, que no existe: el merge interno lo descarta (2 filas) y el izquierdo lo conserva con NaN (3 filas).",
+     "hint": "¿Qué productos tienen pareja en categorías?"
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea que carga el resultado de la consulta en un DataFrame.",
+     "code": "import sqlite3\nimport pandas as pd\n\ncon = sqlite3.connect(\"tienda.db\")\ndf = pd.___(\"SELECT nombre, precio FROM productos\", con)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "read_sql_query",
+      "read_sql"
+     ],
+     "optionFeedback": [],
+     "explanation": "`pd.read_sql_query(consulta, con)` ejecuta la consulta en la conexión y devuelve un DataFrame con los nombres de columna del SELECT.",
+     "hint": "Empieza por read_ y menciona que lo que lee es una consulta SQL."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-15",
+   "kind": "workshop",
+   "title": "Gráficas con matplotlib",
+   "summary": "Conviertes el resultado de tus consultas en gráficas de barras y de líneas legibles, con título y unidades, y las guardas como imagen para tu proyecto.",
+   "objectives": [
+    "Dibujar barras, barras horizontales y líneas con matplotlib a partir de un DataFrame que viene de una consulta.",
+    "Elegir el tipo de gráfica según la pregunta: comparar categorías o mostrar una evolución en el tiempo.",
+    "Agregar título, nombres de ejes con unidades, leyenda, etiquetas de valores y nombres de mes.",
+    "Guardar gráficas como PNG con `savefig`, `tight_layout` y `dpi`, y cerrar cada figura."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Barras y líneas desde una consulta",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Títulos, etiquetas y guardar la imagen",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: consultas en el laboratorio y graficas.py",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Barras y líneas desde una consulta",
+     "concept": "Una tabla de siete números se lee; una de veintiún meses ya cuesta. Una gráfica deja ver de un vistazo cuál categoría manda o en qué mes se dispararon las ventas. matplotlib es la biblioteca clásica de gráficas en Python y se usa casi siempre así: `fig, ax = plt.subplots()` crea la figura (la hoja) y los ejes (el área donde se dibuja), y después llamas métodos de `ax`.\n\nEl flujo de hoy tiene tres pasos: **la consulta prepara los datos, pandas los recibe y matplotlib los dibuja**. Lo que mandes a la gráfica ya debe venir agrupado y ordenado desde SQL.\n\nCada tipo de gráfica responde a una pregunta. `ax.bar(x, alturas)` compara categorías: ventas por categoría, pedidos por método de pago. `ax.barh` es la versión horizontal, mejor cuando los nombres son largos. `ax.plot(x, y)` muestra una evolución en el tiempo: ventas por mes. Si quieres dos líneas, llamas `plot` dos veces sobre los mismos ejes. Para guardar la imagen usas `fig.savefig(\"archivo.png\")`; en tu computador también puedes abrir una ventana con `plt.show()`, pero un archivo es lo que se sube al README del proyecto.",
+     "tip": "Elige la gráfica por la pregunta, no por lo bonita: categorías sin orden van en barras ordenadas de mayor a menor; el tiempo va en líneas, siempre en orden cronológico en el eje X.",
+     "example": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\ndf = pd.read_sql_query(\"\"\"\nSELECT c.nombre AS categoria,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado = 'entregado'\nGROUP BY c.nombre\nORDER BY total DESC\n\"\"\", con)\ncon.close()\n\nfig, ax = plt.subplots()\nax.bar(df[\"categoria\"], df[\"total\"])\nfig.savefig(\"ventas_por_categoria.png\")\nplt.close(fig)\n\nprint(df.to_string(index=False))\nprint(\"Gráfica guardada en ventas_por_categoria.png\")\n",
+     "language": "python",
+     "exampleOutput": "       categoria     total\n            Ropa 2523448.0\n      Tecnología 2335470.0\n       Artesanía 1929280.0\n  Café y bebidas 1819470.0\n  Hogar y cocina 1797443.0\nCuidado personal  690663.0\n Snacks y dulces  491985.0\nGráfica guardada en ventas_por_categoria.png",
+     "steps": [
+      {
+       "title": "Tu primera gráfica de barras",
+       "body": "Copia el ejemplo en `analisis-tienda/graficas.py` y ejecútalo. Abre `ventas_por_categoria.png` desde VS Code. Verás que los nombres de las categorías se montan unos sobre otros: lo arreglarás en el tema 2. Por ahora confirma que la barra más alta es Ropa, igual que en la consulta.",
+       "code": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\ndf = pd.read_sql_query(\"\"\"\nSELECT c.nombre AS categoria,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado = 'entregado'\nGROUP BY c.nombre\nORDER BY total DESC\n\"\"\", con)\ncon.close()\nfig, ax = plt.subplots()\nax.bar(df[\"categoria\"], df[\"total\"])\nfig.savefig(\"barras.png\")\nplt.close(fig)\nprint(\"listo\")\n",
+       "language": "python"
+      },
+      {
+       "title": "Barras horizontales para nombres largos",
+       "body": "Con `barh` las etiquetas quedan en el eje Y y se leen sin girar la cabeza. Como `barh` dibuja la primera fila abajo, ordena de menor a mayor para que la barra más larga quede arriba.",
+       "code": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\ndf = pd.read_sql_query(\"\"\"\nSELECT c.nombre AS categoria,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado = 'entregado'\nGROUP BY c.nombre\nORDER BY total DESC\n\"\"\", con)\ncon.close()\ndf = df.sort_values(\"total\")\nfig, ax = plt.subplots()\nax.barh(df[\"categoria\"], df[\"total\"])\nfig.savefig(\"barras_horizontales.png\")\nplt.close(fig)\nprint(df[\"categoria\"].iloc[-1], \"queda arriba\")\n",
+       "language": "python"
+      },
+      {
+       "title": "Una línea para el tiempo",
+       "body": "La consulta agrupa por año y mes y los devuelve en orden. Filtra el DataFrame por año y dibuja una línea por cada uno sobre los mismos ejes; `marker=\"o\"` marca cada mes con un punto. El 2026 llega solo hasta septiembre, porque la base termina el 30 de septiembre de 2026.",
+       "code": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\nmensual = pd.read_sql_query(\"\"\"\nSELECT substr(p.fecha, 1, 4) AS anio,\n       CAST(substr(p.fecha, 6, 2) AS INTEGER) AS mes,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado = 'entregado'\nGROUP BY anio, mes\nORDER BY anio, mes\n\"\"\", con)\ncon.close()\nfig, ax = plt.subplots()\nfor anio in [\"2025\", \"2026\"]:\n    datos = mensual[mensual[\"anio\"] == anio]\n    ax.plot(datos[\"mes\"], datos[\"total\"], marker=\"o\", label=anio)\nax.legend()\nfig.savefig(\"ventas_mensuales.png\")\nplt.close(fig)\nprint(mensual.groupby(\"anio\")[\"mes\"].count())\n",
+       "language": "python"
+      },
+      {
+       "title": "Grafica directo desde pandas",
+       "body": "Un DataFrame o una Series también saben dibujarse: `serie.plot(kind=\"bar\", ax=ax)` usa matplotlib por dentro y toma el índice como eje X. Es un atajo cómodo para explorar; para la gráfica final del proyecto conviene controlar cada detalle con `ax`.",
+       "code": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\npagos = pd.read_sql_query(\"SELECT metodo_pago, COUNT(*) AS pedidos FROM pedidos WHERE estado <> 'cancelado' GROUP BY metodo_pago ORDER BY pedidos DESC\", con)\ncon.close()\nfig, ax = plt.subplots()\npagos.set_index(\"metodo_pago\")[\"pedidos\"].plot(kind=\"bar\", ax=ax)\nfig.savefig(\"metodos_pago.png\")\nplt.close(fig)\nprint(pagos.to_string(index=False))\n",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "ModuleNotFoundError: No module named 'matplotlib'",
+       "cause": "matplotlib no viene con Python; hay que instalarlo, y en el mismo Python que usa VS Code.",
+       "fix": "En la terminal de VS Code ejecuta `python -m pip install matplotlib` (o `py -m pip install matplotlib` en Windows) y vuelve a correr el programa."
+      },
+      {
+       "error": "La línea zigzaguea de un lado a otro",
+       "cause": "Los meses no venían ordenados, así que `plot` une los puntos en el orden de las filas, no en el del eje X.",
+       "fix": "Ordena en la consulta con `ORDER BY anio, mes` o en pandas con `sort_values` antes de dibujar."
+      },
+      {
+       "error": "Se guardó una imagen en blanco",
+       "cause": "Llamaste `plt.show()` antes de `savefig`: al cerrar la ventana, la figura se vacía y lo que se guarda es una hoja nueva.",
+       "fix": "Llama siempre `fig.savefig(...)` antes de `plt.show()`."
+      }
+     ]
+    },
+    {
+     "title": "Títulos, etiquetas y guardar la imagen",
+     "concept": "Una gráfica sin título ni unidades obliga a adivinar. Antes de guardar, toda gráfica del proyecto debe responder tres preguntas: **qué muestra, en qué unidades y de dónde salen los datos**. Eso se logra con `ax.set_title`, `ax.set_xlabel` y `ax.set_ylabel`. Cuando hay más de una serie, `label=` en cada `plot` más `ax.legend()` explica qué es cada línea.\n\nLos detalles de lectura también cuentan. Si los nombres del eje X se montan, gíralos con `ax.tick_params(axis=\"x\", labelrotation=45)` o usa barras horizontales. `ax.set_xticks(posiciones, etiquetas)` cambia números de mes por nombres. Dividir entre 1000 y decirlo en el eje («miles de colones») evita números ilegibles. `ax.bar_label` escribe el valor encima de cada barra, y `ax.grid(axis=\"y\", alpha=0.3)` agrega una guía suave.\n\nPara guardar: `fig.tight_layout()` ajusta los márgenes para que nada quede cortado, y `fig.savefig(\"archivo.png\", dpi=150)` produce una imagen nítida para el README. Termina con `plt.close(fig)`: si generas varias gráficas en un mismo programa, cerrar cada figura evita que se acumulen en memoria o que una se dibuje encima de otra.",
+     "tip": "Antes de dar una gráfica por terminada, muéstrasela a alguien sin explicarle nada. Si te pregunta «¿qué es esto?» o «¿en qué está?», falta el título o la unidad.",
+     "example": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\nmensual = pd.read_sql_query(\"\"\"\nSELECT substr(p.fecha, 1, 4) AS anio,\n       CAST(substr(p.fecha, 6, 2) AS INTEGER) AS mes,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado = 'entregado'\nGROUP BY anio, mes\nORDER BY anio, mes\n\"\"\", con)\ncon.close()\n\nnombres = [\"Ene\", \"Feb\", \"Mar\", \"Abr\", \"May\", \"Jun\",\n           \"Jul\", \"Ago\", \"Set\", \"Oct\", \"Nov\", \"Dic\"]\n\nfig, ax = plt.subplots(figsize=(9, 5))\nfor anio in [\"2025\", \"2026\"]:\n    datos = mensual[mensual[\"anio\"] == anio]\n    ax.plot(datos[\"mes\"], datos[\"total\"] / 1000, marker=\"o\", label=anio)\n\nax.set_title(\"Ventas mensuales de la Tienda Pura Vida (pedidos entregados)\")\nax.set_xlabel(\"Mes\")\nax.set_ylabel(\"Ventas (miles de colones)\")\nax.set_xticks(range(1, 13), nombres)\nax.grid(axis=\"y\", alpha=0.3)\nax.legend(title=\"Año\")\nfig.tight_layout()\nfig.savefig(\"ventas_mensuales.png\", dpi=150)\nplt.close(fig)\n\nmejor = mensual.loc[mensual[\"total\"].idxmax()]\nprint(\"Mejor mes:\", mejor[\"anio\"], nombres[mejor[\"mes\"] - 1], int(mejor[\"total\"]))\nprint(\"Gráfica guardada en ventas_mensuales.png\")\n",
+     "language": "python",
+     "exampleOutput": "Mejor mes: 2025 Dic 1236765\nGráfica guardada en ventas_mensuales.png",
+     "steps": [
+      {
+       "title": "Título, ejes y unidades",
+       "body": "Retoma las barras por categoría y agrega título y nombres de ejes. Divide los totales entre 1000 y dilo en la etiqueta del eje: «miles de colones» se lee mejor que 2500000. Gira las etiquetas del eje X y alinea a la derecha con `ha` para que no se monten.",
+       "code": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\ndf = pd.read_sql_query(\"\"\"\nSELECT c.nombre AS categoria,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado = 'entregado'\nGROUP BY c.nombre\nORDER BY total DESC\n\"\"\", con)\ncon.close()\nfig, ax = plt.subplots(figsize=(8, 5))\nax.bar(df[\"categoria\"], df[\"total\"] / 1000)\nax.set_title(\"Ventas por categoría (pedidos entregados, 2025-2026)\")\nax.set_xlabel(\"Categoría\")\nax.set_ylabel(\"Ventas (miles de colones)\")\nax.tick_params(axis=\"x\", labelrotation=45)\nplt.setp(ax.get_xticklabels(), ha=\"right\")\nfig.tight_layout()\nfig.savefig(\"ventas_por_categoria.png\", dpi=150)\nplt.close(fig)\nprint(\"listo\")\n",
+       "language": "python"
+      },
+      {
+       "title": "Valores encima de las barras",
+       "body": "`ax.bar` devuelve las barras dibujadas; pásalas a `ax.bar_label` para escribir el valor de cada una. Con `fmt` eliges el formato: `\"{:,.0f}\"` agrega separador de miles y quita decimales. Si una etiqueta no cabe, sube el límite del eje Y con `ax.set_ylim`.",
+       "code": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\ndf = pd.read_sql_query(\"\"\"\nSELECT c.nombre AS categoria,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado = 'entregado'\nGROUP BY c.nombre\nORDER BY total DESC\n\"\"\", con)\ncon.close()\ndf = df.sort_values(\"total\")\nfig, ax = plt.subplots(figsize=(8, 5))\nbarras = ax.barh(df[\"categoria\"], df[\"total\"] / 1000)\nax.bar_label(barras, fmt=\"{:,.0f}\", padding=3)\nax.set_title(\"Ventas por categoría\")\nax.set_xlabel(\"Miles de colones\")\nax.set_xlim(0, df[\"total\"].max() / 1000 * 1.15)\nfig.tight_layout()\nfig.savefig(\"ventas_categoria_etiquetas.png\", dpi=150)\nplt.close(fig)\nprint(\"listo\")\n",
+       "language": "python"
+      },
+      {
+       "title": "Leyenda y nombres de mes",
+       "body": "Con dos series, cada `plot` lleva `label` y `ax.legend()` dibuja el cuadro que las explica. `ax.set_xticks(range(1, 13), nombres)` pone los nombres de los meses en lugar de los números 1 a 12.",
+       "code": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\nmensual = pd.read_sql_query(\"\"\"\nSELECT substr(p.fecha, 1, 4) AS anio,\n       CAST(substr(p.fecha, 6, 2) AS INTEGER) AS mes,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado = 'entregado'\nGROUP BY anio, mes\nORDER BY anio, mes\n\"\"\", con)\ncon.close()\nnombres = [\"Ene\", \"Feb\", \"Mar\", \"Abr\", \"May\", \"Jun\", \"Jul\", \"Ago\", \"Set\", \"Oct\", \"Nov\", \"Dic\"]\nfig, ax = plt.subplots(figsize=(9, 5))\nfor anio in [\"2025\", \"2026\"]:\n    datos = mensual[mensual[\"anio\"] == anio]\n    ax.plot(datos[\"mes\"], datos[\"total\"] / 1000, marker=\"o\", label=anio)\nax.set_xticks(range(1, 13), nombres)\nax.legend(title=\"Año\")\nfig.savefig(\"lineas.png\")\nplt.close(fig)\nprint(\"listo\")\n",
+       "language": "python"
+      },
+      {
+       "title": "Una función para no repetirte",
+       "body": "Si vas a hacer varias gráficas de barras, escribe una función que reciba los datos, el título, la etiqueta del eje y el nombre del archivo. Así todas tus gráficas tienen el mismo estilo y el código principal queda corto. Devuelve la ruta del archivo para poder comprobar que existe.",
+       "code": "import os\nimport sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\n\ndef grafica_barras(etiquetas, valores, titulo, eje_y, archivo):\n    \"\"\"Dibuja barras con título y eje Y, y las guarda en archivo.\"\"\"\n    fig, ax = plt.subplots(figsize=(8, 5))\n    barras = ax.bar(etiquetas, valores)\n    ax.bar_label(barras, fmt=\"{:,.0f}\")\n    ax.set_title(titulo)\n    ax.set_ylabel(eje_y)\n    fig.tight_layout()\n    fig.savefig(archivo, dpi=150)\n    plt.close(fig)\n    return archivo\n\n\ncon = sqlite3.connect(\"tienda.db\")\npagos = pd.read_sql_query(\"SELECT metodo_pago, COUNT(*) AS pedidos FROM pedidos WHERE estado <> 'cancelado' GROUP BY metodo_pago ORDER BY pedidos DESC\", con)\ncon.close()\nruta = grafica_barras(pagos[\"metodo_pago\"], pagos[\"pedidos\"], \"Pedidos por método de pago\", \"Pedidos\", \"pagos.png\")\nprint(os.path.exists(ruta))\n",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Las etiquetas del eje X se montan unas sobre otras",
+       "cause": "Hay muchas categorías con nombres largos y matplotlib las escribe horizontales.",
+       "fix": "Gíralas con `ax.tick_params(axis=\"x\", labelrotation=45)`, usa `barh` o acorta los nombres en la consulta."
+      },
+      {
+       "error": "El título o las etiquetas salen cortados en el PNG",
+       "cause": "La figura guarda solo el área por defecto y los textos largos o girados quedan fuera del margen.",
+       "fix": "Llama `fig.tight_layout()` antes de guardar o usa `fig.savefig(\"archivo.png\", bbox_inches=\"tight\")`."
+      },
+      {
+       "error": "La segunda gráfica sale con las barras de la primera encima",
+       "cause": "Usaste `plt.bar` dos veces sin crear una figura nueva: los dos dibujos caen en los mismos ejes.",
+       "fix": "Crea una figura por gráfica con `fig, ax = plt.subplots()` y ciérrala con `plt.close(fig)` después de guardarla."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-15-1",
+     "title": "Ventas mensuales de 2025",
+     "prompt": "Para la gráfica de líneas, la gerente quiere las ventas de cada mes de 2025 en pedidos `'entregado'`. Muestra el mes en formato `AAAA-MM` y el total vendido redondeado a 0 decimales, en ese orden, ordenados del mes más antiguo al más reciente.",
+     "hint": "El mes es `substr(fecha, 1, 7)` o `strftime('%Y-%m', fecha)`. Filtra el año en WHERE antes de agrupar.",
+     "solution": "SELECT substr(p.fecha, 1, 7) AS mes,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado = 'entregado' AND p.fecha BETWEEN '2025-01-01' AND '2025-12-31'\nGROUP BY mes\nORDER BY mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-15-2",
+     "title": "Pedidos por método de pago",
+     "prompt": "Para una gráfica de barras, cuenta los pedidos por método de pago sin incluir los cancelados. Muestra el método de pago y la cantidad de pedidos, en ese orden, de mayor a menor cantidad.",
+     "hint": "Excluye el estado `'cancelado'` en WHERE. Como cada método tiene una cantidad distinta, no hay empates que resolver.",
+     "solution": "SELECT metodo_pago, COUNT(*) AS pedidos\nFROM pedidos\nWHERE estado <> 'cancelado'\nGROUP BY metodo_pago\nORDER BY pedidos DESC;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-15-3",
+     "title": "Calificación por categoría",
+     "prompt": "Servicio al cliente quiere una gráfica de barras horizontales con la calificación promedio de cada categoría. Muestra el nombre de la categoría, el promedio de calificación redondeado a 2 decimales y la cantidad de reseñas, en ese orden, solo para las categorías que tienen reseñas.",
+     "hint": "Las reseñas se conectan con la categoría a través de productos. Con INNER JOIN las categorías sin reseñas quedan fuera solas.",
+     "solution": "SELECT c.nombre, ROUND(AVG(r.calificacion), 2) AS promedio, COUNT(*) AS resenas\nFROM resenas r\nJOIN productos p ON p.id = r.producto_id\nJOIN categorias c ON c.id = p.categoria_id\nGROUP BY c.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "En `analisis-tienda/graficas.py`, dibuja las ventas por categoría como barras horizontales ordenadas, con título, unidad en el eje (miles de colones) y el valor al final de cada barra. Guárdala como `ventas_por_categoria.png`.",
+    "Usa `ventas_mensuales.csv` (de ayer) o la consulta mensual para dibujar dos líneas, 2025 y 2026, con nombres de mes en el eje X, leyenda y cuadrícula suave. Escribe en un comentario qué meses de 2025 destacan y una posible razón de negocio.",
+    "Con la consulta del ejercicio «Calificación por categoría», haz una gráfica de barras con el promedio de cada categoría. Fija el eje Y entre 0 y 5 con `ax.set_ylim(0, 5)` y explica en un comentario por qué en una escala de calificación conviene fijarlo.",
+    "Escribe una función `grafica_barras(etiquetas, valores, titulo, eje, archivo)` y úsala para las gráficas de barras de las tareas anteriores. Comprueba con `os.path.exists` que cada archivo se creó.",
+    "Agrega el método `grafica_por_mes(archivo)` a tu clase `AnalizadorVentas` de ayer, que dibuje y guarde la línea de ventas mensuales. Ejecuta todo desde `if __name__ == \"__main__\":` y abre los PNG para revisarlos uno por uno."
+   ],
+   "taskHints": [
+    "Ordena de menor a mayor antes de `barh` para que la barra más larga quede arriba. `ax.bar_label(barras, fmt=\"{:,.0f}\", padding=3)` escribe los valores.",
+    "Mira diciembre de 2025: es el mes más alto de toda la base, muy por encima de noviembre. Las compras de fin de año y el aguinaldo son una buena hipótesis.",
+    "Si dejas que matplotlib elija, el eje Y puede empezar en 3 y una diferencia de 0,3 parece enorme. Fijarlo en 0–5 muestra la escala real.",
+    "Que la función reciba los datos ya listos; la consulta queda fuera. Así la reutilizas en el proyecto final sin cambios.",
+    "El método puede usar `self.lineas` y el `groupby` por mes que ya tenías en `por_mes()`; solo agrega la parte de matplotlib."
+   ],
+   "challenge": {
+    "title": "Un panel con dos gráficas",
+    "description": "Escribe `panel.py`, que use las consultas de los ejercicios 1 y 2 de hoy y dibuje en una sola imagen dos gráficas lado a lado: a la izquierda, barras con los pedidos por método de pago y el valor encima de cada barra; a la derecha, la línea de ventas mensuales de 2025 en miles de colones. Cada gráfica lleva su título y sus ejes, y la figura un título general. Guarda `panel.png` e imprime el método de pago más usado y el mes con más ventas.",
+    "hint": "`fig, (izq, der) = plt.subplots(1, 2, figsize=(12, 5))` crea dos ejes en una fila. El título general es `fig.suptitle`. Para el mes con más ventas, `mensual.loc[mensual[\"total\"].idxmax()]`.",
+    "solution": "import sqlite3\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ncon = sqlite3.connect(\"tienda.db\")\npagos = pd.read_sql_query(\"\"\"\nSELECT metodo_pago, COUNT(*) AS pedidos\nFROM pedidos\nWHERE estado <> 'cancelado'\nGROUP BY metodo_pago\nORDER BY pedidos DESC\n\"\"\", con)\nmensual = pd.read_sql_query(\"\"\"\nSELECT substr(p.fecha, 1, 7) AS mes,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado = 'entregado' AND p.fecha BETWEEN '2025-01-01' AND '2025-12-31'\nGROUP BY mes\nORDER BY mes\n\"\"\", con)\ncon.close()\n\nfig, (izq, der) = plt.subplots(1, 2, figsize=(12, 5))\n\nbarras = izq.bar(pagos[\"metodo_pago\"], pagos[\"pedidos\"])\nizq.bar_label(barras)\nizq.set_title(\"Pedidos por método de pago\")\nizq.set_ylabel(\"Pedidos (sin cancelados)\")\n\nder.plot(mensual[\"mes\"].str[5:], mensual[\"total\"] / 1000, marker=\"o\")\nder.set_title(\"Ventas mensuales de 2025\")\nder.set_xlabel(\"Mes\")\nder.set_ylabel(\"Miles de colones\")\nder.grid(axis=\"y\", alpha=0.3)\n\nfig.suptitle(\"Tienda Pura Vida\")\nfig.tight_layout()\nfig.savefig(\"panel.png\", dpi=150)\nplt.close(fig)\n\npico = mensual.loc[mensual[\"total\"].idxmax()]\nprint(\"Método más usado:\", pagos[\"metodo_pago\"].iloc[0])\nprint(\"Mes con más ventas en 2025:\", pico[\"mes\"])\nprint(\"Gráfica guardada en panel.png\")\n",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "matplotlib",
+     "definition": "Biblioteca de Python para dibujar gráficas; su módulo pyplot se importa como plt."
+    },
+    {
+     "term": "Figura (fig)",
+     "definition": "La hoja completa de una gráfica; puede contener uno o varios ejes y se guarda con savefig."
+    },
+    {
+     "term": "Ejes (ax)",
+     "definition": "El área de dibujo dentro de la figura, con su eje X y su eje Y; ahí se llaman bar, plot y set_title."
+    },
+    {
+     "term": "Leyenda",
+     "definition": "Cuadro que explica qué representa cada serie; se dibuja con ax.legend() a partir del label de cada serie."
+    },
+    {
+     "term": "savefig",
+     "definition": "Método que guarda la figura en un archivo de imagen, por ejemplo PNG, con la resolución indicada en dpi."
+    },
+    {
+     "term": "dpi",
+     "definition": "Puntos por pulgada: la resolución de la imagen guardada. 150 es suficiente para un README."
+    }
+   ],
+   "resources": [
+    {
+     "title": "matplotlib: tutorial de pyplot",
+     "url": "https://matplotlib.org/stable/tutorials/pyplot.html"
+    },
+    {
+     "title": "matplotlib: etiquetas en las barras (bar_label)",
+     "url": "https://matplotlib.org/stable/gallery/lines_bars_and_markers/bar_label_demo.html"
+    },
+    {
+     "title": "matplotlib: savefig",
+     "url": "https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Quieres mostrar cómo evolucionaron las ventas de enero a diciembre. ¿Qué gráfica es la adecuada?",
+     "code": "",
+     "options": [
+      "Barras horizontales ordenadas de mayor a menor",
+      "Una línea con los meses en orden en el eje X",
+      "Un gráfico de pastel con un trozo por mes",
+      "Una tabla impresa con print"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ordenar por valor rompe el orden del tiempo, que es justo lo que quieres ver.",
+      "Correcto: la línea muestra la tendencia y respeta el orden cronológico.",
+      "No: un pastel con 12 trozos no deja comparar meses ni ver la tendencia.",
+      "No: una tabla sirve para consultar valores exactos, pero no muestra la tendencia de un vistazo."
+     ],
+     "explanation": "Las líneas son para evoluciones en el tiempo; las barras, para comparar categorías.",
+     "hint": "Piensa en qué pregunta responde cada tipo de gráfica."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué hace `fig, ax = plt.subplots()`?",
+     "code": "",
+     "options": [
+      "Guarda la gráfica en un archivo",
+      "Dibuja barras con los datos del DataFrame",
+      "Abre una ventana con la gráfica",
+      "Crea una figura y unos ejes vacíos donde luego dibujas"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso es `fig.savefig`.",
+      "No: para dibujar barras usas `ax.bar` después de crear los ejes.",
+      "No: la ventana la abre `plt.show()`.",
+      "Correcto: `subplots` prepara la hoja (`fig`) y el área de dibujo (`ax`)."
+     ],
+     "explanation": "`plt.subplots()` devuelve la figura y los ejes; todo lo demás (bar, plot, set_title) se llama sobre `ax`.",
+     "hint": "Es el primer paso de cualquier gráfica, antes de dibujar."
+    },
+    {
+     "type": "choice",
+     "prompt": "Tu gráfica de barras tiene los nombres de las categorías encimados en el eje X. ¿Cuál es la mejor solución?",
+     "code": "",
+     "options": [
+      "Usar barras horizontales con `ax.barh`",
+      "Aumentar `dpi` al guardar",
+      "Quitar `tight_layout()`",
+      "Cambiar `plot` por `scatter`"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: en `barh` los nombres van en el eje Y, uno debajo del otro, y caben sin girarlos.",
+      "No: más resolución hace la imagen más nítida, pero los textos siguen montados.",
+      "No: `tight_layout` ayuda a que los textos no se corten; quitarlo empeora las cosas.",
+      "No: cambia el tipo de gráfica, pero no resuelve el espacio de las etiquetas."
+     ],
+     "explanation": "Con nombres largos, las barras horizontales (o girar las etiquetas) resuelven el problema.",
+     "hint": "¿En qué eje caben mejor textos largos?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si llamas `plt.show()` y después `fig.savefig(\"grafica.png\")`, el archivo puede quedar en blanco.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: al cerrar la ventana de `show`, la figura se libera, y lo que se guarda puede ser una hoja vacía.",
+      "No: es un tropiezo clásico; el orden importa."
+     ],
+     "explanation": "Guarda siempre primero con `savefig` y, si quieres ver la ventana, llama `plt.show()` al final.",
+     "hint": "Piensa en qué queda de la figura después de cerrar la ventana."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`ax.set_ylabel(\"Ventas (miles de colones)\")` cambia los valores de las barras para que queden en miles.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la etiqueta es solo texto; los valores no cambian.",
+      "Correcto: la etiqueta solo describe el eje. Para mostrar miles tienes que dividir los datos entre 1000 antes de dibujar."
+     ],
+     "explanation": "Las etiquetas describen; no transforman. Divide los datos (`df[\"total\"] / 1000`) y luego di la unidad en el eje.",
+     "hint": "¿Una etiqueta puede hacer cálculos?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código? Escribe los dos números separados por un espacio.",
+     "code": "import matplotlib.pyplot as plt\n\nfig, ax = plt.subplots()\nbarras = ax.bar([\"SINPE\", \"Tarjeta\", \"Efectivo\"], [154, 175, 23])\nprint(len(barras), int(max(b.get_height() for b in barras)))\nplt.close(fig)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "3 175"
+     ],
+     "optionFeedback": [],
+     "explanation": "`ax.bar` devuelve una barra por cada valor (3) y la altura de la más alta es 175.",
+     "hint": "Cuenta los valores y busca el mayor."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código, que prepara las etiquetas del eje X a partir del mes `AAAA-MM`?",
+     "code": "meses = [\"2025-01\", \"2025-02\", \"2025-03\"]\nnombres = [\"Ene\", \"Feb\", \"Mar\", \"Abr\", \"May\", \"Jun\", \"Jul\", \"Ago\", \"Set\", \"Oct\", \"Nov\", \"Dic\"]\netiquetas = [nombres[int(m[5:]) - 1] for m in meses]\nprint(etiquetas[-1])",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Mar"
+     ],
+     "optionFeedback": [],
+     "explanation": "`m[5:]` toma `03`, `int` lo convierte en 3, y el índice 3 - 1 = 2 corresponde a \"Mar\". `[-1]` toma la última etiqueta.",
+     "hint": "Sigue el último mes de la lista paso a paso."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea que guarda la figura como imagen PNG con buena resolución.",
+     "code": "fig, ax = plt.subplots()\nax.bar(df[\"categoria\"], df[\"total\"])\nfig.___(\"ventas.png\", dpi=150)\nplt.close(fig)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "savefig"
+     ],
+     "optionFeedback": [],
+     "explanation": "`fig.savefig(nombre, dpi=...)` escribe la figura en un archivo; la extensión decide el formato.",
+     "hint": "Guardar en inglés es save; figura es fig."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-16",
+   "kind": "workshop",
+   "title": "Git y GitHub",
+   "summary": "Pones tu análisis de la Tienda bajo control de versiones con Git, lo subes a GitHub y le escribes un README que cualquiera puede seguir.",
+   "objectives": [
+    "Crear un repositorio con `git init` y un `.gitignore`, y repetir el ciclo status, add y commit con mensajes claros.",
+    "Revisar la historia y los cambios con `git log --oneline` y `git diff`, y recuperar un archivo con `git restore`.",
+    "Crear un repositorio en GitHub, conectarlo como `origin` y subir los commits con `git push`.",
+    "Escribir un README.md con qué es el proyecto, qué responde, cómo ejecutarlo y una gráfica incrustada."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: init, add, commit y log",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: GitHub, push y un buen README",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: subir analisis-tienda y preparar proyecto-final",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "init, add, commit y log",
+     "concept": "Git guarda la historia de una carpeta. Cada **commit** es una foto de tus archivos con autor, fecha y un mensaje; con esas fotos puedes ver qué cambió, cuándo y volver atrás si rompes algo. La guía «Git y GitHub básico» explica cómo instalarlo y configurar tu nombre y correo; hazlo antes de empezar.\n\nDentro de la carpeta del proyecto, `git init` crea el repositorio una sola vez. Desde ahí el ciclo se repite siempre: editas, `git status` te dice qué cambió, `git add archivo` pone ese cambio en el área de preparación y `git commit -m \"mensaje\"` toma la foto de lo preparado. La preparación existe para que decidas qué entra en cada commit: puedes tener tres archivos modificados y confirmar solo uno.\n\n`git log --oneline` muestra la historia, un commit por línea, y `git diff` las líneas cambiadas que aún no preparaste. Un buen mensaje empieza con un verbo y dice qué cambió: `Agrega gráfica de ventas mensuales`, no `cambios`. El archivo `.gitignore` lista lo que Git no debe seguir: `__pycache__/`, `.venv/`, contraseñas. **Haz un commit cada vez que algo funcione**: es gratis y cada uno es un punto de regreso.",
+     "tip": "Lee `git status` antes de cada `git add` y otra vez antes de cada commit. Es un minuto de revisión que te evita confirmar un archivo de prueba o una contraseña.",
+     "example": "cd analisis-tienda\ngit init\ngit status\ngit add .gitignore analisis_pandas.py graficas.py\ngit commit -m \"Agrega análisis con pandas y gráficas de ventas\"\ngit log --oneline",
+     "language": "bash",
+     "exampleOutput": "Initialized empty Git repository in /home/tomas/curso/analisis-tienda/.git/\nOn branch main\n\nNo commits yet\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\t.gitignore\n\tanalisis_pandas.py\n\tgraficas.py\n\ttienda.db\n\tventas_mensuales.csv\n\tventas_por_categoria.png\n\nnothing added to commit but untracked files present (use \"git add\" to track)\n[main (root-commit) 4e1c2a7] Agrega análisis con pandas y gráficas de ventas\n 3 files changed, 112 insertions(+)\n create mode 100644 .gitignore\n create mode 100644 analisis_pandas.py\n create mode 100644 graficas.py\n4e1c2a7 Agrega análisis con pandas y gráficas de ventas",
+     "steps": [
+      {
+       "title": "Configura Git una sola vez",
+       "body": "Si no lo hiciste con la guía, dile a Git tu nombre y tu correo (usa el mismo de tu cuenta de GitHub) y que la rama principal se llame `main`. `git config --global --list` muestra lo que quedó guardado.",
+       "code": "git --version\ngit config --global user.name \"Tomás Sandí\"\ngit config --global user.email \"tu-correo@ejemplo.com\"\ngit config --global init.defaultBranch main\ngit config --global --list",
+       "language": "bash"
+      },
+      {
+       "title": "Crea el repositorio y el .gitignore",
+       "body": "Entra a `analisis-tienda` con `cd` y ejecuta `git init`. Crea en VS Code un archivo `.gitignore` con las carpetas que Python genera solo (`__pycache__/`, `.pytest_cache/`) y el entorno virtual si tienes uno (`.venv/`). Luego `git status`: esas carpetas ya no deben aparecer.",
+       "code": "cd analisis-tienda\ngit init\n# Crea .gitignore en VS Code con estas tres líneas:\n#   __pycache__/\n#   .pytest_cache/\n#   .venv/\ngit status",
+       "language": "bash"
+      },
+      {
+       "title": "Prepara y confirma por partes",
+       "body": "Prepara primero solo el código de ayer y confírmalo. Después prepara las imágenes y el CSV en otro commit. Dos commits con un propósito cada uno se entienden mejor que uno con todo mezclado. Fíjate en cómo cambia `git status` entre cada paso.",
+       "code": "git add .gitignore analisis_pandas.py\ngit commit -m \"Agrega análisis de ventas con pandas\"\ngit add graficas.py ventas_por_categoria.png\ngit status\ngit commit -m \"Agrega gráfica de ventas por categoría\"",
+       "language": "bash"
+      },
+      {
+       "title": "Revisa un cambio con diff antes de confirmarlo",
+       "body": "Edita `graficas.py`, por ejemplo cambiando un título. `git diff` muestra en rojo con `-` lo que quitaste y en verde con `+` lo nuevo. Si todo está bien, prepara y confirma. `git log --oneline` muestra ya tres commits, del más reciente al más antiguo.",
+       "code": "git diff\ngit add graficas.py\ngit commit -m \"Mejora el título de la gráfica de categorías\"\ngit log --oneline",
+       "language": "bash"
+      },
+      {
+       "title": "Recupera un archivo dañado",
+       "body": "Borra por error una función de `analisis_pandas.py` y guarda. Como no lo has confirmado, `git restore analisis_pandas.py` devuelve el archivo al último commit. Si lo que quieres es sacar un archivo de la preparación sin perder cambios, es `git restore --staged archivo`.",
+       "code": "git status\ngit restore analisis_pandas.py\ngit status",
+       "language": "bash"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Author identity unknown. Please tell me who you are.",
+       "cause": "No configuraste `user.name` y `user.email` antes del primer commit.",
+       "fix": "Ejecuta los dos `git config --global` del primer paso y repite el commit."
+      },
+      {
+       "error": "fatal: not a git repository (or any of the parent directories): .git",
+       "cause": "Estás en una carpeta que no es el repositorio, o todavía no ejecutaste `git init`.",
+       "fix": "Revisa con `pwd` (o `cd` en Windows) dónde estás, entra a la carpeta del proyecto y, si es la primera vez, ejecuta `git init`."
+      },
+      {
+       "error": "nothing added to commit but untracked files present",
+       "cause": "Hiciste `git commit` sin preparar nada con `git add`.",
+       "fix": "Prepara primero: `git add archivo` (o `git add .` para todo lo que muestra `git status`) y después confirma."
+      },
+      {
+       "error": "Mensajes como «cambios», «fix» o «asdf»",
+       "cause": "El mensaje se escribe como un trámite y no como una nota para quien lea la historia, incluido tu yo de dentro de un mes.",
+       "fix": "Escribe qué cambió, empezando con un verbo: «Corrige el total cuando no hay ventas». Si no cabe en una línea, el commit mezcla demasiadas cosas: divídelo."
+      }
+     ]
+    },
+    {
+     "title": "GitHub, push y un buen README",
+     "concept": "Git guarda la historia en tu computador; GitHub guarda una copia en internet. Sirve de respaldo, te deja trabajar desde otra máquina y es tu vitrina: **el proyecto final se entrega como un enlace a un repositorio de GitHub**.\n\nEn GitHub creas un repositorio vacío (botón New, sin marcar «Add a README», porque ya tienes historia local). Luego, en la terminal, `git remote add origin URL` registra esa dirección con el nombre `origin`, y `git push -u origin main` sube tus commits; el `-u` deja la rama enlazada para que después baste `git push`. La primera vez te pedirá autenticarte: GitHub no acepta la contraseña de la cuenta, así que usa el navegador cuando te lo ofrezca o un token personal.\n\nEl **README.md** es la portada del repositorio: GitHub lo muestra debajo de la lista de archivos. Uno bueno responde, en este orden: qué es el proyecto, qué preguntas responde, cómo instalarlo y ejecutarlo, qué archivos hay y quién lo hizo. Se escribe en Markdown: `#` para títulos, `-` para listas, comillas invertidas para código y `![texto](imagen.png)` para mostrar una gráfica. Quien abra tu repositorio debe poder ejecutarlo sin preguntarte nada.",
+     "tip": "Después de cada push, recarga la página del repositorio y mira el README como lo vería un desconocido. Si la imagen no aparece, revisa que el PNG esté en el repositorio y que el nombre coincida exactamente, mayúsculas incluidas.",
+     "example": "git remote add origin https://github.com/tomas-sandi/analisis-tienda.git\ngit push -u origin main\ncode README.md\ngit add README.md\ngit commit -m \"Agrega README con instrucciones y gráfica\"\ngit push",
+     "language": "bash",
+     "exampleOutput": "Enumerating objects: 9, done.\nWriting objects: 100% (9/9), 61.2 KiB | 6.80 MiB/s, done.\nTo https://github.com/tomas-sandi/analisis-tienda.git\n * [new branch]      main -> main\nbranch 'main' set up to track 'origin/main'.\n[main 9b3f0d1] Agrega README con instrucciones y gráfica\n 1 file changed, 28 insertions(+)\n create mode 100644 README.md\nTo https://github.com/tomas-sandi/analisis-tienda.git\n   7a2c5e8..9b3f0d1  main -> main",
+     "steps": [
+      {
+       "title": "Crea el repositorio en GitHub",
+       "body": "Entra a github.com, pulsa New y ponle `analisis-tienda`. Déjalo público, para que tu revisor lo vea, y no marques ninguna casilla de archivos iniciales. Al crearlo, GitHub te muestra la URL HTTPS terminada en `.git`: cópiala y regístrala como `origin`.",
+       "code": "git remote add origin https://github.com/TU_USUARIO/analisis-tienda.git\ngit remote -v",
+       "language": "bash"
+      },
+      {
+       "title": "Sube tu historia con push",
+       "body": "`git push -u origin main` envía todos tus commits. Cuando termine, recarga la página: verás tus archivos y, al lado de cada uno, el mensaje del último commit que lo tocó. Desde ahora, después de cada commit, basta con `git push`.",
+       "code": "git push -u origin main\ngit status",
+       "language": "bash"
+      },
+      {
+       "title": "Escribe el README en VS Code",
+       "body": "Crea `README.md` en la raíz del proyecto con esta estructura y adáptala a lo que hiciste. Usa la vista previa de Markdown de VS Code (Ctrl+Shift+V) para ver cómo se verá. La imagen se muestra porque el PNG está en la misma carpeta y ya lo confirmaste.",
+       "code": "# Análisis de ventas de la Tienda Pura Vida\n\nAnálisis en Python de la base de práctica Tienda Pura Vida (SQLite):\nventas por categoría, por método de pago y por mes, con gráficas.\n\n![Ventas por categoría](ventas_por_categoria.png)\n\n## Qué responde\n- ¿Qué categoría vende más? (Ropa, en pedidos entregados)\n- ¿Cómo evolucionan las ventas mes a mes en 2025 y 2026?\n\n## Cómo ejecutarlo\n1. Instala las dependencias: `python -m pip install pandas matplotlib`\n2. Descarga `tienda.db` desde el laboratorio SQL de la página y déjala en esta carpeta.\n3. Ejecuta `python analisis_pandas.py` y luego `python graficas.py`.\n\n## Archivos\n- `analisis_pandas.py`: clase AnalizadorVentas con los resúmenes.\n- `graficas.py`: genera las imágenes PNG.\n\nAutor: Tomás Sandí, diciembre de 2026.",
+       "language": "bash"
+      },
+      {
+       "title": "Confirma y sube el README",
+       "body": "Prepara, confirma y sube. Recarga GitHub: el README aparece formateado debajo de los archivos, con la gráfica incluida. Lee el texto de arriba abajo y corrige lo que no se entienda en un nuevo commit.",
+       "code": "git add README.md\ngit commit -m \"Agrega README con instrucciones y gráfica\"\ngit push",
+       "language": "bash"
+      },
+      {
+       "title": "Trae cambios hechos en GitHub",
+       "body": "Si editas algo desde la web de GitHub (por ejemplo, una errata en el README), ese commit existe solo allá. Antes de seguir trabajando en tu computador, tráelo con `git pull`; si no, tu siguiente push será rechazado.",
+       "code": "git pull\ngit log --oneline",
+       "language": "bash"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "remote: Support for password authentication was removed",
+       "cause": "Escribiste la contraseña de tu cuenta de GitHub; para Git ya no se acepta.",
+       "fix": "Acepta el inicio de sesión por navegador que ofrece Git Credential Manager (viene con Git para Windows) o crea un token personal en GitHub (Settings, Developer settings) y úsalo como contraseña."
+      },
+      {
+       "error": "! [rejected] main -> main (fetch first)",
+       "cause": "GitHub tiene commits que tu computador no tiene, por ejemplo porque creaste el repositorio con un README o editaste algo en la web.",
+       "fix": "Ejecuta `git pull` para traerlos y fusionarlos, y vuelve a hacer `git push`."
+      },
+      {
+       "error": "error: remote origin already exists.",
+       "cause": "Ya habías registrado `origin`, quizás con una URL equivocada.",
+       "fix": "Revisa con `git remote -v` y corrige con `git remote set-url origin URL_CORRECTA`."
+      },
+      {
+       "error": "La imagen del README no se ve en GitHub",
+       "cause": "El PNG no se subió (no le hiciste `git add`) o el nombre en `![...](archivo.png)` no coincide exactamente.",
+       "fix": "Confirma que el archivo aparece en la lista del repositorio y copia su nombre tal cual, respetando mayúsculas."
+      }
+     ]
+    }
+   ],
+   "exercises": [],
+   "tasks": [
+    "Instala y configura Git siguiendo la guía «Git y GitHub básico» (nombre, correo, rama `main`) y crea tu cuenta de GitHub si no la tienes. Comprueba con `git --version` y `git config --global --list`.",
+    "Convierte `analisis-tienda` en un repositorio con un `.gitignore` adecuado y haz al menos tres commits, cada uno con un propósito: el análisis con pandas, las gráficas y una mejora pequeña revisada antes con `git diff`.",
+    "Crea el repositorio `analisis-tienda` en GitHub, conéctalo con `git remote add` y súbelo con `git push -u origin main`. Revisa en el navegador que estén los archivos y que no aparezcan `__pycache__` ni `.venv`.",
+    "Escribe el `README.md` con: título, qué responde el análisis, una de tus gráficas incrustada, cómo instalar y ejecutar, y la lista de archivos. Confírmalo, súbelo y revísalo en GitHub como si fueras otra persona.",
+    "Prepara el terreno para el jueves: crea la carpeta `proyecto-final` con un `README.md` de una línea, conviértela en repositorio, haz el primer commit y súbela a un repositorio nuevo de GitHub llamado `proyecto-final`."
+   ],
+   "taskHints": [
+    "Si `git` no se reconoce en la terminal de VS Code después de instalarlo, cierra y abre VS Code para que la terminal lo encuentre.",
+    "Usa `git add archivo` en vez de `git add .` para practicar commits con un solo propósito, y lee `git status` antes de cada commit.",
+    "La URL está en el botón verde Code del repositorio. `git remote -v` debe mostrar `origin` dos veces (fetch y push).",
+    "Escribe el README en VS Code y ábrelo con la vista previa (Ctrl+Shift+V) antes de confirmarlo.",
+    "Mismos pasos de hoy: `git init`, `git add README.md`, `git commit`, crear el repositorio vacío en GitHub, `git remote add origin` y `git push -u origin main`."
+   ],
+   "challenge": {
+    "title": "¿Funciona desde cero?",
+    "description": "Comprueba que tu repositorio sirve para alguien que no eres tú. Clónalo en otra carpeta con `git clone`, sigue las instrucciones del README al pie de la letra y ejecuta los programas. Anota cada cosa que falte o que el README no explique, corrígela en tu carpeta original con commits pequeños, haz push y actualiza la copia con `git pull` hasta que todo funcione siguiendo solo el README.",
+    "hint": "Lo que más se olvida: el archivo de datos (¿lo subiste o el README dice de dónde sacarlo?), las bibliotecas que hay que instalar y el orden en que se ejecutan los programas.",
+    "solution": "cd ..\ngit clone https://github.com/TU_USUARIO/analisis-tienda.git prueba-clon\ncd prueba-clon\ngit log --oneline\npython analisis_pandas.py\npython graficas.py\n# Si algo falla (falta tienda.db, falta instalar pandas, una ruta mal escrita),\n# corrígelo en la carpeta original analisis-tienda, no en la copia:\ncd ../analisis-tienda\ngit add README.md\ngit commit -m \"Aclara en el README de dónde descargar tienda.db\"\ngit push\ncd ../prueba-clon\ngit pull",
+    "language": "bash"
+   },
+   "glossary": [
+    {
+     "term": "Repositorio",
+     "definition": "Carpeta cuya historia sigue Git; la historia vive en la subcarpeta oculta .git."
+    },
+    {
+     "term": "Commit",
+     "definition": "Foto de los archivos preparados, con autor, fecha, identificador (hash) y mensaje."
+    },
+    {
+     "term": "Área de preparación",
+     "definition": "Lista de cambios que entrarán en el próximo commit; se llena con git add."
+    },
+    {
+     "term": ".gitignore",
+     "definition": "Archivo con los nombres o patrones que Git no debe seguir, como __pycache__/ o .venv/."
+    },
+    {
+     "term": "Remoto (origin)",
+     "definition": "Copia del repositorio en otro lugar, como GitHub; origin es el nombre habitual del principal."
+    },
+    {
+     "term": "push / pull",
+     "definition": "push sube tus commits al remoto; pull trae a tu computador los commits que el remoto tiene y tú no."
+    },
+    {
+     "term": "README.md",
+     "definition": "Archivo en Markdown que GitHub muestra como portada del repositorio: qué es, cómo se ejecuta y qué contiene."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Pro Git en español: guardar cambios en el repositorio",
+     "url": "https://git-scm.com/book/es/v2/Fundamentos-de-Git-Guardando-cambios-en-el-Repositorio"
+    },
+    {
+     "title": "Pro Git en español: trabajar con remotos",
+     "url": "https://git-scm.com/book/es/v2/Fundamentos-de-Git-Trabajar-con-Remotos"
+    },
+    {
+     "title": "GitHub Docs: acerca de los README",
+     "url": "https://docs.github.com/es/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes"
+    },
+    {
+     "title": "GitHub Docs: sintaxis básica de Markdown",
+     "url": "https://docs.github.com/es/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Modificaste `graficas.py` y `analisis_pandas.py`, pero quieres que el próximo commit tenga solo `graficas.py`. ¿Qué haces?",
+     "code": "",
+     "options": [
+      "git add .\ngit commit -m \"Mejora las gráficas\"",
+      "git commit -m \"Mejora las gráficas\" sin hacer add",
+      "git add graficas.py\ngit commit -m \"Mejora las gráficas\"",
+      "git push graficas.py"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `git add .` prepara todo lo modificado, incluido `analisis_pandas.py`.",
+      "No: sin `add` no hay nada preparado y Git responde que no hay nada que confirmar.",
+      "Correcto: preparas solo ese archivo y el commit contiene únicamente ese cambio.",
+      "No: `push` sube commits ya hechos; no prepara ni confirma archivos."
+     ],
+     "explanation": "El área de preparación te deja elegir qué entra en cada commit: `git add` del archivo que quieres y luego `commit`.",
+     "hint": "¿Para qué sirve el paso entre editar y confirmar?"
+    },
+    {
+     "type": "choice",
+     "prompt": "Hiciste commit en tu computador, pero el cambio no aparece en la página de GitHub. ¿Qué falta?",
+     "code": "",
+     "options": [
+      "git push",
+      "git init",
+      "git add .",
+      "git pull"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: el commit es local hasta que lo subes con `push`.",
+      "No: `init` crea un repositorio nuevo y el tuyo ya existe.",
+      "No: `add` prepara cambios para un commit, y el commit ya está hecho.",
+      "No: `pull` trae cambios de GitHub a tu computador, la dirección contraria."
+     ],
+     "explanation": "Los commits se crean en tu computador; `git push` los envía a GitHub.",
+     "hint": "¿En qué dirección tiene que viajar el cambio?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué debería ir primero en el README de tu proyecto?",
+     "code": "",
+     "options": [
+      "La lista de todos los commits",
+      "Qué es el proyecto y qué preguntas responde, en dos o tres líneas",
+      "El código completo de los programas",
+      "Tus datos de contacto y tu número de teléfono"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la historia ya la muestra GitHub; repetirla no ayuda al lector.",
+      "Correcto: quien llega necesita saber primero de qué se trata; después, cómo ejecutarlo.",
+      "No: el código ya está en el repositorio; el README explica cómo usarlo.",
+      "No: no publiques datos personales; basta tu nombre como autor."
+     ],
+     "explanation": "Un README va de lo general a lo concreto: qué es, qué responde, cómo instalarlo y ejecutarlo, qué archivos hay.",
+     "hint": "Piensa en alguien que abre tu repositorio por primera vez."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si `__pycache__/` está escrito en `.gitignore` antes del primer `git add .`, esa carpeta nunca entra en un commit.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: Git no prepara lo que coincide con `.gitignore`, ni siquiera con `git add .`.",
+      "No: ese es justo el propósito de `.gitignore`. Solo falla si la carpeta ya estaba confirmada antes de agregar la línea."
+     ],
+     "explanation": "`.gitignore` evita que Git siga esos archivos. Si ya se habían confirmado, hay que sacarlos con `git rm -r --cached carpeta`.",
+     "hint": "Recuerda para qué creaste ese archivo."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Al crear el repositorio en GitHub conviene marcar «Add a README file» aunque ya tengas commits en tu computador.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: con eso GitHub crea un commit que tú no tienes y tu primer push es rechazado.",
+      "Correcto: si ya tienes historia local, crea el repositorio vacío y escribe el README en tu computador."
+     ],
+     "explanation": "Un repositorio vacío en GitHub recibe tu historia sin conflictos; el README lo agregas tú con un commit.",
+     "hint": "Piensa en qué pasa con un commit que existe solo en GitHub."
+    },
+    {
+     "type": "output",
+     "prompt": "Ejecutas estos comandos en una carpeta nueva con dos archivos, `a.py` y `b.py`. ¿Cuántas líneas muestra el último comando?",
+     "code": "git init\ngit add a.py\ngit commit -m \"Agrega a.py\"\ngit add b.py\ngit status\ngit commit -m \"Agrega b.py\"\ngit log --oneline",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2"
+     ],
+     "optionFeedback": [],
+     "explanation": "Hay dos commits: uno con `a.py` y otro con `b.py`. `git status` solo informa; no crea commits. `git log --oneline` muestra una línea por commit.",
+     "hint": "Cuenta solo los `git commit`."
+    },
+    {
+     "type": "output",
+     "prompt": "Este programa revisa los mensajes de commit de un historial. ¿Qué imprime?",
+     "code": "log = \"\"\"9b3f0d1 Agrega README con instrucciones\n7a2c5e8 cambios\n4e1c2a7 Agrega análisis con pandas\"\"\"\nvagos = {\"cambios\", \"fix\", \"asdf\"}\nmalos = 0\nfor linea in log.splitlines():\n    hash_corto, mensaje = linea.split(\" \", 1)\n    if mensaje.lower() in vagos:\n        malos += 1\nprint(malos, len(hash_corto))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "1 7"
+     ],
+     "optionFeedback": [],
+     "explanation": "Solo «cambios» está entre los mensajes vagos (1). `hash_corto` conserva el valor de la última línea, `4e1c2a7`, que tiene 7 caracteres.",
+     "hint": "`split(\" \", 1)` corta solo en el primer espacio."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa el comando que registra la dirección del repositorio de GitHub con el nombre origin.",
+     "code": "git ___ add origin https://github.com/TU_USUARIO/analisis-tienda.git\ngit push -u origin main",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "remote"
+     ],
+     "optionFeedback": [],
+     "explanation": "`git remote add nombre url` registra un remoto; `origin` es el nombre convencional del principal.",
+     "hint": "En inglés, la copia lejana se llama así."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-17",
+   "kind": "workshop",
+   "title": "Proyecto final: diseño",
+   "summary": "Eliges el tema de tu proyecto final, escribes las preguntas de negocio que va a responder y diseñas las tablas y el diagrama de su base de datos.",
+   "objectives": [
+    "Elegir un tema con datos que se puedan conseguir esta semana y conseguir una muestra real.",
+    "Escribir de 5 a 8 preguntas de negocio concretas y clasificarlas por tablas, técnica de SQL y tipo de resultado.",
+    "Diseñar de 3 a 5 tablas con claves primarias, foráneas y restricciones a partir de las preguntas.",
+    "Dibujar el diagrama entidad-relación en Mermaid y escribir `esquema.sql` probado con datos de juguete."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Elegir el tema y las preguntas de negocio",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Diseñar las tablas y el diagrama",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: PLAN.md, muestra de datos y esquema.sql",
+     "minutes": 80
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 25
+    }
+   ],
+   "topics": [
+    {
+     "title": "Elegir el tema y las preguntas de negocio",
+     "concept": "Hoy empieza tu proyecto final: una aplicación propia con **SQLite + Python + POO + al menos una gráfica + README**, publicada en GitHub. El tema lo eliges tú, y elegir bien ahorra la mitad del trabajo.\n\nPásalo por tres filtros. Primero, que te interese: vas a pasar dos semanas con esos datos. Segundo, que **puedas conseguir los datos esta misma semana**: si dependen de que alguien te los mande o de copiar a mano miles de filas, cambia de tema. Tercero, que den para relaciones: al menos tres tablas conectadas y unas cien filas en la principal, para que el SQL de este curso tenga dónde lucirse.\n\nDespués vienen las preguntas de negocio, el corazón del proyecto. Una buena pregunta es concreta, se responde con una consulta y produce un número, una tabla corta o una gráfica: «¿Qué categoría de gasto creció más entre octubre y noviembre?». «Analizar mis gastos» no es una pregunta: no sabrías cuándo terminaste. Escribe de 5 a 8, y que entre ellas haya al menos una que una tablas, una que agrupe por tiempo y una que termine en gráfica.",
+     "tip": "Antes de casarte con un tema, consigue hoy mismo veinte filas reales y míralas. Si en una hora no logras tener esa muestra en una hoja o un CSV, el tema todavía no está listo.",
+     "example": "from dataclasses import dataclass\n\n\n@dataclass\nclass Idea:\n    tema: str\n    datos: str\n    tablas: list[str]\n    pregunta: str\n\n\nideas = [\n    Idea(\"Finanzas personales\",\n         \"estado de cuenta del banco exportado a Excel o CSV, o tu registro de gastos\",\n         [\"cuentas\", \"categorias\", \"movimientos\", \"presupuestos\"],\n         \"¿En qué categoría se me va más plata cada mes?\"),\n    Idea(\"Negocio familiar (soda, pulpería, emprendimiento)\",\n         \"cuaderno de ventas, facturas o pedidos por WhatsApp pasados a una hoja\",\n         [\"productos\", \"clientes\", \"ventas\", \"detalle_venta\"],\n         \"¿Qué producto deja más ganancia y qué día se vende más?\"),\n    Idea(\"Fútbol de Primera División\",\n         \"resultados de cada jornada publicados en medios deportivos\",\n         [\"equipos\", \"jugadores\", \"partidos\", \"goles\"],\n         \"¿Qué equipos rinden mejor de local que de visita?\"),\n    Idea(\"Música que escuchas\",\n         \"tu historial de Spotify (descarga de datos de la cuenta, en JSON)\",\n         [\"artistas\", \"canciones\", \"reproducciones\"],\n         \"¿A qué hora escucho más y qué artista domina cada mes?\"),\n    Idea(\"Clima en Costa Rica\",\n         \"datos diarios históricos de Open-Meteo en CSV para varias ciudades\",\n         [\"regiones\", \"ciudades\", \"mediciones_diarias\"],\n         \"¿En qué mes empieza la época lluviosa en Liberia y en Limón?\"),\n]\n\nfor numero, idea in enumerate(ideas, start=1):\n    print(f\"{numero}. {idea.tema}\")\n    print(f\"   Datos: {idea.datos}\")\n    print(f\"   Tablas: {', '.join(idea.tablas)}\")\n    print(f\"   Pregunta: {idea.pregunta}\")\n",
+     "language": "python",
+     "exampleOutput": "1. Finanzas personales\n   Datos: estado de cuenta del banco exportado a Excel o CSV, o tu registro de gastos\n   Tablas: cuentas, categorias, movimientos, presupuestos\n   Pregunta: ¿En qué categoría se me va más plata cada mes?\n2. Negocio familiar (soda, pulpería, emprendimiento)\n   Datos: cuaderno de ventas, facturas o pedidos por WhatsApp pasados a una hoja\n   Tablas: productos, clientes, ventas, detalle_venta\n   Pregunta: ¿Qué producto deja más ganancia y qué día se vende más?\n3. Fútbol de Primera División\n   Datos: resultados de cada jornada publicados en medios deportivos\n   Tablas: equipos, jugadores, partidos, goles\n   Pregunta: ¿Qué equipos rinden mejor de local que de visita?\n4. Música que escuchas\n   Datos: tu historial de Spotify (descarga de datos de la cuenta, en JSON)\n   Tablas: artistas, canciones, reproducciones\n   Pregunta: ¿A qué hora escucho más y qué artista domina cada mes?\n5. Clima en Costa Rica\n   Datos: datos diarios históricos de Open-Meteo en CSV para varias ciudades\n   Tablas: regiones, ciudades, mediciones_diarias\n   Pregunta: ¿En qué mes empieza la época lluviosa en Liberia y en Limón?",
+     "steps": [
+      {
+       "title": "Revisa las cinco ideas y elige",
+       "body": "Ejecuta el ejemplo y lee las ideas con calma. Puedes tomar una tal cual, adaptarla (el negocio de un tío, tu equipo de fútbol aficionado) o proponer otra que pase los tres filtros. Lo importante es que los datos existan y que tú puedas conseguirlos.",
+       "code": "",
+       "language": "python"
+      },
+      {
+       "title": "Consigue una muestra real hoy",
+       "body": "Descarga o copia las primeras filas de tu fuente y guárdalas en `proyecto-final/datos/muestra.csv`. Mira qué columnas trae, qué formato tienen las fechas y los montos, y qué falta. Eso define tu diseño mucho más que cualquier idea en abstracto. El historial de Spotify puede tardar días en llegar: si eliges música, pídelo hoy mismo.",
+       "code": "",
+       "language": "python"
+      },
+      {
+       "title": "Escribe y revisa tus preguntas",
+       "body": "Este programa guarda el plan del proyecto modelo (fútbol) en dataclasses y revisa reglas simples: de 5 a 8 preguntas, al menos una con gráfica, al menos una que una tablas y que todas sean preguntas de verdad. Fíjate en que detecta «Analizar los goles». Cópialo y cámbialo por tu tema y tus preguntas.",
+       "code": "from dataclasses import dataclass, field\n\n\n@dataclass\nclass Pregunta:\n    texto: str\n    tablas: list[str]\n    grafica: str = \"\"\n\n\n@dataclass\nclass PlanProyecto:\n    tema: str\n    fuente: str\n    preguntas: list[Pregunta] = field(default_factory=list)\n\n    def tablas_necesarias(self) -> list[str]:\n        return sorted({t for p in self.preguntas for t in p.tablas})\n\n    def revisar(self) -> list[str]:\n        problemas = []\n        if not 5 <= len(self.preguntas) <= 8:\n            problemas.append(f\"tiene {len(self.preguntas)} preguntas; deben ser de 5 a 8\")\n        if not any(p.grafica for p in self.preguntas):\n            problemas.append(\"ninguna pregunta tiene gráfica\")\n        if not any(len(p.tablas) >= 2 for p in self.preguntas):\n            problemas.append(\"ninguna pregunta necesita unir tablas\")\n        for p in self.preguntas:\n            if not (p.texto.startswith(\"¿\") and p.texto.endswith(\"?\")):\n                problemas.append(f\"no es una pregunta: {p.texto!r}\")\n        return problemas\n\n\nplan = PlanProyecto(\"Primera División de fútbol\", \"resultados publicados de cada jornada\", [\n    Pregunta(\"¿Qué equipo sumó más puntos en el torneo?\", [\"equipos\", \"partidos\"], \"barras\"),\n    Pregunta(\"¿Cuántos goles por partido hubo en cada jornada?\", [\"partidos\"], \"líneas\"),\n    Pregunta(\"¿Qué equipos ganan más de local que de visita?\", [\"equipos\", \"partidos\"]),\n    Pregunta(\"¿Quién es el goleador de cada equipo?\", [\"goles\", \"jugadores\", \"equipos\"]),\n    Pregunta(\"Analizar los goles\", [\"goles\"]),\n])\nprint(\"Tablas:\", plan.tablas_necesarias())\nfor problema in plan.revisar():\n    print(\"Revisar:\", problema)\n",
+       "language": "python"
+      },
+      {
+       "title": "Clasifica cada pregunta",
+       "body": "Al lado de cada pregunta anota qué tablas necesita, qué técnica de SQL usarás (JOIN, GROUP BY, CTE, ventana) y si termina en número, tabla o gráfica. Si una pregunta necesita datos que tu fuente no trae, reescríbela o descártala ahora, no el lunes.",
+       "code": "",
+       "language": "python"
+      },
+      {
+       "title": "Guarda el plan en el repositorio",
+       "body": "Escribe todo en `PLAN.md` dentro de `proyecto-final`: tema, por qué lo elegiste, fuente de datos, cómo los vas a conseguir y las preguntas clasificadas. Confírmalo y súbelo. Si tus datos son personales, como tus finanzas, decide hoy si el repositorio será privado o si vas a anonimizar los datos.",
+       "code": "cd proyecto-final\ngit add PLAN.md datos/muestra.csv\ngit commit -m \"Agrega el plan del proyecto con tema, fuente y preguntas\"\ngit push",
+       "language": "bash"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Elegí un tema y no consigo los datos",
+       "cause": "Se eligió por lo atractivo de la idea sin comprobar la fuente: datos que no se publican, que están en PDF escaneado o que hay que pedir a otra persona.",
+       "fix": "Aplica el segundo filtro hoy mismo: sin muestra de veinte filas no hay tema. Cambiar el jueves cuesta una tarde; cambiar el próximo martes cuesta el proyecto."
+      },
+      {
+       "error": "Preguntas que no se pueden responder con una consulta",
+       "cause": "Son temas («analizar el clima») o piden opiniones («¿es buena mi música?»), no algo que se cuenta, se suma o se compara.",
+       "fix": "Reescríbelas con un verbo medible y un recorte: «¿Cuántos milímetros llovió por mes en Liberia en 2025?»."
+      },
+      {
+       "error": "Un proyecto demasiado grande",
+       "cause": "Diez tablas, tres fuentes de datos y una interfaz gráfica no caben en dos semanas.",
+       "fix": "Quédate con 3 a 5 tablas y una sola fuente principal. Las ideas extra van a una sección «Mejoras futuras» del README."
+      },
+      {
+       "error": "Datos personales publicados en GitHub",
+       "cause": "Un estado de cuenta, nombres de clientes o teléfonos subidos a un repositorio público quedan a la vista de cualquiera, también en la historia de commits.",
+       "fix": "Usa un repositorio privado y dale acceso a tu revisor, o reemplaza nombres y números por datos anonimizados antes del primer commit."
+      }
+     ]
+    },
+    {
+     "title": "Diseñar las tablas y el diagrama",
+     "concept": "Con las preguntas escritas, el diseño sale casi solo. Subraya los sustantivos que se repiten: equipos, partidos, jugadores, goles. **Cada cosa con identidad propia es una tabla**, y cada dato que la describe es una columna. Es lo que hiciste en la semana 6 con la clínica veterinaria, ahora con tu tema.\n\nLas relaciones deciden dónde van las claves foráneas. En una relación 1:N la clave va en el lado de los muchos: un equipo tiene muchos jugadores, así que `jugadores` lleva `equipo_id`. Una relación N:M necesita una tabla puente. Una tabla puede apuntar dos veces a la misma, como `partidos` con `local_id` y `visita_id`. Revisa la normalización: si el nombre de un equipo aparece escrito en cada partido, sepáralo.\n\nElige tipos y restricciones pensando en los datos reales de tu muestra: montos enteros en colones, fechas como texto `AAAA-MM-DD`, `NOT NULL` en lo obligatorio, `CHECK` para rangos y `UNIQUE` para lo que no debe repetirse. Dibuja el diagrama: en papel, o como texto Mermaid dentro del README, que GitHub convierte en imagen. Termina con `esquema.sql` y **pruébalo con datos de juguete antes de cargar los reales**.",
+     "tip": "Por cada pregunta de tu plan, escribe la consulta que la respondería contra el diagrama, aunque sea en borrador. Si alguna no se puede escribir, al diseño le falta una tabla o una columna, y es mucho más barato descubrirlo hoy.",
+     "example": "CREATE TABLE equipos (\n  id         INTEGER PRIMARY KEY,\n  nombre     TEXT NOT NULL UNIQUE,\n  provincia  TEXT NOT NULL\n);\n\nCREATE TABLE jugadores (\n  id         INTEGER PRIMARY KEY,\n  nombre     TEXT NOT NULL,\n  equipo_id  INTEGER NOT NULL REFERENCES equipos(id),\n  posicion   TEXT NOT NULL CHECK (posicion IN ('portero', 'defensa', 'medio', 'delantero'))\n);\n\nCREATE TABLE partidos (\n  id            INTEGER PRIMARY KEY,\n  torneo        TEXT NOT NULL,\n  jornada       INTEGER NOT NULL CHECK (jornada >= 1),\n  fecha         TEXT NOT NULL,\n  local_id      INTEGER NOT NULL REFERENCES equipos(id),\n  visita_id     INTEGER NOT NULL REFERENCES equipos(id),\n  goles_local   INTEGER NOT NULL CHECK (goles_local >= 0),\n  goles_visita  INTEGER NOT NULL CHECK (goles_visita >= 0),\n  CHECK (local_id <> visita_id),\n  UNIQUE (torneo, local_id, visita_id)\n);\n\nCREATE TABLE goles (\n  id          INTEGER PRIMARY KEY,\n  partido_id  INTEGER NOT NULL REFERENCES partidos(id),\n  jugador_id  INTEGER NOT NULL REFERENCES jugadores(id),\n  minuto      INTEGER NOT NULL CHECK (minuto BETWEEN 1 AND 120)\n);\n\n-- Resultados inventados para practicar el diseño\nINSERT INTO equipos (id, nombre, provincia) VALUES\n  (1, 'Saprissa', 'San José'), (2, 'Alajuelense', 'Alajuela'),\n  (3, 'Herediano', 'Heredia'), (4, 'Cartaginés', 'Cartago');\nINSERT INTO partidos (torneo, jornada, fecha, local_id, visita_id, goles_local, goles_visita) VALUES\n  ('Apertura', 1, '2026-07-19', 1, 4, 2, 1),\n  ('Apertura', 1, '2026-07-19', 3, 2, 0, 0),\n  ('Apertura', 2, '2026-07-26', 2, 1, 3, 1),\n  ('Apertura', 2, '2026-07-26', 4, 3, 1, 2),\n  ('Apertura', 3, '2026-08-02', 1, 3, 1, 1),\n  ('Apertura', 3, '2026-08-02', 4, 2, 0, 2);\n\nSELECT p.jornada, l.nombre AS local, p.goles_local, p.goles_visita, v.nombre AS visita\nFROM partidos p\nJOIN equipos l ON l.id = p.local_id\nJOIN equipos v ON v.id = p.visita_id\nORDER BY p.jornada, p.id;\n",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "De los sustantivos a las tablas",
+       "body": "Lista los sustantivos de tus preguntas y decide cuáles son tablas y cuáles columnas. «Provincia» de un equipo es una columna; «jugador» es una tabla porque tiene nombre, posición y goles propios. Escribe para cada tabla su clave primaria y las relaciones con flechas 1:N o N:M.",
+       "code": "",
+       "language": "python"
+      },
+      {
+       "title": "Escribe el diagrama en Mermaid",
+       "body": "Pega un bloque como este en tu `README.md` o `PLAN.md`: GitHub lo dibuja como diagrama entidad-relación. `||--o{` se lee «uno a muchos». No hace falta poner todas las columnas; con claves y columnas importantes basta. Súbelo y revisa en GitHub que se vea.",
+       "code": "```mermaid\nerDiagram\n    EQUIPOS ||--o{ JUGADORES : tiene\n    EQUIPOS ||--o{ PARTIDOS : \"juega de local\"\n    EQUIPOS ||--o{ PARTIDOS : \"juega de visita\"\n    PARTIDOS ||--o{ GOLES : registra\n    JUGADORES ||--o{ GOLES : anota\n    EQUIPOS {\n        int id PK\n        text nombre\n        text provincia\n    }\n    PARTIDOS {\n        int id PK\n        int jornada\n        text fecha\n        int local_id FK\n        int visita_id FK\n        int goles_local\n        int goles_visita\n    }\n```",
+       "language": "bash"
+      },
+      {
+       "title": "Escribe esquema.sql",
+       "body": "Traduce el diagrama a CREATE TABLE con claves primarias, foráneas y restricciones. Este es el esquema del proyecto modelo; ejecútalo en el laboratorio para ver que es SQL válido. Fíjate en la restricción de tabla `CHECK (local_id <> visita_id)`: un equipo no puede jugar contra sí mismo.",
+       "code": "CREATE TABLE equipos (\n  id         INTEGER PRIMARY KEY,\n  nombre     TEXT NOT NULL UNIQUE,\n  provincia  TEXT NOT NULL\n);\n\nCREATE TABLE jugadores (\n  id         INTEGER PRIMARY KEY,\n  nombre     TEXT NOT NULL,\n  equipo_id  INTEGER NOT NULL REFERENCES equipos(id),\n  posicion   TEXT NOT NULL CHECK (posicion IN ('portero', 'defensa', 'medio', 'delantero'))\n);\n\nCREATE TABLE partidos (\n  id            INTEGER PRIMARY KEY,\n  torneo        TEXT NOT NULL,\n  jornada       INTEGER NOT NULL CHECK (jornada >= 1),\n  fecha         TEXT NOT NULL,\n  local_id      INTEGER NOT NULL REFERENCES equipos(id),\n  visita_id     INTEGER NOT NULL REFERENCES equipos(id),\n  goles_local   INTEGER NOT NULL CHECK (goles_local >= 0),\n  goles_visita  INTEGER NOT NULL CHECK (goles_visita >= 0),\n  CHECK (local_id <> visita_id),\n  UNIQUE (torneo, local_id, visita_id)\n);\n\nCREATE TABLE goles (\n  id          INTEGER PRIMARY KEY,\n  partido_id  INTEGER NOT NULL REFERENCES partidos(id),\n  jugador_id  INTEGER NOT NULL REFERENCES jugadores(id),\n  minuto      INTEGER NOT NULL CHECK (minuto BETWEEN 1 AND 120)\n);\n",
+       "language": "sql"
+      },
+      {
+       "title": "Prueba el diseño con datos de juguete",
+       "body": "Inserta tres o cuatro filas por tabla y responde una de tus preguntas con una consulta. Aquí, los goles a favor de cada equipo sumando lo que anotó de local y de visita con UNION ALL. Si la consulta sale natural, el diseño va bien.",
+       "code": "CREATE TABLE equipos (\n  id         INTEGER PRIMARY KEY,\n  nombre     TEXT NOT NULL UNIQUE,\n  provincia  TEXT NOT NULL\n);\n\nCREATE TABLE jugadores (\n  id         INTEGER PRIMARY KEY,\n  nombre     TEXT NOT NULL,\n  equipo_id  INTEGER NOT NULL REFERENCES equipos(id),\n  posicion   TEXT NOT NULL CHECK (posicion IN ('portero', 'defensa', 'medio', 'delantero'))\n);\n\nCREATE TABLE partidos (\n  id            INTEGER PRIMARY KEY,\n  torneo        TEXT NOT NULL,\n  jornada       INTEGER NOT NULL CHECK (jornada >= 1),\n  fecha         TEXT NOT NULL,\n  local_id      INTEGER NOT NULL REFERENCES equipos(id),\n  visita_id     INTEGER NOT NULL REFERENCES equipos(id),\n  goles_local   INTEGER NOT NULL CHECK (goles_local >= 0),\n  goles_visita  INTEGER NOT NULL CHECK (goles_visita >= 0),\n  CHECK (local_id <> visita_id),\n  UNIQUE (torneo, local_id, visita_id)\n);\n\nCREATE TABLE goles (\n  id          INTEGER PRIMARY KEY,\n  partido_id  INTEGER NOT NULL REFERENCES partidos(id),\n  jugador_id  INTEGER NOT NULL REFERENCES jugadores(id),\n  minuto      INTEGER NOT NULL CHECK (minuto BETWEEN 1 AND 120)\n);\n-- Resultados inventados para practicar el diseño\nINSERT INTO equipos (id, nombre, provincia) VALUES\n  (1, 'Saprissa', 'San José'), (2, 'Alajuelense', 'Alajuela'),\n  (3, 'Herediano', 'Heredia'), (4, 'Cartaginés', 'Cartago');\nINSERT INTO partidos (torneo, jornada, fecha, local_id, visita_id, goles_local, goles_visita) VALUES\n  ('Apertura', 1, '2026-07-19', 1, 4, 2, 1),\n  ('Apertura', 1, '2026-07-19', 3, 2, 0, 0),\n  ('Apertura', 2, '2026-07-26', 2, 1, 3, 1),\n  ('Apertura', 2, '2026-07-26', 4, 3, 1, 2),\n  ('Apertura', 3, '2026-08-02', 1, 3, 1, 1),\n  ('Apertura', 3, '2026-08-02', 4, 2, 0, 2);\n\nSELECT e.nombre, SUM(g.goles) AS goles_a_favor\nFROM (\n  SELECT local_id AS equipo_id, goles_local AS goles FROM partidos\n  UNION ALL\n  SELECT visita_id, goles_visita FROM partidos\n) AS g\nJOIN equipos e ON e.id = g.equipo_id\nGROUP BY e.nombre\nORDER BY goles_a_favor DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba que las restricciones protegen",
+       "body": "Intenta insertar un partido de Saprissa contra Saprissa. SQLite debe rechazarlo con «CHECK constraint failed». Prueba también goles negativos. Cada error que tu esquema atrapa es un dato malo que no llegará a tus reportes.",
+       "code": "CREATE TABLE equipos (\n  id         INTEGER PRIMARY KEY,\n  nombre     TEXT NOT NULL UNIQUE,\n  provincia  TEXT NOT NULL\n);\n\nCREATE TABLE jugadores (\n  id         INTEGER PRIMARY KEY,\n  nombre     TEXT NOT NULL,\n  equipo_id  INTEGER NOT NULL REFERENCES equipos(id),\n  posicion   TEXT NOT NULL CHECK (posicion IN ('portero', 'defensa', 'medio', 'delantero'))\n);\n\nCREATE TABLE partidos (\n  id            INTEGER PRIMARY KEY,\n  torneo        TEXT NOT NULL,\n  jornada       INTEGER NOT NULL CHECK (jornada >= 1),\n  fecha         TEXT NOT NULL,\n  local_id      INTEGER NOT NULL REFERENCES equipos(id),\n  visita_id     INTEGER NOT NULL REFERENCES equipos(id),\n  goles_local   INTEGER NOT NULL CHECK (goles_local >= 0),\n  goles_visita  INTEGER NOT NULL CHECK (goles_visita >= 0),\n  CHECK (local_id <> visita_id),\n  UNIQUE (torneo, local_id, visita_id)\n);\n\nCREATE TABLE goles (\n  id          INTEGER PRIMARY KEY,\n  partido_id  INTEGER NOT NULL REFERENCES partidos(id),\n  jugador_id  INTEGER NOT NULL REFERENCES jugadores(id),\n  minuto      INTEGER NOT NULL CHECK (minuto BETWEEN 1 AND 120)\n);\n-- Resultados inventados para practicar el diseño\nINSERT INTO equipos (id, nombre, provincia) VALUES\n  (1, 'Saprissa', 'San José'), (2, 'Alajuelense', 'Alajuela'),\n  (3, 'Herediano', 'Heredia'), (4, 'Cartaginés', 'Cartago');\nINSERT INTO partidos (torneo, jornada, fecha, local_id, visita_id, goles_local, goles_visita) VALUES\n  ('Apertura', 1, '2026-07-19', 1, 4, 2, 1),\n  ('Apertura', 1, '2026-07-19', 3, 2, 0, 0),\n  ('Apertura', 2, '2026-07-26', 2, 1, 3, 1),\n  ('Apertura', 2, '2026-07-26', 4, 3, 1, 2),\n  ('Apertura', 3, '2026-08-02', 1, 3, 1, 1),\n  ('Apertura', 3, '2026-08-02', 4, 2, 0, 2);\n\nINSERT INTO partidos (torneo, jornada, fecha, local_id, visita_id, goles_local, goles_visita)\nVALUES ('Apertura', 4, '2026-08-09', 1, 1, 2, 0);",
+       "language": "sql",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Una tabla con columnas repetidas como gol1, gol2, gol3",
+       "cause": "Se intentó guardar una lista dentro de una fila; cuando haya un cuarto gol no hay columna para él.",
+       "fix": "Lleva la lista a su propia tabla con una fila por elemento (`goles` con `partido_id`) y la clave foránea hacia la tabla principal."
+      },
+      {
+       "error": "FOREIGN KEY constraint failed al insertar",
+       "cause": "La fila apunta a un id que no existe en la tabla padre, o se insertaron los hijos antes que los padres.",
+       "fix": "Inserta primero las tablas sin claves foráneas (equipos) y después las que dependen de ellas (partidos, goles). Revisa el id con un SELECT."
+      },
+      {
+       "error": "CHECK constraint failed: local_id <> visita_id",
+       "cause": "El dato de prueba tiene el mismo equipo como local y visita. La restricción está funcionando.",
+       "fix": "Corrige el dato. Si un error así aparece con datos reales, la fuente tiene un problema que conviene anotar."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-17-1",
+     "title": "Resultados con nombres",
+     "prompt": "En el editor están las tablas `equipos` y `partidos` del proyecto modelo (resultados inventados). Muestra cada partido con la jornada, el nombre del equipo local, los goles del local, los goles de la visita y el nombre del equipo visitante, en ese orden.",
+     "hint": "Necesitas unir `equipos` dos veces, con alias distintos: una por `local_id` y otra por `visita_id`.",
+     "solution": "SELECT p.jornada, l.nombre AS local, p.goles_local, p.goles_visita, v.nombre AS visita\nFROM partidos p\nJOIN equipos l ON l.id = p.local_id\nJOIN equipos v ON v.id = p.visita_id;",
+     "check": "",
+     "setup": "CREATE TABLE equipos (\n  id INTEGER PRIMARY KEY, nombre TEXT NOT NULL UNIQUE, provincia TEXT NOT NULL\n);\nCREATE TABLE partidos (\n  id INTEGER PRIMARY KEY, torneo TEXT NOT NULL, jornada INTEGER NOT NULL, fecha TEXT NOT NULL,\n  local_id INTEGER NOT NULL REFERENCES equipos(id), visita_id INTEGER NOT NULL REFERENCES equipos(id),\n  goles_local INTEGER NOT NULL, goles_visita INTEGER NOT NULL\n);\n-- Resultados inventados para practicar el diseño\nINSERT INTO equipos (id, nombre, provincia) VALUES\n  (1, 'Saprissa', 'San José'), (2, 'Alajuelense', 'Alajuela'),\n  (3, 'Herediano', 'Heredia'), (4, 'Cartaginés', 'Cartago');\nINSERT INTO partidos (torneo, jornada, fecha, local_id, visita_id, goles_local, goles_visita) VALUES\n  ('Apertura', 1, '2026-07-19', 1, 4, 2, 1),\n  ('Apertura', 1, '2026-07-19', 3, 2, 0, 0),\n  ('Apertura', 2, '2026-07-26', 2, 1, 3, 1),\n  ('Apertura', 2, '2026-07-26', 4, 3, 1, 2),\n  ('Apertura', 3, '2026-08-02', 1, 3, 1, 1),\n  ('Apertura', 3, '2026-08-02', 4, 2, 0, 2);\n",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-17-2",
+     "title": "Goles a favor por equipo",
+     "prompt": "Con las mismas tablas del proyecto modelo, calcula cuántos goles anotó cada equipo sumando los que hizo de local y los que hizo de visita. Muestra el nombre del equipo y el total de goles a favor, en ese orden.",
+     "hint": "Arma primero una lista de (equipo, goles) con dos SELECT unidos por UNION ALL: uno con `local_id, goles_local` y otro con `visita_id, goles_visita`. Después agrupa.",
+     "solution": "SELECT e.nombre, SUM(g.goles) AS goles_a_favor\nFROM (\n  SELECT local_id AS equipo_id, goles_local AS goles FROM partidos\n  UNION ALL\n  SELECT visita_id, goles_visita FROM partidos\n) AS g\nJOIN equipos e ON e.id = g.equipo_id\nGROUP BY e.nombre;",
+     "check": "",
+     "setup": "CREATE TABLE equipos (\n  id INTEGER PRIMARY KEY, nombre TEXT NOT NULL UNIQUE, provincia TEXT NOT NULL\n);\nCREATE TABLE partidos (\n  id INTEGER PRIMARY KEY, torneo TEXT NOT NULL, jornada INTEGER NOT NULL, fecha TEXT NOT NULL,\n  local_id INTEGER NOT NULL REFERENCES equipos(id), visita_id INTEGER NOT NULL REFERENCES equipos(id),\n  goles_local INTEGER NOT NULL, goles_visita INTEGER NOT NULL\n);\n-- Resultados inventados para practicar el diseño\nINSERT INTO equipos (id, nombre, provincia) VALUES\n  (1, 'Saprissa', 'San José'), (2, 'Alajuelense', 'Alajuela'),\n  (3, 'Herediano', 'Heredia'), (4, 'Cartaginés', 'Cartago');\nINSERT INTO partidos (torneo, jornada, fecha, local_id, visita_id, goles_local, goles_visita) VALUES\n  ('Apertura', 1, '2026-07-19', 1, 4, 2, 1),\n  ('Apertura', 1, '2026-07-19', 3, 2, 0, 0),\n  ('Apertura', 2, '2026-07-26', 2, 1, 3, 1),\n  ('Apertura', 2, '2026-07-26', 4, 3, 1, 2),\n  ('Apertura', 3, '2026-08-02', 1, 3, 1, 1),\n  ('Apertura', 3, '2026-08-02', 4, 2, 0, 2);\n",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-17-3",
+     "title": "Tabla de posiciones",
+     "prompt": "Responde la primera pregunta del proyecto modelo: ¿qué equipo sumó más puntos? Una victoria da 3 puntos, un empate 1 y una derrota 0. Muestra el nombre del equipo y sus puntos, en ese orden, de mayor a menor puntaje y, si empatan, por nombre.",
+     "hint": "Con UNION ALL arma una fila por equipo y partido con sus goles a favor y en contra; luego usa CASE para convertir cada resultado en puntos y suma por equipo.",
+     "solution": "WITH resultados AS (\n  SELECT local_id AS equipo_id, goles_local AS a_favor, goles_visita AS en_contra FROM partidos\n  UNION ALL\n  SELECT visita_id, goles_visita, goles_local FROM partidos\n)\nSELECT e.nombre,\n       SUM(CASE WHEN r.a_favor > r.en_contra THEN 3\n                WHEN r.a_favor = r.en_contra THEN 1\n                ELSE 0 END) AS puntos\nFROM resultados r\nJOIN equipos e ON e.id = r.equipo_id\nGROUP BY e.nombre\nORDER BY puntos DESC, e.nombre;",
+     "check": "",
+     "setup": "CREATE TABLE equipos (\n  id INTEGER PRIMARY KEY, nombre TEXT NOT NULL UNIQUE, provincia TEXT NOT NULL\n);\nCREATE TABLE partidos (\n  id INTEGER PRIMARY KEY, torneo TEXT NOT NULL, jornada INTEGER NOT NULL, fecha TEXT NOT NULL,\n  local_id INTEGER NOT NULL REFERENCES equipos(id), visita_id INTEGER NOT NULL REFERENCES equipos(id),\n  goles_local INTEGER NOT NULL, goles_visita INTEGER NOT NULL\n);\n-- Resultados inventados para practicar el diseño\nINSERT INTO equipos (id, nombre, provincia) VALUES\n  (1, 'Saprissa', 'San José'), (2, 'Alajuelense', 'Alajuela'),\n  (3, 'Herediano', 'Heredia'), (4, 'Cartaginés', 'Cartago');\nINSERT INTO partidos (torneo, jornada, fecha, local_id, visita_id, goles_local, goles_visita) VALUES\n  ('Apertura', 1, '2026-07-19', 1, 4, 2, 1),\n  ('Apertura', 1, '2026-07-19', 3, 2, 0, 0),\n  ('Apertura', 2, '2026-07-26', 2, 1, 3, 1),\n  ('Apertura', 2, '2026-07-26', 4, 3, 1, 2),\n  ('Apertura', 3, '2026-08-02', 1, 3, 1, 1),\n  ('Apertura', 3, '2026-08-02', 4, 2, 0, 2);\n",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [
+    "Elige el tema de tu proyecto: una de las cinco ideas o una propia que pase los tres filtros. En `proyecto-final/PLAN.md` escribe el tema, por qué lo elegiste, la fuente de los datos y cómo los vas a conseguir.",
+    "Consigue hoy una muestra real de al menos 20 filas y guárdala en `datos/muestra.csv`. Anota en `PLAN.md` qué columnas trae, el formato de fechas y montos y qué problemas ves (vacíos, nombres escritos de varias formas).",
+    "Escribe de 5 a 8 preguntas de negocio en `PLAN.md`. Para cada una indica qué tablas necesita, qué técnica de SQL usarás y si termina en número, tabla o gráfica. Revisa que haya al menos una con JOIN, una agrupada por tiempo y una con gráfica.",
+    "Diseña de 3 a 5 tablas con sus columnas, tipos, claves primarias y foráneas, y dibuja el diagrama en Mermaid dentro de `PLAN.md`. Súbelo a GitHub y comprueba que el diagrama se ve.",
+    "Escribe `esquema.sql` con todas las restricciones, ejecútalo en DB Browser for SQLite o con Python sobre una base de prueba, inserta 3 o 4 filas de juguete por tabla y escribe la consulta de una de tus preguntas. Confirma y sube todo con un buen mensaje de commit."
+   ],
+   "taskHints": [
+    "Si dudas entre dos temas, elige el que tenga datos más fáciles de conseguir. Un tema modesto con buenos datos rinde más que uno ambicioso sin datos.",
+    "Para Open-Meteo, elige ciudad, fechas y variables diarias en la página y descarga el CSV. Para el banco, busca la opción de exportar movimientos del estado de cuenta.",
+    "Usa el programa de las dataclasses del tema 1 para revisar tus preguntas automáticamente.",
+    "Copia el bloque Mermaid del tema 2 y cambia nombres. Si GitHub no lo dibuja, revisa que empiece con tres comillas invertidas seguidas de `mermaid`.",
+    "Inserta primero las tablas que no tienen claves foráneas. Si algo falla, el mensaje de SQLite dice qué restricción se rompió."
+   ],
+   "challenge": {
+    "title": "Diseña la base de «Mi música»",
+    "description": "Practica el método de hoy con otra de las ideas. Diseña y escribe en SQL una base para analizar tu música con tres tablas: `artistas`, `canciones` y `reproducciones` (cada vez que escuchaste una canción, con fecha y hora, segundos escuchados y si fue en el celular o la computadora). Incluye claves primarias y foráneas, `NOT NULL` y al menos dos `CHECK`. Inserta unos 10 datos de juguete y responde con una consulta: ¿cuántos minutos escuchaste de cada artista, de mayor a menor?",
+    "hint": "Una reproducción pertenece a una canción y una canción a un artista: dos relaciones 1:N en cadena. Los minutos son la suma de segundos dividida entre `60.0`, para no caer en la división entera.",
+    "solution": "CREATE TABLE artistas (\n  id      INTEGER PRIMARY KEY,\n  nombre  TEXT NOT NULL UNIQUE,\n  pais    TEXT\n);\n\nCREATE TABLE canciones (\n  id          INTEGER PRIMARY KEY,\n  titulo      TEXT NOT NULL,\n  artista_id  INTEGER NOT NULL REFERENCES artistas(id),\n  duracion_s  INTEGER NOT NULL CHECK (duracion_s > 0)\n);\n\nCREATE TABLE reproducciones (\n  id             INTEGER PRIMARY KEY,\n  cancion_id     INTEGER NOT NULL REFERENCES canciones(id),\n  fecha_hora     TEXT NOT NULL,\n  segundos       INTEGER NOT NULL CHECK (segundos >= 0),\n  plataforma     TEXT NOT NULL CHECK (plataforma IN ('celular', 'computadora'))\n);\n\nINSERT INTO artistas (id, nombre, pais) VALUES\n  (1, 'Artista A', 'Costa Rica'), (2, 'Artista B', 'Colombia'), (3, 'Artista C', NULL);\nINSERT INTO canciones (id, titulo, artista_id, duracion_s) VALUES\n  (1, 'Canción 1', 1, 210), (2, 'Canción 2', 1, 185), (3, 'Canción 3', 2, 240),\n  (4, 'Canción 4', 3, 200), (5, 'Canción 5', 2, 175);\nINSERT INTO reproducciones (cancion_id, fecha_hora, segundos, plataforma) VALUES\n  (1, '2026-12-01 07:15', 210, 'celular'), (3, '2026-12-01 07:19', 240, 'celular'),\n  (2, '2026-12-01 21:02', 90, 'computadora'), (4, '2026-12-02 06:50', 200, 'celular'),\n  (5, '2026-12-02 12:30', 175, 'computadora'), (1, '2026-12-02 22:10', 210, 'computadora'),\n  (3, '2026-12-03 07:05', 240, 'celular'), (3, '2026-12-03 18:40', 120, 'celular'),\n  (2, '2026-12-04 07:30', 185, 'celular'), (4, '2026-12-04 20:15', 30, 'computadora');\n\nSELECT a.nombre, ROUND(SUM(r.segundos) / 60.0, 1) AS minutos\nFROM reproducciones r\nJOIN canciones c ON c.id = r.cancion_id\nJOIN artistas a ON a.id = c.artista_id\nGROUP BY a.nombre\nORDER BY minutos DESC, a.nombre;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Pregunta de negocio",
+     "definition": "Pregunta concreta sobre los datos que se responde con una consulta y produce un número, una tabla o una gráfica."
+    },
+    {
+     "term": "Entidad",
+     "definition": "Cosa con identidad propia sobre la que guardas datos; en la base se convierte en una tabla."
+    },
+    {
+     "term": "Relación 1:N",
+     "definition": "Un registro de una tabla se relaciona con muchos de otra; la clave foránea va en el lado de los muchos."
+    },
+    {
+     "term": "Diagrama entidad-relación",
+     "definition": "Dibujo de las tablas, sus claves y cómo se relacionan; se puede escribir en Mermaid dentro del README."
+    },
+    {
+     "term": "Mermaid",
+     "definition": "Lenguaje de texto para describir diagramas que GitHub dibuja automáticamente dentro de un archivo Markdown."
+    },
+    {
+     "term": "Datos de juguete",
+     "definition": "Unas pocas filas inventadas para probar que el esquema y las consultas funcionan antes de cargar los datos reales."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: CREATE TABLE",
+     "url": "https://www.sqlite.org/lang_createtable.html"
+    },
+    {
+     "title": "SQLite: claves foráneas",
+     "url": "https://www.sqlite.org/foreignkeys.html"
+    },
+    {
+     "title": "GitHub Docs: sintaxis básica de Markdown",
+     "url": "https://docs.github.com/es/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax"
+    },
+    {
+     "title": "Open-Meteo: datos históricos del clima",
+     "url": "https://open-meteo.com/en/docs/historical-weather-api"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estas es una buena pregunta de negocio para un proyecto de finanzas personales?",
+     "code": "",
+     "options": [
+      "Analizar mis gastos",
+      "¿Es bueno gastar en comida?",
+      "¿Cuánto gasté por categoría en cada mes de 2026?",
+      "Hacer gráficas bonitas de mi dinero"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: es un tema, no una pregunta; no sabrías cuándo está respondida.",
+      "No: pide una opinión, no algo que los datos puedan contar o sumar.",
+      "Correcto: es concreta, se responde con un GROUP BY por categoría y mes, y da para una gráfica.",
+      "No: describe una tarea, no una pregunta, y no dice qué medir."
+     ],
+     "explanation": "Una buena pregunta es concreta, medible y se responde con una consulta.",
+     "hint": "¿Cuál podrías responder con un SELECT?"
+    },
+    {
+     "type": "choice",
+     "prompt": "En el proyecto de fútbol, un equipo tiene muchos jugadores y cada jugador pertenece a un solo equipo. ¿Dónde va la clave foránea?",
+     "code": "",
+     "options": [
+      "En `equipos`, una columna `jugador_id`",
+      "En una tabla puente `equipos_jugadores`",
+      "No hace falta clave foránea",
+      "En `jugadores`, una columna `equipo_id`"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: un equipo tendría que guardar muchos `jugador_id` en una sola fila.",
+      "No: la tabla puente es para relaciones N:M; aquí cada jugador tiene un solo equipo.",
+      "No: sin clave foránea no podrías saber a qué equipo pertenece cada jugador.",
+      "Correcto: en una relación 1:N la clave foránea va en el lado de los muchos."
+     ],
+     "explanation": "En 1:N, cada fila del lado de los muchos apunta a su único padre con una clave foránea.",
+     "hint": "¿Cuál de las dos tablas tiene un solo valor que apuntar?"
+    },
+    {
+     "type": "choice",
+     "prompt": "Tu tabla `partidos` tiene `local_id` y `visita_id`, las dos hacia `equipos`. Para mostrar los dos nombres en una consulta, ¿qué necesitas?",
+     "code": "",
+     "options": [
+      "Unir `equipos` dos veces, con alias distintos",
+      "Un solo JOIN con `OR` en la condición",
+      "Guardar los nombres de los equipos dentro de `partidos`",
+      "Un UNION entre equipos y partidos"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: cada JOIN trae un nombre: uno por `local_id` y otro por `visita_id`.",
+      "No: con `OR` cada partido se une con ambos equipos y obtienes dos filas por partido, no dos columnas.",
+      "No: eso repite datos y rompe la normalización; si un equipo cambia de nombre habría que cambiarlo en cada partido.",
+      "No: UNION apila filas de consultas con las mismas columnas; no une tablas por una clave."
+     ],
+     "explanation": "Cuando una tabla apunta dos veces a otra, se une dos veces con alias distintos.",
+     "hint": "Piensa en una columna de nombre por cada clave foránea."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Conviene escribir las preguntas de negocio antes de diseñar las tablas.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: las preguntas dicen qué datos necesitas y cómo se relacionan.",
+      "No: si diseñas primero, es fácil olvidar una columna que una pregunta necesita o crear tablas que nadie usa."
+     ],
+     "explanation": "El diseño sirve a las preguntas: de ellas salen las entidades, las columnas y las relaciones.",
+     "hint": "¿Qué decide qué columnas necesitas?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Un proyecto con 10 tablas es mejor que uno con 4, porque demuestra más SQL.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: más tablas también significa más datos que conseguir, cargar y verificar en dos semanas.",
+      "Correcto: un diseño de 3 a 5 tablas bien relacionadas y con datos reales demuestra más que diez tablas vacías."
+     ],
+     "explanation": "La calidad del proyecto está en preguntas bien respondidas con datos reales, no en la cantidad de tablas.",
+     "hint": "Piensa en cuánto tiempo tienes para cargar y verificar cada tabla."
+    },
+    {
+     "type": "output",
+     "prompt": "Este código calcula los puntos de un equipo a partir de sus resultados (goles a favor, goles en contra). ¿Qué imprime?",
+     "code": "resultados = [(2, 1), (0, 0), (1, 3)]\npuntos = sum(3 if a > b else 1 if a == b else 0 for a, b in resultados)\nprint(puntos)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "4"
+     ],
+     "optionFeedback": [],
+     "explanation": "Una victoria (2-1) da 3, un empate (0-0) da 1 y una derrota (1-3) da 0: 3 + 1 + 0 = 4. Es la misma regla que el CASE del ejercicio «Tabla de posiciones».",
+     "hint": "Recorre cada tupla y decide si fue victoria, empate o derrota."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código del plan del proyecto?",
+     "code": "preguntas = [\n    (\"¿Qué equipo sumó más puntos?\", [\"equipos\", \"partidos\"]),\n    (\"¿Cuántos goles hubo por jornada?\", [\"partidos\"]),\n    (\"¿Quién es el goleador?\", [\"goles\", \"jugadores\"]),\n]\ntablas = {t for _, lista in preguntas for t in lista}\nprint(len(tablas), sorted(tablas)[0])",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "4 equipos"
+     ],
+     "optionFeedback": [],
+     "explanation": "El conjunto elimina repetidos: equipos, partidos, goles y jugadores son 4. Ordenadas alfabéticamente, la primera es \"equipos\".",
+     "hint": "Un conjunto no guarda duplicados; luego ordena alfabéticamente."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la restricción que impide que un equipo juegue contra sí mismo.",
+     "code": "CREATE TABLE partidos (\n  id INTEGER PRIMARY KEY,\n  local_id INTEGER NOT NULL REFERENCES equipos(id),\n  visita_id INTEGER NOT NULL REFERENCES equipos(id),\n  ___ (local_id <> visita_id)\n);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "CHECK"
+     ],
+     "optionFeedback": [],
+     "explanation": "`CHECK (condición)` rechaza cualquier fila que no cumpla la condición; aquí, que local y visita sean distintos.",
+     "hint": "Es la misma palabra que usas para validar rangos, como precios positivos."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-18",
+   "kind": "workshop",
+   "title": "Proyecto final: datos",
+   "summary": "Creas la base de tu proyecto con un script de Python que carga los datos desde CSV de forma repetible, y compruebas con SQL que los datos están completos y son confiables.",
+   "objectives": [
+    "Escribir un `crear_base.py` repetible que cree la base desde `esquema.sql` con las claves foráneas activas.",
+    "Cargar CSV con `csv.DictReader` y `executemany`, convirtiendo tipos y apartando las filas inválidas con su motivo.",
+    "Verificar la base con consultas de conteos, nulos, rangos, duplicados, huérfanos y un control total.",
+    "Escribir las primeras cinco consultas que responden preguntas de negocio del proyecto."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Crear la base y cargar los datos con Python",
+     "minutes": 80
+    },
+    {
+     "label": "Tema 2: Verificar los datos con SQL",
+     "minutes": 60
+    },
+    {
+     "label": "Práctica: crear_base.py, verificar.sql y consultas.sql",
+     "minutes": 80
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 25
+    }
+   ],
+   "topics": [
+    {
+     "title": "Crear la base y cargar los datos con Python",
+     "concept": "Tu base no se arma a mano en DB Browser: la construye un programa, `crear_base.py`, que puedes ejecutar las veces que quieras con el mismo resultado. Si mañana encuentras un error en los datos, lo corriges en el CSV y vuelves a ejecutar. Para eso, `esquema.sql` empieza con `DROP TABLE IF EXISTS` (primero las tablas hijas, después las padres) y el programa lo corre con `executescript`.\n\nLa carga junta lo de la semana 9: `PRAGMA foreign_keys = ON` justo después de conectar, `csv.DictReader` para leer, `executemany` con `?` para insertar y `with con:` para que todo quede en una transacción. Carga primero las tablas padre y guarda un diccionario nombre → id: así conviertes «Saprissa» del CSV en el `local_id` que pide la tabla.\n\n**Nunca confíes en que el CSV viene limpio.** Todo llega como texto: convierte con `int()` o `float()`, quita espacios con `strip()` y decide qué hacer con lo vacío. Una dataclass como `Partido` deja claro qué forma tiene una fila válida. Las filas que no se pueden convertir no detienen la carga: se apartan con su número de línea y un motivo, y luego decides si corregir la fuente o descartarlas.",
+     "tip": "Imprime siempre al final cuántas filas cargó cada tabla y cuántas se rechazaron. Si el CSV tiene 132 partidos y la tabla 131, quieres enterarte hoy, no cuando una gráfica salga rara.",
+     "example": "import csv\nimport sqlite3\nfrom dataclasses import astuple, dataclass\nfrom pathlib import Path\n\n# --- Solo para el ejemplo: en tu proyecto estos archivos ya existen ---\nPath(\"datos\").mkdir(exist_ok=True)\nPath(\"datos/equipos.csv\").write_text(\n    \"nombre,provincia\\n\"\n    \"Saprissa,San José\\n\"\n    \"Alajuelense,Alajuela\\n\"\n    \"Herediano,Heredia\\n\"\n    \"Cartaginés,Cartago\\n\", encoding=\"utf-8\")\nPath(\"datos/partidos.csv\").write_text(\n    \"jornada,fecha,local,visita,goles_local,goles_visita\\n\"\n    \"1,2026-07-19,Saprissa,Cartaginés,2,1\\n\"\n    \"1,2026-07-19,Herediano,Alajuelense,0,0\\n\"\n    \"2,2026-07-26,Alajuelense,Saprissa,3,1\\n\"\n    \"2,2026-07-26,Cartaginés,Herediana,1,2\\n\"\n    \"3,2026-08-02,Saprissa,Herediano,1,1\\n\"\n    \"3,2026-08-02,Cartaginés,Alajuelense,0,\\n\", encoding=\"utf-8\")\nPath(\"esquema.sql\").write_text(\"\"\"\nDROP TABLE IF EXISTS partidos;\nDROP TABLE IF EXISTS equipos;\nCREATE TABLE equipos (\n  id INTEGER PRIMARY KEY,\n  nombre TEXT NOT NULL UNIQUE,\n  provincia TEXT NOT NULL\n);\nCREATE TABLE partidos (\n  id INTEGER PRIMARY KEY,\n  jornada INTEGER NOT NULL CHECK (jornada >= 1),\n  fecha TEXT NOT NULL,\n  local_id INTEGER NOT NULL REFERENCES equipos(id),\n  visita_id INTEGER NOT NULL REFERENCES equipos(id),\n  goles_local INTEGER NOT NULL CHECK (goles_local >= 0),\n  goles_visita INTEGER NOT NULL CHECK (goles_visita >= 0),\n  CHECK (local_id <> visita_id)\n);\n\"\"\", encoding=\"utf-8\")\n# ----------------------------------------------------------------------\n\n\n@dataclass\nclass Partido:\n    jornada: int\n    fecha: str\n    local_id: int\n    visita_id: int\n    goles_local: int\n    goles_visita: int\n\n\ndef crear_base(ruta):\n    \"\"\"Crea la base desde cero con el esquema y activa las claves foráneas.\"\"\"\n    con = sqlite3.connect(ruta)\n    con.execute(\"PRAGMA foreign_keys = ON\")\n    con.executescript(Path(\"esquema.sql\").read_text(encoding=\"utf-8\"))\n    return con\n\n\ndef cargar_equipos(con):\n    \"\"\"Carga equipos.csv y devuelve un diccionario nombre -> id.\"\"\"\n    with open(\"datos/equipos.csv\", encoding=\"utf-8\", newline=\"\") as f:\n        filas = [(r[\"nombre\"].strip(), r[\"provincia\"].strip()) for r in csv.DictReader(f)]\n    with con:\n        con.executemany(\"INSERT INTO equipos (nombre, provincia) VALUES (?, ?)\", filas)\n    return {nombre: id_ for id_, nombre in con.execute(\"SELECT id, nombre FROM equipos\")}\n\n\ndef cargar_partidos(con, ids):\n    \"\"\"Convierte y valida cada fila; carga las buenas y devuelve las rechazadas.\"\"\"\n    buenos, rechazados = [], []\n    with open(\"datos/partidos.csv\", encoding=\"utf-8\", newline=\"\") as f:\n        for numero, fila in enumerate(csv.DictReader(f), start=2):\n            try:\n                buenos.append(Partido(\n                    int(fila[\"jornada\"]), fila[\"fecha\"].strip(),\n                    ids[fila[\"local\"].strip()], ids[fila[\"visita\"].strip()],\n                    int(fila[\"goles_local\"]), int(fila[\"goles_visita\"])))\n            except KeyError as e:\n                rechazados.append(f\"línea {numero}: equipo desconocido {e}\")\n            except ValueError:\n                rechazados.append(f\"línea {numero}: número inválido o vacío\")\n    with con:\n        con.executemany(\n            \"INSERT INTO partidos (jornada, fecha, local_id, visita_id, goles_local, goles_visita)\"\n            \" VALUES (?, ?, ?, ?, ?, ?)\", [astuple(p) for p in buenos])\n    return rechazados\n\n\ncon = crear_base(\"futbol.db\")\nids = cargar_equipos(con)\nrechazados = cargar_partidos(con, ids)\nfor tabla in (\"equipos\", \"partidos\"):\n    print(tabla, con.execute(f\"SELECT COUNT(*) FROM {tabla}\").fetchone()[0])\nprint(\"Rechazados:\")\nfor motivo in rechazados:\n    print(\" \", motivo)\ncon.close()\n",
+     "language": "python",
+     "exampleOutput": "equipos 4\npartidos 4\nRechazados:\n  línea 5: equipo desconocido 'Herediana'\n  línea 7: número inválido o vacío",
+     "steps": [
+      {
+       "title": "Organiza la carpeta del proyecto",
+       "body": "Deja los datos originales en `datos/` y no los edites a mano si puedes evitarlo: son tu fuente. El esquema va en `esquema.sql` y la carga en `crear_base.py`. Agrega `*.db` a `.gitignore`: la base se puede regenerar en cualquier momento con el script, así que lo que importa versionar son los datos y el código.",
+       "code": "cd proyecto-final\n# Estructura esperada:\n#   datos/          CSV originales\n#   esquema.sql     CREATE TABLE con DROP TABLE IF EXISTS al inicio\n#   crear_base.py   crea la base y carga los datos\n#   verificar.sql   revisiones de calidad\n#   consultas.sql   las consultas que responden tus preguntas\necho \"*.db\" >> .gitignore\ngit status",
+       "language": "bash"
+      },
+      {
+       "title": "Crea la base desde el esquema",
+       "body": "Conecta, activa las claves foráneas y ejecuta el esquema completo. Como empieza con `DROP TABLE IF EXISTS`, puedes correrlo dos veces seguidas y la base queda igual, vacía y lista. Comprueba qué tablas existen consultando `sqlite_master`.",
+       "code": "import sqlite3\nfrom pathlib import Path\n\nPath(\"esquema.sql\").write_text(\"\"\"\nDROP TABLE IF EXISTS equipos;\nCREATE TABLE equipos (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL UNIQUE, provincia TEXT NOT NULL);\n\"\"\", encoding=\"utf-8\")\n\nfor intento in (1, 2):\n    con = sqlite3.connect(\"prueba.db\")\n    con.execute(\"PRAGMA foreign_keys = ON\")\n    con.executescript(Path(\"esquema.sql\").read_text(encoding=\"utf-8\"))\n    tablas = [fila[0] for fila in con.execute(\"SELECT name FROM sqlite_master WHERE type = 'table'\")]\n    print(\"Intento\", intento, tablas)\n    con.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "Convierte cada valor al tipo correcto",
+       "body": "`csv.DictReader` entrega todo como texto, con espacios incluidos. Escribe funciones pequeñas que conviertan y decidan qué hacer con lo vacío: aquí un monto vacío se vuelve `None` (NULL en SQLite) en vez de romper el programa. Pruébalas con casos raros antes de usarlas en la carga.",
+       "code": "def entero_o_nulo(texto):\n    \"\"\"Convierte ' 1500 ' en 1500 y '' en None.\"\"\"\n    texto = texto.strip().replace(\" \", \"\")\n    return int(texto) if texto else None\n\n\nfor valor in [\" 1500 \", \"12 500\", \"\", \"  \"]:\n    print(repr(valor), \"->\", entero_o_nulo(valor))\n",
+       "language": "python"
+      },
+      {
+       "title": "Carga con executemany dentro de una transacción",
+       "body": "Ejecuta el ejemplo completo y lee la salida: cuatro equipos, cuatro partidos cargados y dos rechazados, uno por un equipo mal escrito («Herediana») y otro por un gol vacío. Corrige esas dos líneas en el CSV, vuelve a ejecutar y comprueba que ahora entran los seis partidos.",
+       "code": "",
+       "language": "python"
+      },
+      {
+       "title": "Haz commit de la carga",
+       "body": "Cuando la carga funcione sin rechazos inesperados, confirma el esquema, el script y los datos. El mensaje dice qué hace el cambio. La base `.db` no se sube: cualquiera la recrea con `python crear_base.py`.",
+       "code": "git add esquema.sql crear_base.py datos/ .gitignore\ngit commit -m \"Agrega script que crea la base y carga los datos desde CSV\"\ngit push",
+       "language": "bash"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "sqlite3.IntegrityError: FOREIGN KEY constraint failed",
+       "cause": "Insertaste una fila hija con un id que no existe en la tabla padre, o cargaste los partidos antes que los equipos.",
+       "fix": "Carga primero las tablas padre y arma el diccionario nombre → id desde la base. Imprime la fila que falla para ver qué valor no tiene pareja."
+      },
+      {
+       "error": "ValueError: invalid literal for int() with base 10: ''",
+       "cause": "Una celda del CSV está vacía y `int(\"\")` no sabe qué número es.",
+       "fix": "Decide la regla: si el dato es obligatorio, aparta la fila como rechazada; si es opcional, conviértelo en `None` con una función como `entero_o_nulo`."
+      },
+      {
+       "error": "sqlite3.OperationalError: table equipos already exists",
+       "cause": "Ejecutaste el esquema por segunda vez y no tiene `DROP TABLE IF EXISTS` al inicio.",
+       "fix": "Agrega `DROP TABLE IF EXISTS` para cada tabla al comienzo de `esquema.sql`, primero las hijas y después las padres."
+      },
+      {
+       "error": "La carga termina sin errores pero las tablas están vacías",
+       "cause": "Faltó confirmar la transacción: insertaste sin `with con:` y sin `con.commit()`, y al cerrar se perdió todo.",
+       "fix": "Envuelve los `executemany` en `with con:`, que confirma al salir del bloque, y verifica con un `SELECT COUNT(*)` después de cerrar y volver a abrir la base."
+      }
+     ]
+    },
+    {
+     "title": "Verificar los datos con SQL",
+     "concept": "Que la carga no dé errores no significa que los datos estén bien. Antes de responder una sola pregunta, revisa la base con consultas de verificación y guárdalas en `verificar.sql` para repetirlas cada vez que recargues. Seis revisiones cubren casi todo.\n\n**Conteos**: `COUNT(*)` por tabla debe coincidir con las líneas del CSV menos el encabezado y los rechazos. **Nulos**: `COUNT(*) - COUNT(columna)` dice cuántos vacíos hay en cada columna importante. **Rangos**: `MIN` y `MAX` de fechas y montos muestran fechas imposibles o montos negativos. **Duplicados**: `GROUP BY` con `HAVING COUNT(*) > 1` sobre lo que debería ser único. **Huérfanos**: un LEFT JOIN con `IS NULL`, o `PRAGMA foreign_key_check`, encuentra filas hijas sin padre. **Control total**: compara una suma con un número que conoces de la fuente, como el total del estado de cuenta.\n\nCada resultado raro se investiga antes de borrar nada. Dos clientes con el mismo nombre pueden ser dos personas distintas. **Corrige en la fuente o en el script de carga, no a mano en la base**: si no, el arreglo se pierde la próxima vez que ejecutes `crear_base.py`.",
+     "tip": "Escribe cada verificación de modo que el resultado esperado sea 0 o un número que conoces. Así, revisar la base es mirar una columna y buscar lo que no cuadra.",
+     "example": "SELECT 'clientes' AS revision, COUNT(*) AS valor FROM clientes\nUNION ALL\nSELECT 'clientes sin email', COUNT(*) - COUNT(email) FROM clientes\nUNION ALL\nSELECT 'pedidos sin líneas de detalle', COUNT(*)\nFROM pedidos p\nWHERE NOT EXISTS (SELECT 1 FROM detalle_pedido d WHERE d.pedido_id = p.id)\nUNION ALL\nSELECT 'pedidos con cliente inexistente', COUNT(*)\nFROM pedidos p LEFT JOIN clientes c ON c.id = p.cliente_id\nWHERE c.id IS NULL\nUNION ALL\nSELECT 'descuentos fuera de 0 a 0.5', COUNT(*)\nFROM detalle_pedido WHERE descuento NOT BETWEEN 0 AND 0.5\nUNION ALL\nSELECT 'primer pedido', MIN(fecha) FROM pedidos\nUNION ALL\nSELECT 'último pedido', MAX(fecha) FROM pedidos;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Conteos por tabla",
+       "body": "Arma un solo reporte con UNION ALL: una fila por tabla con su cantidad. Compáralo con las líneas de tus CSV (menos el encabezado). En la Tienda no tienes los CSV, pero el patrón es el mismo.",
+       "code": "SELECT 'clientes' AS tabla, COUNT(*) AS filas FROM clientes\nUNION ALL SELECT 'productos', COUNT(*) FROM productos\nUNION ALL SELECT 'pedidos', COUNT(*) FROM pedidos\nUNION ALL SELECT 'detalle_pedido', COUNT(*) FROM detalle_pedido;",
+       "language": "sql"
+      },
+      {
+       "title": "Nulos en columnas importantes",
+       "body": "`COUNT(columna)` no cuenta los NULL, así que la resta con `COUNT(*)` da los vacíos. En la Tienda hay 2 clientes sin email, 7 sin teléfono y 12 sin fecha de nacimiento: son datos opcionales, pero si un análisis usa la edad, tienes que saberlo.",
+       "code": "SELECT COUNT(*) - COUNT(email) AS sin_email,\n       COUNT(*) - COUNT(telefono) AS sin_telefono,\n       COUNT(*) - COUNT(fecha_nacimiento) AS sin_nacimiento\nFROM clientes;",
+       "language": "sql"
+      },
+      {
+       "title": "Rangos de fechas y valores",
+       "body": "Las fechas deben caer dentro del periodo de tus datos y los montos ser razonables. Una fecha `2062-11-07` o un precio de 0 aparecen enseguida en un MIN o un MAX. Revisa también que las fechas tengan el formato `AAAA-MM-DD` midiendo su largo.",
+       "code": "SELECT MIN(fecha) AS primera, MAX(fecha) AS ultima,\n       SUM(LENGTH(fecha) <> 10) AS fechas_mal_formadas\nFROM pedidos;\nSELECT MIN(precio), MAX(precio), SUM(precio <= 0) AS precios_invalidos FROM productos;",
+       "language": "sql"
+      },
+      {
+       "title": "Duplicados",
+       "body": "Agrupa por lo que debería ser único y quédate con los grupos de más de una fila. Si la consulta no devuelve nada, no hay duplicados. Aquí los correos son únicos; en el ejercicio de hoy revisarás los nombres.",
+       "code": "SELECT email, COUNT(*) AS veces\nFROM clientes\nWHERE email IS NOT NULL\nGROUP BY email\nHAVING COUNT(*) > 1;",
+       "language": "sql"
+      },
+      {
+       "title": "Huérfanos y claves foráneas",
+       "body": "Un LEFT JOIN con `IS NULL` encuentra hijos sin padre. `PRAGMA foreign_key_check` hace esa revisión para todas las claves foráneas a la vez y no devuelve filas cuando todo está bien. Es muy útil si cargaste datos con las claves foráneas desactivadas.",
+       "code": "SELECT COUNT(*) AS lineas_sin_producto\nFROM detalle_pedido d\nLEFT JOIN productos p ON p.id = d.producto_id\nWHERE p.id IS NULL;\nPRAGMA foreign_key_check;",
+       "language": "sql"
+      },
+      {
+       "title": "Control total contra la fuente",
+       "body": "Compara una suma con un número que conoces por fuera de la base: el total del estado de cuenta, los goles de una jornada que viste en el periódico. Si coincide, la carga no perdió ni duplicó filas. Anota el número esperado en un comentario al lado de la consulta.",
+       "code": "-- Esperado según la fuente: 420 pedidos y 862 líneas\nSELECT (SELECT COUNT(*) FROM pedidos) AS pedidos,\n       (SELECT COUNT(*) FROM detalle_pedido) AS lineas,\n       ROUND(SUM(cantidad * precio_unitario * (1 - descuento))) AS total_lineas\nFROM detalle_pedido;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Los conteos no coinciden con el CSV",
+       "cause": "Hubo filas rechazadas, el CSV tiene líneas en blanco al final o la carga se ejecutó dos veces sin borrar la base.",
+       "fix": "Compara con el número de filas que leyó `DictReader` menos las rechazadas, y confirma que `esquema.sql` empieza con `DROP TABLE IF EXISTS`."
+      },
+      {
+       "error": "Corregí un dato en DB Browser y al recargar volvió el error",
+       "cause": "El arreglo se hizo en la base, que se regenera desde los CSV cada vez que ejecutas `crear_base.py`.",
+       "fix": "Corrige en el CSV o agrega la regla de limpieza en el script de carga, y vuelve a crear la base."
+      },
+      {
+       "error": "`WHERE columna = NULL` dice que no hay vacíos",
+       "cause": "En SQL nada es igual a NULL, ni siquiera NULL, así que la condición nunca es verdadera.",
+       "fix": "Usa `IS NULL` o la resta `COUNT(*) - COUNT(columna)`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-18-1",
+     "title": "Filas por tabla",
+     "prompt": "Antes de entregar un reporte, Álvaro, el analista de datos, revisa que la base esté completa. Muestra una fila por cada una de las 8 tablas de la Tienda con el nombre de la tabla (como texto) y su cantidad de filas, en ese orden.",
+     "hint": "Ocho SELECT de una fila cada uno, unidos con UNION ALL. El nombre de la tabla va como texto entre comillas simples.",
+     "solution": "SELECT 'provincias' AS tabla, COUNT(*) AS filas FROM provincias\nUNION ALL SELECT 'clientes', COUNT(*) FROM clientes\nUNION ALL SELECT 'categorias', COUNT(*) FROM categorias\nUNION ALL SELECT 'productos', COUNT(*) FROM productos\nUNION ALL SELECT 'empleados', COUNT(*) FROM empleados\nUNION ALL SELECT 'pedidos', COUNT(*) FROM pedidos\nUNION ALL SELECT 'detalle_pedido', COUNT(*) FROM detalle_pedido\nUNION ALL SELECT 'resenas', COUNT(*) FROM resenas;",
+     "check": "",
+     "setup": "",
+     "starter": "SELECT 'provincias' AS tabla, COUNT(*) AS filas FROM provincias\nUNION ALL\n",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-18-2",
+     "title": "Rangos de fechas",
+     "prompt": "Los datos de la Tienda llegan hasta el 30 de septiembre de 2026. Para revisar que ninguna fecha se salga de ese periodo, muestra dos filas, una para `pedidos` y otra para `resenas`, con el nombre de la tabla (como texto), la fecha más antigua y la fecha más reciente, en ese orden. Mira el resultado: ¿alguna fecha queda fuera del periodo?",
+     "hint": "Dos SELECT con MIN y MAX, unidos con UNION ALL. El nombre de la tabla va como texto entre comillas simples.",
+     "solution": "SELECT 'pedidos' AS tabla, MIN(fecha) AS primera, MAX(fecha) AS ultima FROM pedidos\nUNION ALL\nSELECT 'resenas', MIN(fecha), MAX(fecha) FROM resenas;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-18-3",
+     "title": "Clientes con el mismo nombre",
+     "prompt": "Antes de decidir si hay clientes registrados dos veces, Álvaro quiere ver los nombres completos repetidos. Muestra el nombre, el apellido y cuántas veces aparece esa combinación, en ese orden, solo para las combinaciones que aparecen más de una vez.",
+     "hint": "Agrupa por nombre y apellido, y filtra los grupos con HAVING.",
+     "solution": "SELECT nombre, apellido, COUNT(*) AS veces\nFROM clientes\nGROUP BY nombre, apellido\nHAVING COUNT(*) > 1;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Termina `esquema.sql` con `DROP TABLE IF EXISTS` al inicio (hijas primero) y escribe `crear_base.py` con una función `crear_base(ruta)` que conecte, active las claves foráneas y ejecute el esquema. Ejecútalo dos veces seguidas para comprobar que no falla.",
+    "Agrega a `crear_base.py` una función de carga por tabla con `csv.DictReader`, conversión de tipos, una dataclass para la tabla principal y `executemany` dentro de `with con:`. Al final imprime cuántas filas cargó cada tabla y la lista de filas rechazadas con su motivo.",
+    "Escribe `verificar.sql` con al menos seis revisiones (conteos, nulos, rangos, duplicados, huérfanos y un control total contra la fuente) y ejecútalo. Por cada resultado raro, anota en `PLAN.md` qué encontraste y cómo lo resolviste en el CSV o en el script.",
+    "Escribe `consultas.sql` con cinco consultas que respondan cinco de tus preguntas de negocio. Antes de cada una, un comentario con la pregunta y, después de ejecutarla, otro comentario con la respuesta que obtuviste en una frase.",
+    "Actualiza el `README.md` con cómo crear la base (`python crear_base.py`), cómo verificarla y qué contiene cada archivo, agrega `*.db` a `.gitignore` y sube todo a GitHub con commits pequeños y mensajes claros."
+   ],
+   "taskHints": [
+    "Si una tabla tiene clave foránea hacia otra, bórrala primero: `DROP TABLE IF EXISTS partidos;` antes de `DROP TABLE IF EXISTS equipos;`.",
+    "El diccionario nombre → id se arma después de cargar la tabla padre: `{nombre: id_ for id_, nombre in con.execute(\"SELECT id, nombre FROM equipos\")}`.",
+    "Escribe cada revisión de modo que el valor esperado sea 0 o un número conocido de la fuente, y anótalo en un comentario al lado.",
+    "Prueba cada consulta primero en DB Browser for SQLite o con un pequeño programa que use `pd.read_sql_query`; el lunes las convertirás en reportes.",
+    "Antes del último push, clona el repositorio en otra carpeta y sigue tu README al pie de la letra, como en el reto del miércoles."
+   ],
+   "challenge": {
+    "title": "Un verificador automático",
+    "description": "Escribe `verificar.py` con un diccionario `VERIFICACIONES` donde cada clave describe una revisión y cada valor es una consulta SQL que debería devolver 0. Una función `verificar(con)` las ejecuta todas, imprime OK o REVISAR con la cantidad, y devuelve cuántas fallaron. Pruébalo primero con `tienda.db` (al menos 6 verificaciones: huérfanos, rangos, duplicados) y después adáptalo a la base de tu proyecto, para correrlo cada vez que la recargues.",
+    "hint": "Escribe cada consulta como un `SELECT COUNT(*)` de las filas problemáticas. Para contar grupos duplicados, envuelve el `GROUP BY ... HAVING` en una subconsulta en FROM y cuenta sus filas.",
+    "solution": "import sqlite3\n\nVERIFICACIONES = {\n    \"pedidos sin líneas de detalle\":\n        \"SELECT COUNT(*) FROM pedidos p WHERE NOT EXISTS \"\n        \"(SELECT 1 FROM detalle_pedido d WHERE d.pedido_id = p.id)\",\n    \"líneas con producto inexistente\":\n        \"SELECT COUNT(*) FROM detalle_pedido d LEFT JOIN productos p \"\n        \"ON p.id = d.producto_id WHERE p.id IS NULL\",\n    \"descuentos fuera de 0 a 0.5\":\n        \"SELECT COUNT(*) FROM detalle_pedido WHERE descuento NOT BETWEEN 0 AND 0.5\",\n    \"pedidos fuera del periodo 2025-01-01 a 2026-09-30\":\n        \"SELECT COUNT(*) FROM pedidos WHERE fecha NOT BETWEEN '2025-01-01' AND '2026-09-30'\",\n    \"reseñas fuera del periodo 2025-01-01 a 2026-09-30\":\n        \"SELECT COUNT(*) FROM resenas WHERE fecha NOT BETWEEN '2025-01-01' AND '2026-09-30'\",\n    \"emails repetidos\":\n        \"SELECT COUNT(*) FROM (SELECT email FROM clientes WHERE email IS NOT NULL \"\n        \"GROUP BY email HAVING COUNT(*) > 1)\",\n    \"nombres completos repetidos\":\n        \"SELECT COUNT(*) FROM (SELECT nombre, apellido FROM clientes \"\n        \"GROUP BY nombre, apellido HAVING COUNT(*) > 1)\",\n}\n\n\ndef verificar(con):\n    \"\"\"Ejecuta cada verificación; todas deberían dar 0. Devuelve cuántas fallaron.\"\"\"\n    fallas = 0\n    for descripcion, sql in VERIFICACIONES.items():\n        cantidad = con.execute(sql).fetchone()[0]\n        estado = \"OK\" if cantidad == 0 else f\"REVISAR ({cantidad})\"\n        if cantidad:\n            fallas += 1\n        print(f\"{estado:<14}{descripcion}\")\n    return fallas\n\n\ncon = sqlite3.connect(\"tienda.db\")\ntotal = verificar(con)\ncon.close()\nprint(f\"{total} de {len(VERIFICACIONES)} verificaciones para revisar\")\n",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Script de carga",
+     "definition": "Programa que crea la base desde el esquema y la llena con los datos de la fuente; se puede ejecutar de nuevo con el mismo resultado."
+    },
+    {
+     "term": "executemany",
+     "definition": "Método de sqlite3 que ejecuta la misma sentencia con parámetros ? para cada elemento de una lista de tuplas."
+    },
+    {
+     "term": "Fila rechazada",
+     "definition": "Fila de la fuente que no se pudo convertir o validar; se aparta con su número de línea y el motivo en vez de detener la carga."
+    },
+    {
+     "term": "Verificación de datos",
+     "definition": "Consulta que busca problemas como conteos que no cuadran, nulos, valores fuera de rango, duplicados o huérfanos."
+    },
+    {
+     "term": "Huérfano",
+     "definition": "Fila hija cuya clave foránea apunta a un registro que no existe en la tabla padre."
+    },
+    {
+     "term": "PRAGMA foreign_key_check",
+     "definition": "Instrucción de SQLite que lista las filas que violan alguna clave foránea; no devuelve nada si todo está bien."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Python: módulo csv",
+     "url": "https://docs.python.org/es/3/library/csv.html"
+    },
+    {
+     "title": "Python: módulo sqlite3",
+     "url": "https://docs.python.org/es/3/library/sqlite3.html"
+    },
+    {
+     "title": "SQLite: claves foráneas y foreign_key_check",
+     "url": "https://www.sqlite.org/foreignkeys.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Por qué `esquema.sql` debe empezar con `DROP TABLE IF EXISTS` para cada tabla?",
+     "code": "",
+     "options": [
+      "Para que la base pese menos",
+      "Para que `crear_base.py` se pueda ejecutar varias veces y siempre deje la base igual",
+      "Porque SQLite no permite crear tablas sin borrarlas antes",
+      "Para activar las claves foráneas"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el tamaño no tiene que ver; se trata de poder repetir la carga.",
+      "Correcto: cada ejecución parte de cero, así que corregir un CSV y recargar es seguro.",
+      "No: SQLite crea tablas sin problema; el error aparece solo si ya existen.",
+      "No: eso lo hace `PRAGMA foreign_keys = ON`."
+     ],
+     "explanation": "Un script de carga repetible borra y crea las tablas cada vez, así la base siempre refleja los datos actuales de la fuente.",
+     "hint": "¿Qué pasa la segunda vez que ejecutas un CREATE TABLE?"
+    },
+    {
+     "type": "choice",
+     "prompt": "Tu CSV de partidos tiene 132 filas de datos, la carga rechazó 2 y `SELECT COUNT(*) FROM partidos` devuelve 260. ¿Qué es lo más probable?",
+     "code": "",
+     "options": [
+      "SQLite duplica las filas automáticamente",
+      "El CSV tiene líneas en blanco",
+      "Las claves foráneas están desactivadas",
+      "La carga se ejecutó dos veces sin borrar las tablas"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: SQLite inserta exactamente lo que le mandas.",
+      "No: las líneas en blanco darían menos filas o rechazos, no el doble.",
+      "No: sin claves foráneas podrías tener huérfanos, pero no el doble de filas.",
+      "Correcto: 130 cargadas dos veces son 260. Falta el `DROP TABLE IF EXISTS` al inicio del esquema."
+     ],
+     "explanation": "Si el conteo es un múltiplo exacto de lo esperado, la carga se repitió sobre una base que no se vació.",
+     "hint": "Calcula cuántas filas deberían haber entrado."
+    },
+    {
+     "type": "choice",
+     "prompt": "Encuentras dos clientes con el mismo nombre y apellido. ¿Qué haces primero?",
+     "code": "",
+     "options": [
+      "Borrar uno de los dos",
+      "Cambiar a mano el nombre de uno en DB Browser",
+      "Revisar sus demás datos (email, provincia, fecha de registro) para saber si son la misma persona",
+      "Ignorarlo, porque los nombres nunca se repiten"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: podrían ser dos personas distintas y perderías un cliente con todos sus pedidos.",
+      "No: los cambios a mano en la base se pierden al recargar, y no sabes todavía si hay un error.",
+      "Correcto: verificar no es borrar; primero se investiga con los demás datos.",
+      "No: los nombres se repiten a menudo; justamente por eso hay que investigar."
+     ],
+     "explanation": "Ante un posible duplicado, investiga antes de actuar. En la Tienda, los tres pares tienen emails distintos, así que pueden ser personas distintas.",
+     "hint": "¿Qué otras columnas distinguen a dos personas?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si `crear_base.py` termina sin errores, los datos de la base son correctos.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la carga puede terminar bien y aun así haber filas rechazadas, vacíos o valores raros.",
+      "Correcto: sin errores solo significa que nada se rompió; para saber si los datos están bien hay que verificarlos con consultas."
+     ],
+     "explanation": "Un dato puede ser válido para SQLite y estar mal para tu análisis: una fecha de 2062, un monto duplicado, un equipo mal escrito.",
+     "hint": "¿Qué tipos de problemas no rompen un INSERT?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "`PRAGMA foreign_key_check` no devuelve ninguna fila cuando todas las claves foráneas apuntan a registros que existen.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: solo lista las filas que violan alguna clave foránea.",
+      "No: esta instrucción devuelve únicamente los problemas; sin problemas, no devuelve nada."
+     ],
+     "explanation": "Es una verificación de huérfanos para toda la base en una sola instrucción.",
+     "hint": "Piensa en qué lista: lo bueno o lo malo."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta sobre la base de la Tienda?",
+     "code": "SELECT COUNT(*) - COUNT(telefono) FROM clientes;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "7"
+     ],
+     "optionFeedback": [],
+     "explanation": "`COUNT(*)` cuenta los 80 clientes y `COUNT(telefono)` solo los que tienen teléfono (73): la diferencia, 7, son los clientes sin teléfono.",
+     "hint": "`COUNT(columna)` ignora los NULL."
+    },
+    {
+     "type": "output",
+     "prompt": "Este fragmento convierte las celdas de una columna de goles. ¿Qué imprime?",
+     "code": "celdas = [\"2\", \" 1 \", \"\", \"3\"]\nbuenos, rechazados = [], 0\nfor celda in celdas:\n    try:\n        buenos.append(int(celda))\n    except ValueError:\n        rechazados += 1\nprint(sum(buenos), rechazados)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "6 1"
+     ],
+     "optionFeedback": [],
+     "explanation": "`int(\" 1 \")` acepta espacios alrededor y da 1; `int(\"\")` lanza ValueError. Se cargan 2, 1 y 3 (suma 6) y se rechaza 1 celda.",
+     "hint": "Fíjate en cuál celda no tiene ningún número."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la instrucción que activa las claves foráneas en la conexión, justo después de conectar.",
+     "code": "con = sqlite3.connect(\"futbol.db\")\ncon.execute(\"PRAGMA ___ = ON\")",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "foreign_keys"
+     ],
+     "optionFeedback": [],
+     "explanation": "SQLite trae las claves foráneas desactivadas por defecto y se activan por conexión con `PRAGMA foreign_keys = ON`.",
+     "hint": "Es el nombre en inglés de «claves foráneas», con guion bajo."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-12-19",
+  "kind": "weekly",
+  "path": "proyecto-final/ (repositorio en GitHub)",
+  "description": "Entregas el plan y la base de datos de tu proyecto final: el documento del plan con el tema, la fuente y las preguntas de negocio, el diagrama de las tablas, el script que crea la base y carga los datos reales, y cinco consultas que ya responden preguntas. Es la base sobre la que la próxima semana construirás los reportes, la gráfica y el README final.",
+  "criteria": [
+   "`PLAN.md` tiene el tema, la fuente de los datos y de 5 a 8 preguntas de negocio concretas, cada una con las tablas que necesita y si termina en número, tabla o gráfica.",
+   "El diagrama entidad-relación (Mermaid o imagen) muestra de 3 a 5 tablas con claves primarias y foráneas, y coincide con `esquema.sql`.",
+   "`python crear_base.py` crea la base desde cero sin errores, con las claves foráneas activas, y se puede ejecutar dos veces seguidas con el mismo resultado.",
+   "La base tiene datos reales cargados desde la fuente (al menos 100 filas en la tabla principal) y el script informa las filas cargadas y las rechazadas.",
+   "`verificar.sql` tiene al menos seis revisiones y cada resultado raro está explicado en `PLAN.md`; `consultas.sql` tiene cinco consultas que funcionan, cada una con su pregunta y su respuesta en comentarios.",
+   "El repositorio está en GitHub con un README que explica cómo crear la base y varios commits con mensajes claros."
+  ],
+  "steps": [
+   "Relee `PLAN.md` y ajusta las preguntas a lo que realmente trajeron tus datos.",
+   "Revisa que el diagrama y `esquema.sql` digan lo mismo: mismas tablas, columnas y claves.",
+   "Completa la carga de todos los datos reales con `crear_base.py` y anota cuántas filas se rechazaron y por qué.",
+   "Ejecuta `verificar.sql`, investiga cada resultado raro y corrígelo en la fuente o en el script, no a mano en la base.",
+   "Escribe y ejecuta las cinco consultas de `consultas.sql`, con la pregunta antes y la respuesta después en comentarios.",
+   "Actualiza el README con cómo crear y verificar la base, y la lista de archivos.",
+   "Clona el repositorio en otra carpeta, sigue el README desde cero y corrige lo que falle.",
+   "Sube todo con `git push` y envía el enlace del repositorio."
+  ],
+  "tips": [
+   "Si te faltan datos para llegar a 100 filas, amplía el periodo (más meses, otro torneo, otra ciudad) en vez de inventar filas.",
+   "Una consulta corta que responde bien una pregunta vale más que una enorme que nadie entiende; usa CTE con nombres claros.",
+   "Haz commit cada vez que algo funcione: el revisor también lee tu historia de commits.",
+   "Si tus datos son personales, usa un repositorio privado e invita a tu revisor, o anonimízalos antes del primer commit."
+  ],
+  "stretch": "Agrega una prueba con pytest que cree la base en una carpeta temporal con `crear_base.py`, compruebe que cada tabla tiene la cantidad de filas esperada y que `PRAGMA foreign_key_check` no devuelve nada. Así sabrás al instante si un cambio en el CSV o en el script rompió la carga.",
+  "checklist": [
+   "`PLAN.md` tiene tema, fuente, preguntas clasificadas y el diagrama.",
+   "`esquema.sql` empieza con `DROP TABLE IF EXISTS` y tiene claves foráneas y restricciones.",
+   "`python crear_base.py` funciona dos veces seguidas y muestra filas cargadas y rechazadas.",
+   "`verificar.sql` corre sin errores y los resultados raros están explicados.",
+   "Las cinco consultas de `consultas.sql` funcionan y tienen pregunta y respuesta en comentarios.",
+   "`.gitignore` excluye `*.db`, `__pycache__/` y `.venv/`, y no hay datos privados expuestos.",
+   "El README explica cómo crear la base, y el repositorio clonado desde cero funciona."
+  ],
+  "exercises": []
+ }
+}

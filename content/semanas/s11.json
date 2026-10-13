@@ -1,0 +1,1261 @@
+{
+ "id": "s11",
+ "number": 11,
+ "phaseId": 4,
+ "title": "Construye el proyecto",
+ "rangeLabel": "21 dic – 26 dic",
+ "days": [
+  {
+   "date": "2026-12-21",
+   "kind": "workshop",
+   "title": "Proyecto: consultas y reportes",
+   "summary": "Respondes con SQL cada pregunta de tu proyecto, compruebas las cifras por un segundo camino y las conviertes en reportes de Python con clases y el patrón repositorio.",
+   "objectives": [
+    "Escribir en `consultas.sql` una consulta comentada por cada pregunta de negocio de tu proyecto.",
+    "Comprobar cada respuesta con un cálculo de control que debe dar la misma cifra.",
+    "Pasar las consultas a métodos de un repositorio con parámetros `?` que devuelven datos, no texto.",
+    "Construir una capa de reportes con una dataclass que imprime tablas alineadas y exporta a CSV."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Responder las preguntas con SQL",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Reportes en Python",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: consultas, repositorio y reportes de tu proyecto",
+     "minutes": 80
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Responder las preguntas con SQL",
+     "concept": "La semana pasada elegiste las preguntas de negocio de tu proyecto y cargaste la base. Hoy cada pregunta se convierte en **una consulta que se puede leer, volver a correr y comprobar**. Guárdalas todas en `consultas.sql`, cada una con un comentario arriba que copie la pregunta tal como la escribiste en tu plan.\n\nEl método es el de la semana 3: qué columnas pide la respuesta, de qué tablas salen, qué filas cuentan (¿se excluyen los cancelados?, ¿qué periodo?), cómo se agrupa y en qué orden se muestra. Cuando la consulta crece, ordénala con `WITH`: una CTE por idea, con nombres que se lean como frases (`lineas`, `totales_por_mes`).\n\nUna cifra sin comprobar todavía no es una respuesta. Para cada consulta busca un **cálculo de control**: un segundo camino que debe dar lo mismo. Si sumas los ingresos por categoría, la suma de los grupos tiene que coincidir con el total calculado sin agrupar; si cuentas clientes por provincia, la suma tiene que dar el total de clientes. El ejemplo usa la Tienda, pero el método es idéntico con las tablas de tu proyecto.",
+     "tip": "Antes de escribir la consulta, describe en el comentario cómo se verá la respuesta: «una fila por mes, con mes, pedidos e ingresos». Si no puedes describir la tabla de salida, la pregunta todavía está vaga.",
+     "example": "-- Pregunta 2: ¿qué categoría dejó más margen en 2026?\n-- Salida: una fila por categoría con ingresos, margen y margen en %.\nWITH lineas AS (\n  SELECT c.nombre AS categoria,\n         d.cantidad * d.precio_unitario * (1 - d.descuento) AS ingreso,\n         d.cantidad * pr.costo AS costo\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  JOIN productos pr ON pr.id = d.producto_id\n  JOIN categorias c ON c.id = pr.categoria_id\n  WHERE p.estado <> 'cancelado'\n    AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\n)\nSELECT categoria,\n       ROUND(SUM(ingreso)) AS ingresos,\n       ROUND(SUM(ingreso - costo)) AS margen,\n       ROUND(100.0 * SUM(ingreso - costo) / SUM(ingreso), 1) AS margen_pct\nFROM lineas\nGROUP BY categoria\nORDER BY margen DESC;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Mira las filas crudas de las tablas que vas a usar",
+       "body": "Antes de unir nada, mira cinco filas de la tabla principal para confirmar nombres de columnas, formatos de fecha y cómo se calcula el monto. En la Tienda, el ingreso de una línea es `cantidad * precio_unitario * (1 - descuento)`.",
+       "code": "SELECT pedido_id, producto_id, cantidad, precio_unitario, descuento\nFROM detalle_pedido\nLIMIT 5;",
+       "language": "sql"
+      },
+      {
+       "title": "Arma la CTE base y cuenta sus filas",
+       "body": "Escribe la CTE con los JOIN y los filtros de negocio (sin cancelados, solo 2026) y, antes de agrupar, cuenta cuántas filas tiene. Ese número es tu referencia: si después de un JOIN cambia sin que lo esperes, algo se duplicó.",
+       "code": "WITH lineas AS (\n  SELECT c.nombre AS categoria,\n         d.cantidad * d.precio_unitario * (1 - d.descuento) AS ingreso,\n         d.cantidad * pr.costo AS costo\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  JOIN productos pr ON pr.id = d.producto_id\n  JOIN categorias c ON c.id = pr.categoria_id\n  WHERE p.estado <> 'cancelado'\n    AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\n)\nSELECT COUNT(*) AS lineas_2026, ROUND(SUM(ingreso)) AS ingresos\nFROM lineas;",
+       "language": "sql"
+      },
+      {
+       "title": "Agrupa, calcula y ordena",
+       "body": "Sobre la CTE, agrupa por categoría y calcula ingresos, margen y porcentaje. Redondea al final, sobre el `SUM`, y usa `100.0` para que la división no sea entera. Ropa queda primera con ₡707 825 de margen.",
+       "code": "-- Pregunta 2: ¿qué categoría dejó más margen en 2026?\n-- Salida: una fila por categoría con ingresos, margen y margen en %.\nWITH lineas AS (\n  SELECT c.nombre AS categoria,\n         d.cantidad * d.precio_unitario * (1 - d.descuento) AS ingreso,\n         d.cantidad * pr.costo AS costo\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  JOIN productos pr ON pr.id = d.producto_id\n  JOIN categorias c ON c.id = pr.categoria_id\n  WHERE p.estado <> 'cancelado'\n    AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\n)\nSELECT categoria,\n       ROUND(SUM(ingreso)) AS ingresos,\n       ROUND(SUM(ingreso - costo)) AS margen,\n       ROUND(100.0 * SUM(ingreso - costo) / SUM(ingreso), 1) AS margen_pct\nFROM lineas\nGROUP BY categoria\nORDER BY margen DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Escribe el cálculo de control",
+       "body": "Calcula el total de 2026 por otro camino, sin CTE ni GROUP BY, y compáralo con la suma de los grupos. Las dos columnas deben dar ₡6 070 260. Si difieren, revisa filtros y JOIN antes de seguir.",
+       "code": "WITH lineas AS (\n  SELECT c.nombre AS categoria,\n         d.cantidad * d.precio_unitario * (1 - d.descuento) AS ingreso,\n         d.cantidad * pr.costo AS costo\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  JOIN productos pr ON pr.id = d.producto_id\n  JOIN categorias c ON c.id = pr.categoria_id\n  WHERE p.estado <> 'cancelado'\n    AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\n),\npor_categoria AS (\n  SELECT categoria, SUM(ingreso) AS ingresos\n  FROM lineas\n  GROUP BY categoria\n)\nSELECT (SELECT ROUND(SUM(ingresos)) FROM por_categoria) AS suma_de_categorias,\n       (SELECT ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)))\n        FROM pedidos p\n        JOIN detalle_pedido d ON d.pedido_id = p.id\n        WHERE p.estado <> 'cancelado'\n          AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31') AS total_directo;",
+       "language": "sql"
+      },
+      {
+       "title": "Deja la pregunta, la consulta y la respuesta juntas",
+       "body": "En `consultas.sql`, cada bloque tiene tres partes: la pregunta, la consulta y la respuesta con la fecha en que la obtuviste. Así, cuando escribas el README o prepares la presentación, ya tienes los hallazgos redactados.",
+       "code": "-- =====================================================\n-- Pregunta 1: ¿cuántos pedidos válidos hubo en 2026?\n-- Salida: una fila con pedidos e ingresos.\n-- Respuesta (21 dic): 173 pedidos y ₡6 070 260.\n-- =====================================================\nSELECT COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS ingresos\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\n  AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31';",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Los totales salen inflados: el doble o el triple de lo esperado",
+       "cause": "Uniste una tabla de «muchos» que no hacía falta (por ejemplo `resenas`): cada línea de venta se repite una vez por reseña y el `SUM` cuenta la misma venta varias veces.",
+       "fix": "Cuenta las filas antes y después de cada JOIN. Si necesitas datos de dos tablas de «muchos», agrega cada una por separado en su propia CTE y une los resultados ya agrupados."
+      },
+      {
+       "error": "La suma de los grupos no coincide con el total por unos pocos colones",
+       "cause": "Redondeaste cada línea o cada grupo antes de sumar, y los redondeos se acumulan.",
+       "fix": "Suma los valores sin redondear y aplica `ROUND` solo en el resultado final que se muestra."
+      },
+      {
+       "error": "Los ingresos del año no coinciden con los que anotaste en tu plan",
+       "cause": "Falta un filtro de negocio en alguna consulta (los pedidos cancelados, el rango de fechas) o está escrito distinto en cada una.",
+       "fix": "Define los filtros una sola vez en la CTE base y copia esa misma CTE en todas las consultas que la necesiten."
+      },
+      {
+       "error": "near \"SELECT\": syntax error",
+       "cause": "Pusiste un punto y coma al cerrar la CTE, antes del `SELECT` final. `WITH ... SELECT` es una sola sentencia.",
+       "fix": "Quita el `;` intermedio: entre CTE van comas, y el único `;` va al final del `SELECT`."
+      }
+     ]
+    },
+    {
+     "title": "Reportes en Python",
+     "concept": "Con las consultas listas, el programa las usa sin mezclar responsabilidades. El **repositorio** (la clase de la semana 9) es el único que habla con SQLite: cada pregunta es un método con parámetros `?` que devuelve datos, nunca texto formateado. Encima va una capa de reportes: una `@dataclass Reporte` con `titulo`, `columnas` y `filas`, y una clase que arma un `Reporte` por pregunta.\n\nAsí cada pieza tiene un solo trabajo: el repositorio sabe SQL, la clase de reportes sabe qué pregunta responde cada consulta, y una función aparte sabe mostrar la tabla en la terminal o guardarla en CSV. Si mañana cambias una consulta, solo tocas el repositorio; si quieres otra presentación, solo tocas la función de impresión.\n\nPara que las tablas se lean bien, calcula el ancho de cada columna con `max(len(...))`, alinea el texto a la izquierda y los números a la derecha, y formatea los colones con separador de miles: `f\"₡{monto:,.0f}\"`. Para exportar, `csv.writer` escribe primero `reporte.columnas` y luego las filas.",
+     "tip": "Un método del repositorio que imprime en vez de devolver no se puede probar ni reutilizar. Si ves un `print` dentro del repositorio, muévelo a `main.py` o a la función de presentación.",
+     "example": "import sqlite3\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Reporte:\n    \"\"\"Una respuesta lista para mostrar: título, nombres de columna y filas.\"\"\"\n    titulo: str\n    columnas: list[str]\n    filas: list[tuple]\n\n\nclass VentasRepositorio:\n    \"\"\"Única clase que habla con SQLite.\"\"\"\n\n    def __init__(self, con: sqlite3.Connection):\n        self.con = con\n\n    def ingresos_por_mes(self, anio: str) -> list[tuple]:\n        \"\"\"Pedidos e ingresos de cada mes del año, sin cancelados.\"\"\"\n        sql = \"\"\"\n            SELECT substr(p.fecha, 1, 7) AS mes,\n                   COUNT(DISTINCT p.id),\n                   ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)))\n            FROM pedidos p\n            JOIN detalle_pedido d ON d.pedido_id = p.id\n            WHERE p.estado <> 'cancelado' AND substr(p.fecha, 1, 4) = ?\n            GROUP BY mes\n            ORDER BY mes\n        \"\"\"\n        return self.con.execute(sql, (anio,)).fetchall()\n\n\nclass Reportes:\n    \"\"\"Arma un Reporte por pregunta usando el repositorio.\"\"\"\n\n    def __init__(self, repo: VentasRepositorio):\n        self.repo = repo\n\n    def ventas_mensuales(self, anio: str) -> Reporte:\n        filas = self.repo.ingresos_por_mes(anio)\n        return Reporte(f\"Ventas por mes de {anio}\", [\"mes\", \"pedidos\", \"ingresos\"], filas)\n\n\ndef celda(valor) -> str:\n    \"\"\"Los montos (float) en colones con separador de miles; lo demás, como texto.\"\"\"\n    return f\"₡{valor:,.0f}\" if isinstance(valor, float) else str(valor)\n\n\ndef imprimir(reporte: Reporte) -> None:\n    filas = [[celda(v) for v in fila] for fila in reporte.filas]\n    anchos = [max(len(x) for x in [col] + [f[i] for f in filas]) for i, col in enumerate(reporte.columnas)]\n    numericas = [isinstance(v, (int, float)) for v in reporte.filas[0]]\n\n    def linea(valores):\n        return \"  \".join(v.rjust(a) if num else v.ljust(a) for v, a, num in zip(valores, anchos, numericas))\n\n    print(reporte.titulo)\n    print(linea(reporte.columnas))\n    print(linea([\"-\" * a for a in anchos]))\n    for fila in filas:\n        print(linea(fila))\n\n\ncon = sqlite3.connect(\"tienda.db\")\nreportes = Reportes(VentasRepositorio(con))\nimprimir(reportes.ventas_mensuales(\"2026\"))\ncon.close()\n",
+     "language": "python",
+     "exampleOutput": "Ventas por mes de 2026\nmes      pedidos    ingresos\n-------  -------  ----------\n2026-01       18    ₡529,000\n2026-02       28  ₡1,085,438\n2026-03       15    ₡654,688\n2026-04       17    ₡647,368\n2026-05       14    ₡595,688\n2026-06       19    ₡720,845\n2026-07       19    ₡686,670\n2026-08       22    ₡630,005\n2026-09       21    ₡520,560",
+     "steps": [
+      {
+       "title": "Un método del repositorio por pregunta",
+       "body": "Copia la consulta de `consultas.sql` a un método y cambia el valor fijo por `?`. Prueba el método solo, imprimiendo lo que devuelve: una lista de tuplas, una por mes. Este paso usa `tienda.db`; en tu proyecto, tu propia base.",
+       "code": "import sqlite3\n\n\nclass VentasRepositorio:\n    \"\"\"Única clase que habla con SQLite.\"\"\"\n\n    def __init__(self, con: sqlite3.Connection):\n        self.con = con\n\n    def ingresos_por_provincia(self, anio: str) -> list[tuple]:\n        \"\"\"Ingresos de cada provincia en el año, de mayor a menor.\"\"\"\n        sql = \"\"\"\n            SELECT pv.nombre,\n                   ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS ingresos\n            FROM pedidos p\n            JOIN clientes c ON c.id = p.cliente_id\n            JOIN provincias pv ON pv.id = c.provincia_id\n            JOIN detalle_pedido d ON d.pedido_id = p.id\n            WHERE p.estado <> 'cancelado' AND substr(p.fecha, 1, 4) = ?\n            GROUP BY pv.nombre\n            ORDER BY ingresos DESC\n        \"\"\"\n        return self.con.execute(sql, (anio,)).fetchall()\n\n\ncon = sqlite3.connect(\"tienda.db\")\nrepo = VentasRepositorio(con)\nfor fila in repo.ingresos_por_provincia(\"2026\")[:3]:\n    print(fila)\ncon.close()\n",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Envuelve cada respuesta en un Reporte",
+       "body": "La dataclass `Reporte` le da la misma forma a todas las respuestas. La clase `Reportes` recibe el repositorio y tiene un método por pregunta más `todos()`, que devuelve la lista completa para que `main.py` solo la recorra.",
+       "code": "from dataclasses import dataclass\n\n\n@dataclass\nclass Reporte:\n    titulo: str\n    columnas: list[str]\n    filas: list[tuple]\n\n\nclass RepositorioFalso:\n    \"\"\"Para probar Reportes sin base de datos: devuelve filas fijas.\"\"\"\n\n    def ingresos_por_provincia(self, anio):\n        return [(\"San José\", 2126973.0), (\"Limón\", 1273658.0)]\n\n\nclass Reportes:\n    def __init__(self, repo):\n        self.repo = repo\n\n    def por_provincia(self, anio: str) -> Reporte:\n        return Reporte(f\"Ingresos por provincia, {anio}\", [\"provincia\", \"ingresos\"], self.repo.ingresos_por_provincia(anio))\n\n    def todos(self) -> list[Reporte]:\n        return [self.por_provincia(\"2026\")]\n\n\nfor r in Reportes(RepositorioFalso()).todos():\n    print(r.titulo, r.columnas, len(r.filas), \"filas\")\n",
+       "language": "python"
+      },
+      {
+       "title": "Imprime con anchos calculados",
+       "body": "El ancho de cada columna es el largo del texto más largo de esa columna, incluido el encabezado. `ljust` rellena a la derecha (texto) y `rjust` a la izquierda (números), así las cifras quedan alineadas por las unidades.",
+       "code": "filas = [(\"San José\", 2126973.0), (\"Limón\", 1273658.0), (\"Cartago\", 759155.0)]\ncolumnas = [\"provincia\", \"ingresos\"]\n\ntexto = [[nombre, f\"₡{monto:,.0f}\"] for nombre, monto in filas]\nanchos = [max(len(x) for x in [columnas[i]] + [f[i] for f in texto]) for i in range(2)]\n\nprint(columnas[0].ljust(anchos[0]), columnas[1].rjust(anchos[1]))\nfor nombre, monto in texto:\n    print(nombre.ljust(anchos[0]), monto.rjust(anchos[1]))\n",
+       "language": "python"
+      },
+      {
+       "title": "Exporta un reporte a CSV",
+       "body": "Una función recibe el `Reporte` y la ruta, crea la carpeta si no existe y escribe encabezados y filas. `newline=\"\"` evita líneas en blanco en Windows y `utf-8-sig` hace que Excel muestre bien las tildes. Fíjate en que los montos salen como `2126973.0`: `ROUND` devuelve un número real. Si los quieres enteros, usa `CAST(ROUND(...) AS INTEGER)` en la consulta.",
+       "code": "import csv\nimport os\nimport tempfile\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Reporte:\n    titulo: str\n    columnas: list[str]\n    filas: list[tuple]\n\n\ndef exportar_csv(reporte: Reporte, ruta: str) -> str:\n    \"\"\"Guarda el reporte en CSV y devuelve la ruta.\"\"\"\n    os.makedirs(os.path.dirname(ruta) or \".\", exist_ok=True)\n    with open(ruta, \"w\", newline=\"\", encoding=\"utf-8-sig\") as f:\n        escritor = csv.writer(f)\n        escritor.writerow(reporte.columnas)\n        escritor.writerows(reporte.filas)\n    return ruta\n\n\nr = Reporte(\"Ingresos por provincia\", [\"provincia\", \"ingresos\"], [(\"San José\", 2126973.0), (\"Limón\", 1273658.0)])\nruta = exportar_csv(r, os.path.join(tempfile.mkdtemp(), \"salidas\", \"provincias.csv\"))\nwith open(ruta, encoding=\"utf-8-sig\") as f:\n    print(f.read())\n",
+       "language": "python"
+      },
+      {
+       "title": "main.py une las piezas",
+       "body": "`main.py` abre la conexión, crea el repositorio y los reportes, imprime todos y exporta los que quieras. Con `if __name__ == \"__main__\":` el archivo se puede importar en las pruebas sin que se ejecute el programa.",
+       "code": "import sqlite3\n\nfrom repositorio import VentasRepositorio\nfrom reportes import Reportes, imprimir, exportar_csv\n\n\ndef main() -> None:\n    con = sqlite3.connect(\"datos/proyecto.db\")\n    try:\n        reportes = Reportes(VentasRepositorio(con))\n        for reporte in reportes.todos():\n            imprimir(reporte)\n            print()\n        exportar_csv(reportes.todos()[0], \"salidas/reporte_1.csv\")\n    finally:\n        con.close()\n\n\nif __name__ == \"__main__\":\n    main()\n",
+       "language": "python",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "sqlite3.OperationalError: no such table: pedidos",
+       "cause": "`sqlite3.connect` no encontró la base en esa ruta y creó una vacía nueva. Las rutas relativas dependen de la carpeta desde la que corres el programa, no de dónde está el archivo .py.",
+       "fix": "Corre el programa desde la raíz del proyecto, o arma la ruta a partir del archivo: `Path(__file__).parent / \"datos\" / \"proyecto.db\"`. Borra el archivo .db vacío que se creó por error."
+      },
+      {
+       "error": "sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 1, and there are 4 supplied.",
+       "cause": "Pasaste `(\"2026\")` sin coma: eso no es una tupla sino el texto `\"2026\"`, y sqlite3 lo toma como 4 valores (un carácter cada uno).",
+       "fix": "Escribe la tupla con coma: `(anio,)`, o usa una lista: `[anio]`."
+      },
+      {
+       "error": "ValueError: Unknown format code ',' for object of type 'str'",
+       "cause": "El monto llegó como texto: la columna se guardó como TEXT al cargar los datos, o lo convertiste con `str()` antes de formatearlo.",
+       "fix": "Formatea antes de convertir a texto y revisa el tipo en la base con `SELECT typeof(monto) FROM ...`. Si quedó como texto, corrige la carga o usa `CAST(monto AS INTEGER)` en la consulta."
+      },
+      {
+       "error": "El CSV se abre en Excel con caracteres raros (JosÃ©) o con una línea en blanco entre filas",
+       "cause": "El archivo se abrió sin `newline=\"\"` o Excel no detectó que está en UTF-8.",
+       "fix": "Abre el archivo con `open(ruta, \"w\", newline=\"\", encoding=\"utf-8-sig\")`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-21-1",
+     "title": "Ingresos mensuales de 2026",
+     "prompt": "Una pregunta típica de proyecto: ¿cómo se movieron las ventas mes a mes? Para cada mes de 2026 muestra el mes como texto `AAAA-MM`, la cantidad de pedidos y los ingresos redondeados a 0 decimales, en ese orden. Cuenta solo los pedidos que no están cancelados; el ingreso de una línea es `cantidad * precio_unitario * (1 - descuento)` (sin costo de envío). Ordena del mes más antiguo al más reciente.",
+     "hint": "`substr(fecha, 1, 7)` da el mes. Como unes `pedidos` con `detalle_pedido`, cada pedido aparece una vez por línea: cuenta los pedidos con `COUNT(DISTINCT p.id)`.",
+     "solution": "SELECT substr(p.fecha, 1, 7) AS mes,\n       COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS ingresos\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\n  AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\nGROUP BY mes\nORDER BY mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-21-2",
+     "title": "Margen por categoría en 2026",
+     "prompt": "La gerente quiere saber qué categorías sostienen el negocio. Para cada categoría con ventas en 2026 muestra su nombre, las unidades vendidas, los ingresos y el margen, en ese orden, con ingresos y margen redondeados a 0 decimales. Usa solo pedidos no cancelados. El margen de una línea es su ingreso (`cantidad * precio_unitario * (1 - descuento)`) menos `cantidad * costo`, con el costo de la tabla `productos`.",
+     "hint": "Necesitas cuatro tablas: pedidos → detalle_pedido → productos → categorias. Calcula ingreso y costo por línea (una CTE ayuda) y luego agrupa por categoría.",
+     "solution": "WITH lineas AS (\n  SELECT c.nombre AS categoria,\n         d.cantidad * d.precio_unitario * (1 - d.descuento) AS ingreso,\n         d.cantidad AS unidades,\n         d.cantidad * pr.costo AS costo\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  JOIN productos pr ON pr.id = d.producto_id\n  JOIN categorias c ON c.id = pr.categoria_id\n  WHERE p.estado <> 'cancelado'\n    AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\n)\nSELECT categoria,\n       SUM(unidades) AS unidades,\n       ROUND(SUM(ingreso)) AS ingresos,\n       ROUND(SUM(ingreso - costo)) AS margen\nFROM lineas\nGROUP BY categoria;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `consultas.sql` en tu proyecto y escribe una consulta por cada pregunta de negocio de tu plan. Encima de cada una, un comentario con la pregunta tal cual y una línea que describa la tabla de respuesta (qué columnas y una fila por qué).",
+    "Corre cada consulta y anota la respuesta en un comentario debajo. Para cada una, escribe y corre un cálculo de control (otro camino que debe dar la misma cifra) y anota si cuadró. Si no cuadra, no sigas hasta encontrar por qué.",
+    "Pasa las consultas a tu clase repositorio: un método por pregunta, con un nombre que diga qué devuelve, docstring de una línea y los filtros (año, categoría, mes) como parámetros `?`. Cada método devuelve listas de tuplas o de objetos, nunca texto formateado.",
+    "Crea `reportes.py` con la dataclass `Reporte` y una clase que arme un `Reporte` por pregunta usando el repositorio. En `main.py`, recorre todos los reportes e imprimelos como tablas alineadas, con los montos en colones.",
+    "Exporta al menos un reporte a CSV en `salidas/`, ábrelo en una hoja de cálculo para revisar tildes y columnas, y haz un commit por cada parte terminada (consultas, repositorio, reportes, CSV) y push al final del día."
+   ],
+   "taskHints": [
+    "Sigue el formato del paso 5 del tema 1: `-- Pregunta 3: ¿...?`, `-- Salida: una fila por mes con mes, pedidos e ingresos`, la consulta y `-- Respuesta: ...`. En la Tienda sería, por ejemplo, `-- Pregunta: ¿qué provincia compra más?` seguida de un JOIN pedidos → clientes → provincias con GROUP BY.",
+    "Controles típicos: la suma de un GROUP BY contra el total sin agrupar; un `COUNT(*)` antes y después de cada JOIN para ver si se duplicaron filas; un caso concreto revisado a mano. En la Tienda, la suma de los ingresos por provincia de 2026 da ₡6 070 260, lo mismo que el total calculado sin agrupar.",
+    "Copia la consulta dentro de una cadena con triple comilla y reemplaza el valor fijo por `?`: `WHERE substr(p.fecha, 1, 4) = ?` y `self.con.execute(sql, (anio,))`. Fíjate en la coma de la tupla. Prueba cada método en la terminal de Python antes de seguir con el siguiente.",
+    "El ejemplo del tema 2 tiene `Reporte`, `Reportes` e `imprimir` completos con la Tienda; cambia la consulta por las tuyas. Con un método `todos()` que devuelva la lista de reportes, `main.py` queda en un `for reporte in reportes.todos(): imprimir(reporte)`.",
+    "La función `exportar_csv` del paso 4 del tema 2 ya crea la carpeta con `os.makedirs(..., exist_ok=True)`. Mensajes de commit concretos y en presente: `Agrega reporte de ventas por mes`, no `cambios`."
+   ],
+   "challenge": {
+    "title": "Este año frente al anterior",
+    "description": "Agrega al repositorio un método que devuelva los ingresos por categoría de enero a un mes dado en dos años distintos (una columna por año, en una sola consulta) y a la clase `Reportes` un método `comparar_anios` que calcule la variación porcentual y ordene de mayor a menor crecimiento. Pruébalo con la Tienda para enero a septiembre de 2025 frente a 2026, e imprime la tabla con los montos en colones y el cambio con signo. Después aplica la misma idea a tu proyecto si tus datos tienen fechas.",
+    "hint": "Un `SUM(CASE WHEN substr(p.fecha, 1, 4) = ? THEN ingreso ELSE 0 END)` por año pone los dos años en columnas. Filtra los meses con `substr(p.fecha, 6, 2) <= ?`. La variación es `(b - a) / a * 100`; cuida el caso `a == 0`. Con `f\"{v:+.1f} %\"` el signo sale siempre.",
+    "solution": "import sqlite3\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Reporte:\n    titulo: str\n    columnas: list[str]\n    filas: list[tuple]\n\n\nclass VentasRepositorio:\n    def __init__(self, con: sqlite3.Connection):\n        self.con = con\n\n    def ingresos_categoria_dos_anios(self, anio_a: str, anio_b: str, hasta_mes: str) -> list[tuple]:\n        \"\"\"Ingresos por categoría de enero a hasta_mes en dos años, una columna por año.\"\"\"\n        sql = \"\"\"\n            SELECT c.nombre,\n                   ROUND(SUM(CASE WHEN substr(p.fecha, 1, 4) = ?\n                                  THEN d.cantidad * d.precio_unitario * (1 - d.descuento) ELSE 0 END)),\n                   ROUND(SUM(CASE WHEN substr(p.fecha, 1, 4) = ?\n                                  THEN d.cantidad * d.precio_unitario * (1 - d.descuento) ELSE 0 END))\n            FROM pedidos p\n            JOIN detalle_pedido d ON d.pedido_id = p.id\n            JOIN productos pr ON pr.id = d.producto_id\n            JOIN categorias c ON c.id = pr.categoria_id\n            WHERE p.estado <> 'cancelado' AND substr(p.fecha, 6, 2) <= ?\n            GROUP BY c.nombre\n        \"\"\"\n        return self.con.execute(sql, (anio_a, anio_b, hasta_mes)).fetchall()\n\n\nclass Reportes:\n    def __init__(self, repo: VentasRepositorio):\n        self.repo = repo\n\n    def comparar_anios(self, anio_a: str, anio_b: str, hasta_mes: str = \"09\") -> Reporte:\n        filas = []\n        for categoria, a, b in self.repo.ingresos_categoria_dos_anios(anio_a, anio_b, hasta_mes):\n            variacion = round((b - a) / a * 100, 1) if a else None\n            filas.append((categoria, a, b, variacion))\n        filas.sort(key=lambda f: (f[3] is None, -(f[3] or 0), f[0]))\n        titulo = f\"Ingresos por categoría, meses 01 a {hasta_mes}: {anio_a} frente a {anio_b}\"\n        return Reporte(titulo, [\"categoria\", anio_a, anio_b, \"variacion\"], filas)\n\n\ncon = sqlite3.connect(\"tienda.db\")\nreporte = Reportes(VentasRepositorio(con)).comparar_anios(\"2025\", \"2026\")\ncon.close()\n\nprint(reporte.titulo)\nprint(f\"{'categoría':<18}{reporte.columnas[1]:>12}{reporte.columnas[2]:>12}{'cambio':>10}\")\nfor categoria, a, b, v in reporte.filas:\n    cambio = \"nueva\" if v is None else f\"{v:+.1f} %\"\n    print(f\"{categoria:<18}{f'₡{a:,.0f}':>12}{f'₡{b:,.0f}':>12}{cambio:>10}\")\n",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "cálculo de control",
+     "definition": "Un segundo camino para obtener la misma cifra, por ejemplo el total sin agrupar frente a la suma de los grupos. Si no coinciden, alguna de las dos consultas tiene un error."
+    },
+    {
+     "term": "CTE",
+     "definition": "Common Table Expression: una consulta con nombre definida con WITH al inicio, que el resto de la consulta usa como si fuera una tabla."
+    },
+    {
+     "term": "repositorio",
+     "definition": "Clase que concentra todo el acceso a la base de datos; el resto del programa le pide datos con métodos y nunca escribe SQL."
+    },
+    {
+     "term": "parámetros `?`",
+     "definition": "Marcadores en una consulta cuyos valores se pasan aparte en una tupla; evitan la inyección SQL y los problemas con comillas."
+    },
+    {
+     "term": "dataclass",
+     "definition": "Clase declarada con @dataclass: Python genera solo __init__, __repr__ y __eq__ a partir de los atributos anotados."
+    },
+    {
+     "term": "CSV",
+     "definition": "Archivo de texto con una fila por línea y los valores separados por comas; lo abren Excel, Google Sheets y pandas."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: la cláusula WITH (CTE)",
+     "url": "https://www.sqlite.org/lang_with.html"
+    },
+    {
+     "title": "Python: módulo sqlite3",
+     "url": "https://docs.python.org/es/3/library/sqlite3.html"
+    },
+    {
+     "title": "Python: dataclasses",
+     "url": "https://docs.python.org/es/3/library/dataclasses.html"
+    },
+    {
+     "title": "Python: módulo csv",
+     "url": "https://docs.python.org/es/3/library/csv.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Sumas los ingresos por categoría y el resultado da casi el triple del total general que calculaste aparte. ¿Cuál es la causa más probable?",
+     "code": "",
+     "options": [
+      "Te faltó un `ORDER BY` en la consulta por categoría",
+      "Uniste una tabla de «muchos» (como `resenas`) y cada venta se repitió varias veces antes del `SUM`",
+      "`ROUND` cambia los totales cuando se aplica al final",
+      "SQLite no puede sumar columnas calculadas dentro de una CTE"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el orden de las filas no cambia los valores de las sumas.",
+      "Correcto: un JOIN con una tabla de muchos multiplica las filas; el `SUM` cuenta la misma venta una vez por cada fila repetida.",
+      "No: redondear al final cambia como mucho unas fracciones de colón, nunca el triple.",
+      "No: una CTE se comporta como una tabla y sus columnas calculadas se suman sin problema."
+     ],
+     "explanation": "Cuando un total se infla en múltiplos, casi siempre hay un JOIN que duplica filas. Cuenta las filas antes y después de cada JOIN para encontrarlo.",
+     "hint": "Piensa en qué pasa con el número de filas al unir una venta con tres reseñas."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué debería devolver un método del repositorio como `ingresos_por_mes(anio)`?",
+     "code": "",
+     "options": [
+      "Un texto ya formateado con `₡` y separadores, listo para imprimir",
+      "Nada: debería imprimir la tabla directamente",
+      "Los datos: una lista de tuplas (o de objetos) con mes, pedidos e ingresos",
+      "La cadena SQL, para que `main.py` la ejecute"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: si el repositorio formatea, no puedes reutilizar los números para una gráfica ni comprobarlos en una prueba.",
+      "No: un método que imprime no se puede probar ni reutilizar; el repositorio entrega datos.",
+      "Correcto: el repositorio entrega datos crudos; mostrarlos es trabajo de otra capa.",
+      "No: entonces el SQL se escaparía del repositorio y su razón de ser desaparece."
+     ],
+     "explanation": "Cada capa hace una sola cosa: el repositorio trae datos, los reportes los organizan y la presentación los muestra.",
+     "hint": "¿Qué necesitas para hacer una gráfica y una prueba con el mismo método?"
+    },
+    {
+     "type": "choice",
+     "prompt": "Un método hace `self.con.execute(sql, (\"2026\"))` y SQLite responde que la consulta usa 1 parámetro pero recibió 4. ¿Cómo se arregla?",
+     "code": "",
+     "options": [
+      "Cambiando `?` por `%s` en la consulta",
+      "Escribiendo `str(2026)` en vez de `\"2026\"`",
+      "Usando un f-string: `f\"... = {anio}\"`",
+      "Agregando una coma para que sea una tupla: `(\"2026\",)`"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: sqlite3 usa `?` como marcador; `%s` es de otros conectores.",
+      "No: `str(2026)` es el mismo texto `\"2026\"`; sigue sin ser tupla.",
+      "No: funcionaría, pero abre la puerta a la inyección SQL y a errores de comillas; es justo lo que se evita con `?`.",
+      "Correcto: sin la coma, los paréntesis no crean una tupla y el texto se toma como una secuencia de 4 caracteres."
+     ],
+     "explanation": "`(\"2026\")` es solo un texto entre paréntesis; `(\"2026\",)` es una tupla de un elemento. sqlite3 recorre lo que recibe y un texto de 4 caracteres cuenta como 4 valores.",
+     "hint": "Cuenta los caracteres de `2026`."
+    },
+    {
+     "type": "boolean",
+     "prompt": "El cálculo de control debe ser la misma consulta, corrida una segunda vez, para confirmar que da lo mismo.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: correr dos veces la misma consulta siempre da lo mismo, incluido el mismo error.",
+      "Correcto: el control usa un camino distinto (por ejemplo, sin agrupar o sin un JOIN) que debería llegar a la misma cifra."
+     ],
+     "explanation": "El valor del control está en llegar por otro camino: si las dos rutas coinciden, es muy poco probable que ambas tengan el mismo error.",
+     "hint": "Si la consulta tiene un JOIN que duplica filas, ¿lo detectarías corriéndola de nuevo?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "En `f\"₡{monto:,.0f}\"`, la coma agrega el separador de miles y `.0f` muestra el número sin decimales.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `,` agrupa de a tres cifras y `.0f` redondea a cero decimales.",
+      "Sí es verdadero: por ejemplo, `f\"₡{707825.0:,.0f}\"` produce `₡707,825`."
+     ],
+     "explanation": "La especificación de formato `,.0f` combina dos cosas: separador de miles y punto fijo con cero decimales.",
+     "hint": "Prueba mentalmente con 707825.0."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta sobre la base Tienda?",
+     "code": "SELECT COUNT(DISTINCT substr(fecha, 1, 7))\nFROM pedidos\nWHERE fecha LIKE '2026%';",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "9"
+     ],
+     "optionFeedback": [],
+     "explanation": "Hay pedidos en cada mes de enero a septiembre de 2026 (los datos llegan hasta el 30 de septiembre), así que hay 9 meses distintos.",
+     "hint": "`substr(fecha, 1, 7)` deja solo `AAAA-MM`. ¿Hasta qué fecha llegan los datos?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "filas = [(\"Ropa\", 707825.0), (\"Artesanía\", 390375.0), (\"Café y bebidas\", 383945.0)]\nancho = max(len(nombre) for nombre, _ in filas)\nprint(ancho)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "14"
+     ],
+     "optionFeedback": [],
+     "explanation": "El nombre más largo es «Café y bebidas», que tiene 14 caracteres (los espacios cuentan). Ese sería el ancho de la columna.",
+     "hint": "Cuenta también los espacios."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la apertura del archivo para que el CSV no tenga líneas en blanco extra en Windows.",
+     "code": "with open(ruta, \"w\", ___=\"\", encoding=\"utf-8-sig\") as f:\n    escritor = csv.writer(f)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "newline"
+     ],
+     "optionFeedback": [],
+     "explanation": "`newline=\"\"` deja que el módulo csv controle los saltos de línea; sin él, en Windows aparece una línea vacía entre filas.",
+     "hint": "Es el parámetro que controla los saltos de línea."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-22",
+   "kind": "workshop",
+   "title": "Proyecto: gráficas y pulido",
+   "summary": "Conviertes la respuesta más importante de tu proyecto en una gráfica que se entiende sola, y dejas el repositorio listo para que otra persona lo instale, lo corra y lo pruebe.",
+   "objectives": [
+    "Elegir el tipo de gráfica según la pregunta (comparar categorías o ver una tendencia) y construirla con los datos del repositorio.",
+    "Guardar la gráfica en `salidas/` con un título que cuente el hallazgo, ejes con unidades y formato de colones.",
+    "Escribir pruebas con pytest sobre una base `:memory:` para el repositorio, los reportes y la gráfica.",
+    "Limpiar el código y escribir un README con el que cualquiera pueda correr el proyecto desde cero."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: La gráfica del proyecto",
+     "minutes": 60
+    },
+    {
+     "label": "Tema 2: README, limpieza y pruebas",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: gráfica, pruebas y README de tu proyecto",
+     "minutes": 90
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "La gráfica del proyecto",
+     "concept": "Tu proyecto necesita al menos una gráfica, y debe ser la de la pregunta más importante. Primero decide qué tiene que verse: si comparas categorías (productos, provincias, tipos), usa **barras horizontales ordenadas**, porque los nombres largos caben y el ojo compara longitudes; si miras algo a lo largo del tiempo (meses, semanas), usa **líneas**, con el tiempo en el eje horizontal y en orden.\n\nUna buena gráfica se entiende sin que tú la expliques. El título cuenta el hallazgo y no solo el tema («Ropa dejó el mayor margen de 2026» dice más que «Margen por categoría»); los ejes dicen qué miden y en qué unidad; los montos llevan formato de colones. Quita lo que no aporta: un color distinto por barra no significa nada si todas miden lo mismo.\n\nEn el código, separa los datos del dibujo: el repositorio trae las filas y una función `graficar_...(filas, ..., ruta)` solo dibuja y guarda con `fig.savefig(ruta, dpi=150)`. Al final, `plt.close(fig)` libera la memoria, algo importante cuando el programa genera varias imágenes seguidas.",
+     "tip": "Arma el título con los datos (`f\"{mayor[0]} dejó el mayor margen...\"`) en vez de escribirlo a mano: si los datos cambian, la gráfica no queda diciendo algo falso.",
+     "example": "import os\nimport sqlite3\n\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nfrom matplotlib.ticker import FuncFormatter\n\n\ndef margen_por_categoria(con: sqlite3.Connection, anio: str) -> list[tuple]:\n    \"\"\"Margen bruto por categoría en el año, de menor a mayor.\"\"\"\n    sql = \"\"\"\n        SELECT c.nombre,\n               ROUND(SUM(d.cantidad * (d.precio_unitario * (1 - d.descuento) - pr.costo))) AS margen\n        FROM pedidos p\n        JOIN detalle_pedido d ON d.pedido_id = p.id\n        JOIN productos pr ON pr.id = d.producto_id\n        JOIN categorias c ON c.id = pr.categoria_id\n        WHERE p.estado <> 'cancelado' AND substr(p.fecha, 1, 4) = ?\n        GROUP BY c.nombre\n        ORDER BY margen\n    \"\"\"\n    return con.execute(sql, (anio,)).fetchall()\n\n\ndef graficar_barras(filas: list[tuple], titulo: str, etiqueta_x: str, ruta: str) -> str:\n    \"\"\"Barras horizontales: la primera fila queda abajo y la última arriba.\"\"\"\n    nombres = [f[0] for f in filas]\n    valores = [f[1] for f in filas]\n    fig, ax = plt.subplots(figsize=(8, 4.5))\n    ax.barh(nombres, valores, color=\"#2a7f62\")\n    ax.set_title(titulo)\n    ax.set_xlabel(etiqueta_x)\n    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, pos: f\"₡{v:,.0f}\"))\n    ax.grid(axis=\"x\", alpha=0.3)\n    fig.tight_layout()\n    os.makedirs(os.path.dirname(ruta) or \".\", exist_ok=True)\n    fig.savefig(ruta, dpi=150)\n    plt.close(fig)\n    return ruta\n\n\ncon = sqlite3.connect(\"tienda.db\")\nfilas = margen_por_categoria(con, \"2026\")\ncon.close()\n\nmayor = filas[-1]\ntitulo = f\"{mayor[0]} dejó el mayor margen de 2026 (₡{mayor[1]:,.0f})\"\nruta = graficar_barras(filas, titulo, \"Margen bruto (colones)\", \"salidas/margen_2026.png\")\nprint(\"Título:\", titulo)\nprint(\"Barras de abajo hacia arriba:\", \", \".join(f[0] for f in filas))\nprint(\"Archivo creado:\", os.path.getsize(ruta) > 0)\n",
+     "language": "python",
+     "exampleOutput": "Título: Ropa dejó el mayor margen de 2026 (₡707,825)\nBarras de abajo hacia arriba: Snacks y dulces, Cuidado personal, Hogar y cocina, Tecnología, Café y bebidas, Artesanía, Ropa\nArchivo creado: True",
+     "steps": [
+      {
+       "title": "Trae los datos en el orden en que se van a dibujar",
+       "body": "`barh` dibuja la primera barra abajo y la última arriba. Si ordenas la consulta de menor a mayor, la barra más larga queda arriba, que es donde el ojo empieza a leer. Con la Tienda, Ropa queda arriba y Snacks y dulces abajo.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\nsql = \"\"\"\n    SELECT c.nombre,\n           ROUND(SUM(d.cantidad * (d.precio_unitario * (1 - d.descuento) - pr.costo))) AS margen\n    FROM pedidos p\n    JOIN detalle_pedido d ON d.pedido_id = p.id\n    JOIN productos pr ON pr.id = d.producto_id\n    JOIN categorias c ON c.id = pr.categoria_id\n    WHERE p.estado <> 'cancelado' AND substr(p.fecha, 1, 4) = ?\n    GROUP BY c.nombre\n    ORDER BY margen\n\"\"\"\nfor fila in con.execute(sql, (\"2026\",)):\n    print(fila)\ncon.close()\n",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Dibuja con fig y ax",
+       "body": "`fig, ax = plt.subplots()` te da la figura (la imagen completa) y los ejes (el área del gráfico). Trabajar con `ax` en vez de `plt` deja claro a qué gráfica le pones cada cosa, sobre todo cuando hay más de una.",
+       "code": "import matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\n\nnombres = [\"Snacks y dulces\", \"Cuidado personal\", \"Hogar y cocina\", \"Tecnología\"]\nvalores = [88125, 109860, 269050, 359880]\n\nfig, ax = plt.subplots(figsize=(8, 4))\nbarras = ax.barh(nombres, valores)\nprint(\"Barras dibujadas:\", len(barras))\nprint(\"Etiqueta de abajo:\", nombres[0])\nplt.close(fig)\n",
+       "language": "python"
+      },
+      {
+       "title": "Título con el hallazgo, ejes con unidades y colones",
+       "body": "`FuncFormatter` recibe una función que convierte cada número del eje en texto; así el eje muestra `₡300,000` en vez de `300000`. El título se arma con el dato mayor, que en una lista ordenada de menor a mayor es el último.",
+       "code": "import matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nfrom matplotlib.ticker import FuncFormatter\n\nfilas = [(\"Snacks y dulces\", 88125), (\"Tecnología\", 359880), (\"Ropa\", 707825)]\nmayor = filas[-1]\n\nfig, ax = plt.subplots(figsize=(8, 4))\nax.barh([f[0] for f in filas], [f[1] for f in filas], color=\"#2a7f62\")\nax.set_title(f\"{mayor[0]} dejó el mayor margen de 2026 (₡{mayor[1]:,.0f})\")\nax.set_xlabel(\"Margen bruto (colones)\")\nformato = FuncFormatter(lambda v, pos: f\"₡{v:,.0f}\")\nax.xaxis.set_major_formatter(formato)\nprint(ax.get_title())\nprint(formato(300000, 0))\nplt.close(fig)\n",
+       "language": "python"
+      },
+      {
+       "title": "Guarda, cierra y comprueba",
+       "body": "Crea la carpeta si no existe, guarda con `dpi=150` (nítida sin pesar demasiado) y cierra la figura. Comprueba que el archivo existe y no está vacío: es exactamente lo que va a verificar tu prueba.",
+       "code": "import os\nimport tempfile\n\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\n\nruta = os.path.join(tempfile.mkdtemp(), \"salidas\", \"margen_2026.png\")\nfig, ax = plt.subplots(figsize=(8, 4))\nax.barh([\"Tecnología\", \"Ropa\"], [359880, 707825])\nfig.tight_layout()\nos.makedirs(os.path.dirname(ruta), exist_ok=True)\nfig.savefig(ruta, dpi=150)\nplt.close(fig)\nprint(\"Existe:\", os.path.exists(ruta), \"| Pesa más de 0 bytes:\", os.path.getsize(ruta) > 0)\n",
+       "language": "python"
+      },
+      {
+       "title": "Si tu pregunta es en el tiempo, usa líneas",
+       "body": "Para meses, `ax.plot(meses, valores, marker=\"o\")` con los meses en orden. Los marcadores ayudan a ver cada dato y `rotation` evita que las etiquetas se monten. Estos son los ingresos de enero a junio de 2026 en la Tienda.",
+       "code": "import matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\n\nmeses = [\"2026-01\", \"2026-02\", \"2026-03\", \"2026-04\", \"2026-05\", \"2026-06\"]\ningresos = [529000, 1085438, 654688, 647368, 595688, 720845]\n\nfig, ax = plt.subplots(figsize=(8, 4))\nax.plot(meses, ingresos, marker=\"o\")\nax.set_title(\"Febrero fue el mejor mes del primer semestre de 2026\")\nax.set_ylabel(\"Ingresos (colones)\")\nax.tick_params(axis=\"x\", rotation=45)\nprint(\"Puntos:\", len(ax.lines[0].get_xdata()))\nplt.close(fig)\n",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "La imagen guardada sale en blanco",
+       "cause": "Llamaste a `plt.show()` antes de `savefig`: al cerrar la ventana, matplotlib descarta la figura y lo que se guarda es una figura nueva y vacía.",
+       "fix": "Guarda primero con `fig.savefig(ruta)` y, si quieres verla, muestra después. En el proyecto basta con guardar."
+      },
+      {
+       "error": "FileNotFoundError: [Errno 2] No such file or directory: 'salidas/margen_2026.png'",
+       "cause": "La carpeta `salidas` no existe; `savefig` crea el archivo, pero no las carpetas.",
+       "fix": "Antes de guardar: `os.makedirs(\"salidas\", exist_ok=True)`, o `Path(ruta).parent.mkdir(parents=True, exist_ok=True)`."
+      },
+      {
+       "error": "Las etiquetas del eje horizontal se montan unas sobre otras",
+       "cause": "Barras verticales con nombres largos, o muchos meses en el eje.",
+       "fix": "Para categorías usa `barh`; para fechas, `ax.tick_params(axis=\"x\", rotation=45)` y `fig.tight_layout()`."
+      },
+      {
+       "error": "La barra más grande queda abajo",
+       "cause": "`barh` dibuja la primera fila abajo, y tu consulta venía ordenada de mayor a menor.",
+       "fix": "Ordena la consulta de menor a mayor, invierte la lista con `filas[::-1]` o llama a `ax.invert_yaxis()`."
+      }
+     ]
+    },
+    {
+     "title": "README, limpieza y pruebas",
+     "concept": "Un proyecto está terminado cuando **otra persona puede clonarlo, instalarlo, correrlo y comprobar que funciona sin preguntarte nada**. Eso descansa en tres cosas.\n\nPruebas: con pytest y una base `:memory:` creas el esquema, insertas tres o cuatro filas cuyo resultado sabes calcular a mano y compruebas que cada método devuelve exactamente eso. Una fixture prepara esa base nueva para cada prueba, así ninguna depende de otra. Prueba también los casos límite: un año sin datos debe dar una lista vacía, no un error.\n\nLimpieza: borra prints de depuración y código comentado, usa nombres que digan qué guardan, pon un docstring de una línea en cada clase y función, y confirma que ningún SQL se arma con f-strings. `requirements.txt` lista los paquetes y `.gitignore` deja fuera `.venv/`, `__pycache__/` y la base generada si se puede recrear.\n\nREADME: qué preguntas responde el proyecto, los hallazgos en dos o tres frases, los comandos exactos para correrlo, la gráfica incrustada y la estructura de archivos.",
+     "tip": "Escribe cada prueba con datos tan pequeños que el resultado esperado lo calcules de cabeza. Si para saber el resultado esperado tienes que correr el mismo código que estás probando, la prueba no comprueba nada.",
+     "example": "import sqlite3\n\nESQUEMA = \"\"\"\nCREATE TABLE pedidos (id INTEGER PRIMARY KEY, fecha TEXT NOT NULL, estado TEXT NOT NULL);\nCREATE TABLE detalle_pedido (\n    id INTEGER PRIMARY KEY, pedido_id INTEGER NOT NULL REFERENCES pedidos(id),\n    cantidad INTEGER NOT NULL, precio_unitario INTEGER NOT NULL, descuento REAL NOT NULL DEFAULT 0\n);\n\"\"\"\n\n\nclass VentasRepositorio:\n    def __init__(self, con: sqlite3.Connection):\n        self.con = con\n\n    def ingresos_por_mes(self, anio: str) -> list[tuple]:\n        \"\"\"Ingresos de cada mes del año, sin pedidos cancelados.\"\"\"\n        sql = \"\"\"\n            SELECT substr(p.fecha, 1, 7) AS mes,\n                   ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)))\n            FROM pedidos p JOIN detalle_pedido d ON d.pedido_id = p.id\n            WHERE p.estado <> 'cancelado' AND substr(p.fecha, 1, 4) = ?\n            GROUP BY mes ORDER BY mes\n        \"\"\"\n        return self.con.execute(sql, (anio,)).fetchall()\n\n\ndef repo_de_prueba() -> VentasRepositorio:\n    \"\"\"En pytest esto es una fixture: una base nueva en memoria para cada prueba.\"\"\"\n    con = sqlite3.connect(\":memory:\")\n    con.executescript(ESQUEMA)\n    con.executemany(\"INSERT INTO pedidos VALUES (?, ?, ?)\", [\n        (1, \"2026-01-10\", \"entregado\"),\n        (2, \"2026-01-20\", \"cancelado\"),\n        (3, \"2026-02-05\", \"pagado\"),\n    ])\n    con.executemany(\"INSERT INTO detalle_pedido VALUES (?, ?, ?, ?, ?)\", [\n        (1, 1, 2, 5000, 0.0),   # 10 000\n        (2, 2, 1, 9000, 0.0),   # cancelado: no cuenta\n        (3, 3, 1, 10000, 0.1),  # 9 000 con el descuento\n    ])\n    return VentasRepositorio(con)\n\n\ndef test_excluye_cancelados():\n    assert repo_de_prueba().ingresos_por_mes(\"2026\")[0] == (\"2026-01\", 10000.0)\n\n\ndef test_aplica_descuento():\n    assert repo_de_prueba().ingresos_por_mes(\"2026\")[1] == (\"2026-02\", 9000.0)\n\n\ndef test_anio_sin_datos_da_lista_vacia():\n    assert repo_de_prueba().ingresos_por_mes(\"2025\") == []\n\n\n# pytest encuentra y corre solo las funciones test_*; aquí las llamamos a mano.\nfor prueba in (test_excluye_cancelados, test_aplica_descuento, test_anio_sin_datos_da_lista_vacia):\n    prueba()\n    print(\"PASA\", prueba.__name__)\n",
+     "language": "python",
+     "exampleOutput": "PASA test_excluye_cancelados\nPASA test_aplica_descuento\nPASA test_anio_sin_datos_da_lista_vacia",
+     "steps": [
+      {
+       "title": "Una fixture en tests/conftest.py",
+       "body": "En `conftest.py`, pytest busca fixtures que todas las pruebas pueden usar con solo nombrarlas como parámetro. Esta crea la base en memoria con tus tablas y unas pocas filas, entrega el repositorio y al final cierra la conexión.",
+       "code": "import sqlite3\n\nimport pytest\n\nfrom repositorio import VentasRepositorio, ESQUEMA\n\n\n@pytest.fixture\ndef repo():\n    con = sqlite3.connect(\":memory:\")\n    con.executescript(ESQUEMA)\n    con.executemany(\"INSERT INTO pedidos VALUES (?, ?, ?)\", [\n        (1, \"2026-01-10\", \"entregado\"),\n        (2, \"2026-01-20\", \"cancelado\"),\n    ])\n    con.executemany(\"INSERT INTO detalle_pedido VALUES (?, ?, ?, ?, ?)\", [\n        (1, 1, 2, 5000, 0.0),\n        (2, 2, 1, 9000, 0.0),\n    ])\n    yield VentasRepositorio(con)\n    con.close()\n\n\ndef test_excluye_cancelados(repo):\n    assert repo.ingresos_por_mes(\"2026\") == [(\"2026-01\", 10000.0)]\n",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Prueba la gráfica con tmp_path",
+       "body": "`tmp_path` es una fixture de pytest que da una carpeta temporal distinta en cada prueba. La prueba llama a tu función con datos pequeños y comprueba que el archivo existe y no está vacío. Aquí se simula con `tempfile` para correrla sola.",
+       "code": "import os\nimport pathlib\nimport tempfile\n\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\n\n\ndef graficar_barras(filas, titulo, ruta):\n    fig, ax = plt.subplots()\n    ax.barh([f[0] for f in filas], [f[1] for f in filas])\n    ax.set_title(titulo)\n    fig.savefig(ruta, dpi=100)\n    plt.close(fig)\n    return ruta\n\n\ndef test_grafica_crea_png(tmp_path):\n    ruta = graficar_barras([(\"A\", 1), (\"B\", 3)], \"Prueba\", str(tmp_path / \"g.png\"))\n    assert os.path.getsize(ruta) > 0\n\n\ntest_grafica_crea_png(pathlib.Path(tempfile.mkdtemp()))\nprint(\"PASA test_grafica_crea_png\")\n",
+       "language": "python"
+      },
+      {
+       "title": "Corre pytest desde la raíz del proyecto",
+       "body": "`python -m pytest` agrega la carpeta actual a las rutas de importación, así `tests/` encuentra `repositorio.py`. Con `-v` ves cada prueba por nombre; con `-x` se detiene en el primer fallo para que lo atiendas.",
+       "code": "cd ~/proyectos/mi-proyecto\npython -m pytest -v\npython -m pytest -x -q",
+       "language": "bash"
+      },
+      {
+       "title": "Limpia con búsquedas, no de memoria",
+       "body": "Busca en todo el proyecto lo que no debe quedar y revisa cada resultado. Luego genera `requirements.txt` con el entorno virtual activo y deja solo los paquetes que importas.",
+       "code": "grep -rn \"execute(f\" --include=*.py .\ngrep -rn \"print(\" --include=*.py . | grep -v main.py\ngrep -rn \"TODO\\|import pdb\" --include=*.py .\npip freeze | grep -i -E \"pandas|matplotlib|pytest\" > requirements.txt\ncat .gitignore",
+       "language": "bash"
+      },
+      {
+       "title": "Escribe el README",
+       "body": "Esta es una plantilla con la Tienda; cámbiala por tus preguntas, tus hallazgos y tus comandos. La imagen se incrusta con una ruta relativa dentro del repositorio, y el PNG tiene que estar en un commit para que GitHub lo muestre.",
+       "code": "cat > README.md << 'EOF'\n# Ventas de la Tienda Pura Vida (2025-2026)\n\nAnaliza los pedidos de una tienda de productos costarricenses para responder:\n1. ¿Cómo se movieron los ingresos mes a mes?\n2. ¿Qué categoría deja más margen?\n3. ¿Qué provincias compran más?\n\n## Hallazgos\n- Ropa dejó el mayor margen de 2026: ₡707 825.\n- Febrero de 2026 fue el mejor mes: ₡1 085 438.\n\n![Margen por categoría](salidas/margen_2026.png)\n\n## Cómo correrlo\n    python -m venv .venv\n    source .venv/bin/activate      # Windows: .venv\\Scripts\\activate\n    pip install -r requirements.txt\n    python crear_base.py           # crea datos/tienda.db\n    python main.py                 # imprime los reportes y crea salidas/\n    python -m pytest -v            # corre las pruebas\n\n## Estructura\n- crear_base.py: crea las tablas y carga los datos\n- repositorio.py: todas las consultas SQL\n- reportes.py: arma e imprime los reportes\n- graficas.py: genera las imágenes en salidas/\n- tests/: pruebas con pytest sobre una base en memoria\nEOF",
+       "language": "bash"
+      },
+      {
+       "title": "Prueba desde cero, como lo haría el revisor",
+       "body": "Clona tu repositorio en otra carpeta y sigue el README literalmente. Cada cosa que falle (un archivo sin subir, un paquete que falta, un comando en otro orden) se corrige en el repositorio real y se sube.",
+       "code": "cd /tmp\ngit clone https://github.com/tu-usuario/mi-proyecto.git prueba-limpia\ncd prueba-limpia\npython -m venv .venv && source .venv/bin/activate\npip install -r requirements.txt\npython crear_base.py && python main.py && python -m pytest -q",
+       "language": "bash"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "ModuleNotFoundError: No module named 'repositorio'",
+       "cause": "Corriste `pytest` desde dentro de `tests/`, o con el comando `pytest` a secas: la carpeta raíz del proyecto no está en las rutas de importación.",
+       "fix": "Corre `python -m pytest` desde la raíz del proyecto, o agrega un archivo `conftest.py` vacío en la raíz."
+      },
+      {
+       "error": "fixture 'repo' not found",
+       "cause": "La prueba pide un parámetro `repo`, pero la fixture está en otro archivo de pruebas o tiene otro nombre.",
+       "fix": "Pon las fixtures compartidas en `tests/conftest.py` y usa exactamente el mismo nombre en el parámetro de la prueba."
+      },
+      {
+       "error": "Las pruebas pasan en tu computador pero fallan en la carpeta clonada",
+       "cause": "Dependen de algo que no está en el repositorio: la base real del proyecto, un archivo en `salidas/` o una ruta absoluta de tu computador.",
+       "fix": "Usa `:memory:` y `tmp_path` en las pruebas, y rutas relativas al proyecto en el código."
+      },
+      {
+       "error": "La imagen no aparece en el README de GitHub",
+       "cause": "La ruta es absoluta (`C:/Users/...`) o el PNG no se subió porque `.gitignore` excluye `salidas/`.",
+       "fix": "Usa una ruta relativa (`salidas/margen_2026.png`) y asegúrate de que esa imagen tenga commit, aunque ignores el resto de la carpeta."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-22-1",
+     "title": "Barras por provincia",
+     "prompt": "Vas a hacer una gráfica de barras horizontales con los ingresos por provincia de todo el periodo (sin pedidos cancelados). Muestra el nombre de la provincia y sus ingresos redondeados a 0 decimales, en ese orden, ordenados de menor a mayor ingreso, para que en la gráfica la barra más larga quede arriba.",
+     "hint": "El camino es pedidos → clientes → provincias, más detalle_pedido para los montos. Ordena por la columna de ingresos en forma ascendente.",
+     "solution": "SELECT pv.nombre AS provincia,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS ingresos\nFROM pedidos p\nJOIN clientes c ON c.id = p.cliente_id\nJOIN provincias pv ON pv.id = c.provincia_id\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY pv.nombre\nORDER BY ingresos;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-22-2",
+     "title": "Cifras de control para tus pruebas",
+     "prompt": "Antes de escribir pruebas y el README conviene tener anotadas las cifras clave. Muestra en una sola fila, para 2026 y sin pedidos cancelados: la cantidad de pedidos, los ingresos totales redondeados a 0 decimales y el ticket promedio (ingresos divididos entre pedidos) redondeado a 0 decimales, en ese orden.",
+     "hint": "Con el JOIN a detalle_pedido, cuenta los pedidos con `COUNT(DISTINCT p.id)`. El ticket promedio es el `SUM` de los ingresos dividido entre ese conteo; no uses `AVG` sobre las líneas, porque eso promedia líneas, no pedidos.",
+     "solution": "SELECT COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS ingresos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) / COUNT(DISTINCT p.id)) AS ticket_promedio\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\n  AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Elige la pregunta más importante de tu proyecto y decide el tipo de gráfica (barras horizontales para comparar categorías, líneas para el tiempo). En `graficas.py`, escribe una función que reciba las filas del repositorio y la ruta, dibuje, guarde la imagen en `salidas/` y devuelva la ruta.",
+    "Ajusta la gráfica hasta que se entienda sola: título que cuente el hallazgo con el dato, ejes con unidades, formato de colones (o la unidad de tu proyecto) y nada que distraiga. Llámala desde `main.py` y abre la imagen para revisarla.",
+    "Escribe las pruebas en `tests/`: una fixture en `conftest.py` con una base `:memory:` y pocas filas cuyo resultado sabes calcular a mano, al menos una prueba por método del repositorio, una para los reportes y una que compruebe con `tmp_path` que la gráfica crea el archivo. Corre `python -m pytest -v` desde la raíz hasta que todo pase.",
+    "Limpia el código: borra prints de depuración y código comentado, revisa nombres, agrega docstrings de una línea, confirma que ningún SQL se arma con f-strings, genera `requirements.txt` y revisa `.gitignore`.",
+    "Escribe el README con la plantilla del paso 5 del tema 2, incluidos la gráfica y tus hallazgos. Luego clona el repositorio en otra carpeta, sigue tus propias instrucciones al pie de la letra, corrige lo que falle y haz push."
+   ],
+   "taskHints": [
+    "Parte de `graficar_barras` del ejemplo del tema 1. Si tus filas vienen de mayor a menor, inviértelas con `filas[::-1]` o usa `ax.invert_yaxis()` para que la mayor quede arriba. En la Tienda, la consulta de margen ya viene de menor a mayor.",
+    "Arma el título con los datos: `f\"{mayor[0]} dejó el mayor margen de 2026 (₡{mayor[1]:,.0f})\"`. Haz la prueba de la imagen sola: si alguien la ve sin tu explicación, ¿sabe qué mide y qué concluir?",
+    "Copia en la fixture el mismo esquema de tu script de creación de la base (mejor aún: guárdalo en una constante `ESQUEMA` que importen los dos). Incluye un caso límite, como un año sin datos que devuelve `[]`. El ejemplo del tema 2 tiene tres pruebas modelo.",
+    "Las búsquedas del paso 4 del tema 2 te dan la lista de lo que hay que revisar. Una función sin docstring o con un nombre como `datos2` o `f` es candidata a renombrarse. Haz un commit solo de limpieza: `Limpia código y agrega docstrings`.",
+    "Clona a una carpeta con otro nombre (`prueba-limpia`) para no confundirla con la real. Si `pip install` falla, revisa los nombres en `requirements.txt`. Cuando todo funcione, crea la etiqueta: `git tag v0.9` y `git push --tags`."
+   ],
+   "challenge": {
+    "title": "Dos años en una misma gráfica",
+    "description": "Escribe `graficar_comparacion(series, titulo, ruta)`, que reciba un diccionario `{nombre: filas}` y dibuje una línea por serie con leyenda, ejes con unidades y formato de colones. Úsala con la Tienda para comparar los ingresos de enero a septiembre de 2025 y de 2026, con un título calculado a partir de los datos (en cuántos meses 2026 superó a 2025). Agrega una prueba que use una carpeta temporal.",
+    "hint": "Para que las dos líneas compartan el eje horizontal, usa solo el mes (`substr(fecha, 6, 2)`) y no `AAAA-MM`. `ax.plot(..., label=nombre)` y luego `ax.legend()`. Para el título, recorre los dos años en paralelo con `zip` y cuenta los meses en que el segundo es mayor.",
+    "solution": "import os\nimport sqlite3\nimport tempfile\n\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\nfrom matplotlib.ticker import FuncFormatter\n\n\ndef ingresos_mensuales(con: sqlite3.Connection, anio: str, hasta_mes: str) -> list[tuple]:\n    \"\"\"(mes 'MM', ingresos) de enero a hasta_mes del año, sin cancelados.\"\"\"\n    sql = \"\"\"\n        SELECT substr(p.fecha, 6, 2) AS mes,\n               ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)))\n        FROM pedidos p JOIN detalle_pedido d ON d.pedido_id = p.id\n        WHERE p.estado <> 'cancelado' AND substr(p.fecha, 1, 4) = ? AND substr(p.fecha, 6, 2) <= ?\n        GROUP BY mes ORDER BY mes\n    \"\"\"\n    return con.execute(sql, (anio, hasta_mes)).fetchall()\n\n\ndef graficar_comparacion(series: dict[str, list[tuple]], titulo: str, ruta: str) -> str:\n    \"\"\"Una línea por serie, con leyenda, eje en colones y guardada en ruta.\"\"\"\n    fig, ax = plt.subplots(figsize=(9, 4.5))\n    for nombre, filas in series.items():\n        ax.plot([f[0] for f in filas], [f[1] for f in filas], marker=\"o\", label=nombre)\n    ax.set_title(titulo)\n    ax.set_xlabel(\"Mes\")\n    ax.set_ylabel(\"Ingresos (colones)\")\n    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f\"₡{v:,.0f}\"))\n    ax.legend()\n    ax.grid(alpha=0.3)\n    fig.tight_layout()\n    os.makedirs(os.path.dirname(ruta) or \".\", exist_ok=True)\n    fig.savefig(ruta, dpi=150)\n    plt.close(fig)\n    return ruta\n\n\ncon = sqlite3.connect(\"tienda.db\")\nseries = {anio: ingresos_mensuales(con, anio, \"09\") for anio in (\"2025\", \"2026\")}\ncon.close()\n\nmeses_arriba = sum(1 for a, b in zip(series[\"2025\"], series[\"2026\"]) if b[1] > a[1])\ntitulo = f\"2026 superó a 2025 en {meses_arriba} de 9 meses\"\nruta = graficar_comparacion(series, titulo, \"salidas/comparacion_anios.png\")\nprint(titulo)\nmejor = max(series[\"2026\"], key=lambda f: f[1])\nprint(f\"Mejor mes de 2026: {mejor[0]} (₡{mejor[1]:,.0f})\")\n\n\ndef test_comparacion_crea_png(tmp):\n    datos = {\"A\": [(\"01\", 10), (\"02\", 20)], \"B\": [(\"01\", 15), (\"02\", 5)]}\n    assert os.path.getsize(graficar_comparacion(datos, \"Prueba\", os.path.join(tmp, \"c.png\"))) > 0\n\n\ntest_comparacion_crea_png(tempfile.mkdtemp())\nprint(\"PASA test_comparacion_crea_png\")\n",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "barh",
+     "definition": "Método de matplotlib que dibuja barras horizontales; la primera barra queda abajo y la última arriba."
+    },
+    {
+     "term": "FuncFormatter",
+     "definition": "Formateador de matplotlib que convierte cada valor de un eje en texto con la función que le des, por ejemplo para mostrar colones."
+    },
+    {
+     "term": "fixture",
+     "definition": "Función de pytest que prepara lo que una prueba necesita (como una base en memoria con datos) y se entrega a la prueba como parámetro."
+    },
+    {
+     "term": "tmp_path",
+     "definition": "Fixture incluida en pytest que entrega una carpeta temporal nueva para cada prueba."
+    },
+    {
+     "term": "README",
+     "definition": "Archivo README.md en la raíz del repositorio; GitHub lo muestra en la página principal del proyecto."
+    },
+    {
+     "term": "requirements.txt",
+     "definition": "Lista de paquetes de Python que necesita el proyecto; se instalan todos con pip install -r requirements.txt."
+    },
+    {
+     "term": ".gitignore",
+     "definition": "Archivo que le dice a Git qué carpetas y archivos no debe incluir en el repositorio, como .venv/ y __pycache__/."
+    }
+   ],
+   "resources": [
+    {
+     "title": "matplotlib: gráfica de barras horizontales",
+     "url": "https://matplotlib.org/stable/gallery/lines_bars_and_markers/barh.html"
+    },
+    {
+     "title": "pytest: cómo usar fixtures",
+     "url": "https://docs.pytest.org/en/stable/how-to/fixtures.html"
+    },
+    {
+     "title": "pytest: archivos temporales con tmp_path",
+     "url": "https://docs.pytest.org/en/stable/how-to/tmp_path.html"
+    },
+    {
+     "title": "GitHub Docs: acerca de los archivos README",
+     "url": "https://docs.github.com/es/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Tu pregunta es «¿cómo cambiaron los ingresos mes a mes en 2026?». ¿Qué gráfica la responde mejor?",
+     "code": "",
+     "options": [
+      "Un gráfico de pastel con un trozo por mes",
+      "Barras horizontales ordenadas de mayor a menor",
+      "Una línea con los meses en orden en el eje horizontal",
+      "Un diagrama de dispersión de ingresos contra pedidos"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: con 9 trozos parecidos es casi imposible comparar, y se pierde el orden en el tiempo.",
+      "No: ordenar por tamaño rompe el orden temporal, que es justo lo que la pregunta quiere ver.",
+      "Correcto: la línea con el tiempo en orden muestra subidas, bajadas y tendencia de un vistazo.",
+      "No: la dispersión sirve para relacionar dos variables, no para seguir una en el tiempo."
+     ],
+     "explanation": "Para cambios en el tiempo, líneas con el tiempo en orden; para comparar categorías, barras ordenadas.",
+     "hint": "¿Qué orden importa en esta pregunta?"
+    },
+    {
+     "type": "choice",
+     "prompt": "Llamas a `ax.barh(nombres, valores)` con las categorías ordenadas de mayor a menor. ¿Dónde queda la barra más grande?",
+     "code": "",
+     "options": [
+      "Arriba",
+      "Abajo",
+      "En el centro",
+      "Depende del tamaño de la figura"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `barh` coloca la primera fila en la posición más baja del eje.",
+      "Correcto: la primera fila se dibuja abajo, así que si la lista empieza por la mayor, la mayor queda abajo.",
+      "No: las barras siguen el orden de la lista, de abajo hacia arriba.",
+      "No: el tamaño de la figura no cambia el orden de las barras."
+     ],
+     "explanation": "En `barh`, el primer elemento ocupa la posición 0 del eje vertical, que está abajo. Por eso conviene ordenar de menor a mayor o usar `ax.invert_yaxis()`.",
+     "hint": "Piensa en el eje vertical como en un eje de números que empieza en 0 abajo."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Por qué las pruebas usan una base `:memory:` con tres o cuatro filas en vez de la base real del proyecto?",
+     "code": "",
+     "options": [
+      "Porque así el resultado esperado se calcula a mano, cada prueba empieza limpia y no depende de archivos de tu computador",
+      "Porque pytest no puede abrir archivos .db",
+      "Porque la base real es demasiado grande para SQLite",
+      "Porque `:memory:` es más seguro contra la inyección SQL"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: datos pequeños y conocidos, independencia entre pruebas y nada que falte al clonar el repositorio.",
+      "No: pytest puede abrir cualquier archivo; el problema es que la prueba dependería de él.",
+      "No: SQLite maneja sin problema bases de millones de filas.",
+      "No: la inyección SQL se evita con parámetros `?`, no con el tipo de base."
+     ],
+     "explanation": "Una prueba útil tiene un resultado esperado que sabes de antemano y corre igual en cualquier computador.",
+     "hint": "¿Qué pasa con la prueba si alguien clona el repositorio sin tu base?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Para que la imagen se guarde bien, `plt.savefig` debe llamarse después de `plt.show()`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: al cerrar la ventana de `show()` la figura se descarta y `savefig` guarda una figura vacía.",
+      "Correcto: es al revés; primero se guarda y después, si quieres, se muestra."
+     ],
+     "explanation": "Guarda siempre antes de mostrar. En un programa que solo genera archivos, ni siquiera hace falta `show()`.",
+     "hint": "¿Qué le pasa a la figura cuando cierras la ventana?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Un buen título de gráfica cuenta el hallazgo («Ropa dejó el mayor margen de 2026»), no solo el tema («Margen por categoría»).",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: quien vea la imagen sola entiende la conclusión sin que se la expliques.",
+      "Sí es verdadero: el tema ya se deduce de los ejes; el título es el lugar para la conclusión."
+     ],
+     "explanation": "Los ejes dicen qué se mide; el título dice qué hay que ver. Armado con los datos, además, nunca queda desactualizado.",
+     "hint": "Imagina la gráfica pegada en una diapositiva sin nadie que la explique."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "filas = [(\"Ropa\", 707825), (\"Tecnología\", 359880), (\"Artesanía\", 390375)]\nfilas.sort(key=lambda f: f[1])\nprint(filas[-1][0], filas[0][0])",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Ropa Tecnología"
+     ],
+     "optionFeedback": [],
+     "explanation": "`sort` con `key=lambda f: f[1]` ordena de menor a mayor margen: Tecnología, Artesanía, Ropa. El último es Ropa y el primero, Tecnología.",
+     "hint": "Ordena los tres números de menor a mayor."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta sobre la base Tienda?",
+     "code": "SELECT COUNT(DISTINCT cliente_id)\nFROM pedidos\nWHERE estado <> 'cancelado'\n  AND fecha LIKE '2026%';",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "54"
+     ],
+     "optionFeedback": [],
+     "explanation": "En 2026, 54 clientes distintos tienen al menos un pedido no cancelado. `DISTINCT` evita contar dos veces al cliente que compró varias veces.",
+     "hint": "Cada cliente cuenta una sola vez, aunque tenga muchos pedidos."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea que guarda la figura en un archivo PNG.",
+     "code": "fig, ax = plt.subplots()\nax.barh(nombres, valores)\nfig.___(\"salidas/margen_2026.png\", dpi=150)\nplt.close(fig)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "savefig"
+     ],
+     "optionFeedback": [],
+     "explanation": "`fig.savefig(ruta, dpi=150)` escribe la imagen; el formato se deduce de la extensión del archivo.",
+     "hint": "Es «guardar figura» en inglés, en una sola palabra."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-23",
+   "kind": "workshop",
+   "title": "Simulacro final de SQL",
+   "summary": "Repasas todo el SQL del curso con un mapa de señales y resuelves un simulacro cronometrado de 6 ejercicios exigentes sobre la Tienda, como en una prueba técnica.",
+   "objectives": [
+    "Reconocer qué herramienta pide cada pregunta: JOIN, GROUP BY con HAVING, subconsulta, CTE o función de ventana.",
+    "Resolver 6 ejercicios exigentes en 90 minutos, construyendo cada consulta por capas y comprobando cada resultado.",
+    "Modificar datos con seguridad: primero el SELECT, después el UPDATE con el mismo WHERE, y comprobar el efecto.",
+    "Explicar en voz alta, como en una entrevista, las diferencias entre WHERE y HAVING, NOT IN y NOT EXISTS, y RANK y DENSE_RANK."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Repaso de todo SQL",
+     "minutes": 50
+    },
+    {
+     "label": "Tema 2: Estrategia para el simulacro",
+     "minutes": 25
+    },
+    {
+     "label": "Simulacro cronometrado: 6 ejercicios en 90 minutos",
+     "minutes": 90
+    },
+    {
+     "label": "Corrección: revisa cada ejercicio y anota qué repasar",
+     "minutes": 30
+    },
+    {
+     "label": "Reto y evaluación tipo entrevista",
+     "minutes": 40
+    }
+   ],
+   "topics": [
+    {
+     "title": "Repaso de todo SQL",
+     "concept": "Después de diez semanas tienes muchas herramientas; en una prueba, lo difícil es **reconocer cuál pide la pregunta**. Algunas señales: «de cada» o «por» piden `GROUP BY`; «solo los grupos que» pide `HAVING`; «más que el promedio» pide una subconsulta, correlacionada si el promedio es «de su grupo»; «los que nunca» pide `NOT EXISTS` o `LEFT JOIN ... IS NULL`; «primero calcula esto y luego compáralo» pide `WITH`; «el mejor de cada», «acumulado» o «respecto al mes anterior» piden funciones de ventana.\n\nRecuerda el orden lógico en que se procesa una consulta: `FROM` y los `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `SELECT` (con las ventanas), `ORDER BY` y `LIMIT`. Ese orden explica casi todos los errores: por qué `WHERE` no puede usar un `SUM`, por qué no puedes filtrar por un `RANK()` en el mismo nivel (necesitas una CTE) y por qué el alias del `SELECT` sí sirve en `ORDER BY`.\n\nY la regla de oro para modificar datos sigue vigente: antes de un `UPDATE` o un `DELETE`, corre un `SELECT` con el mismo `WHERE` y mira exactamente qué filas vas a tocar.",
+     "tip": "Cuando leas una pregunta, subraya las palabras «cada», «solo», «nunca», «más que» y «respecto a». Casi siempre te dicen qué herramienta usar antes de escribir una sola línea.",
+     "example": "-- Ranking de vendedores en 2026 y distancia al promedio del equipo\nWITH ventas_vendedor AS (\n  SELECT e.nombre || ' ' || e.apellido AS vendedor,\n         COUNT(DISTINCT p.id) AS pedidos,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ingresos\n  FROM empleados e\n  JOIN pedidos p ON p.empleado_id = e.id\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.estado <> 'cancelado'\n    AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\n  GROUP BY e.id\n)\nSELECT vendedor,\n       pedidos,\n       ROUND(ingresos) AS ingresos,\n       RANK() OVER (ORDER BY ingresos DESC) AS puesto,\n       ROUND(ingresos - AVG(ingresos) OVER ()) AS diferencia_con_promedio\nFROM ventas_vendedor\nORDER BY puesto;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "JOIN, GROUP BY y HAVING",
+       "body": "«Las provincias con al menos 40 pedidos no cancelados». El `WHERE` filtra pedidos antes de agrupar y el `HAVING` filtra grupos después. Salen 4 provincias, encabezadas por San José con 127 pedidos.",
+       "code": "SELECT pv.nombre AS provincia, COUNT(*) AS pedidos\nFROM pedidos p\nJOIN clientes c ON c.id = p.cliente_id\nJOIN provincias pv ON pv.id = c.provincia_id\nWHERE p.estado <> 'cancelado'\nGROUP BY pv.nombre\nHAVING COUNT(*) >= 40\nORDER BY pedidos DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Lo que nunca pasó: NOT EXISTS",
+       "body": "«Clientes que nunca compraron». `NOT EXISTS` revisa, para cada cliente, si hay al menos un pedido suyo. En la Tienda son 20. Es más seguro que `NOT IN` cuando la subconsulta puede traer NULL.",
+       "code": "SELECT COUNT(*) AS clientes_sin_compras\nFROM clientes c\nWHERE NOT EXISTS (\n  SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id\n);",
+       "language": "sql"
+      },
+      {
+       "title": "Subconsulta correlacionada: comparar con su propio grupo",
+       "body": "«Productos más caros que el promedio de su categoría». La subconsulta usa `p.categoria_id` de la fila de afuera, así que se calcula un promedio distinto para cada categoría. Sobre todos los productos, cumplen 17.",
+       "code": "SELECT COUNT(*) AS sobre_su_promedio\nFROM productos p\nWHERE p.precio > (\n  SELECT AVG(p2.precio)\n  FROM productos p2\n  WHERE p2.categoria_id = p.categoria_id\n);",
+       "language": "sql"
+      },
+      {
+       "title": "Ventana dentro de una CTE para filtrar por posición",
+       "body": "«El producto activo más caro de cada categoría». La ventana numera dentro de cada categoría, pero no puedes filtrarla en el mismo `WHERE`: la calculas en una CTE y filtras afuera. El desempate por nombre hace el resultado determinista.",
+       "code": "WITH ordenados AS (\n  SELECT c.nombre AS categoria, p.nombre AS producto, p.precio,\n         ROW_NUMBER() OVER (PARTITION BY p.categoria_id ORDER BY p.precio DESC, p.nombre) AS pos\n  FROM productos p\n  JOIN categorias c ON c.id = p.categoria_id\n  WHERE p.activo = 1\n)\nSELECT categoria, producto, precio\nFROM ordenados\nWHERE pos = 1;",
+       "language": "sql"
+      },
+      {
+       "title": "Modificar sin miedo: SELECT, UPDATE y ROLLBACK",
+       "body": "Primero el `SELECT` con el mismo `WHERE`; después el cambio dentro de una transacción para verlo y, si algo no cuadra, deshacerlo. Aquí el precio del producto 1 sube a 6 825 dentro de la transacción y vuelve a 6 500 con el `ROLLBACK`.",
+       "code": "SELECT id, nombre, precio FROM productos WHERE id = 1;\n\nBEGIN;\nUPDATE productos SET precio = ROUND(precio * 1.05) WHERE id = 1;\nSELECT id, nombre, precio FROM productos WHERE id = 1;\nROLLBACK;\n\nSELECT id, nombre, precio FROM productos WHERE id = 1;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "misuse of aggregate: SUM()",
+       "cause": "Usaste `SUM`, `COUNT` o `AVG` en el `WHERE`. El `WHERE` se evalúa fila por fila, antes de que existan los grupos.",
+       "fix": "Pasa esa condición al `HAVING`, que filtra grupos ya calculados."
+      },
+      {
+       "error": "misuse of window function RANK()",
+       "cause": "Pusiste una función de ventana en el `WHERE` o en el `HAVING`. Las ventanas se calculan en el `SELECT`, después de filtrar y agrupar.",
+       "fix": "Calcula la ventana en una CTE o subconsulta y filtra por ella en la consulta de afuera: `WHERE pos <= 2`."
+      },
+      {
+       "error": "`WHERE id NOT IN (SELECT jefe_id FROM empleados)` devuelve 0 filas",
+       "cause": "La subconsulta trae un NULL (la gerente no tiene jefe). `x NOT IN (..., NULL)` nunca es verdadero, así que se descartan todas las filas.",
+       "fix": "Usa `NOT EXISTS`, o filtra los nulos dentro de la subconsulta: `SELECT jefe_id FROM empleados WHERE jefe_id IS NOT NULL`."
+      },
+      {
+       "error": "ambiguous column name: nombre",
+       "cause": "Varias tablas del JOIN tienen una columna `nombre` (clientes, productos, categorías, provincias) y no dijiste cuál.",
+       "fix": "Antepón el alias de la tabla siempre que unas tablas: `c.nombre`, `pr.nombre`."
+      }
+     ]
+    },
+    {
+     "title": "Simulacro cronometrado",
+     "concept": "Una prueba técnica de SQL mide dos cosas: si llegas al resultado correcto y cómo trabajas con tiempo limitado. Hoy tienes **90 minutos para 6 ejercicios**: unos 15 por ejercicio, con margen para revisar.\n\nEmpieza leyendo los seis enunciados completos y clasifícalos con las señales del tema 1. Resuelve primero los que veas claros: asegurar puntos da calma para los difíciles. Si un ejercicio te tiene atascado más de 20 minutos, anota dónde ibas y pasa al siguiente; vuelves al final.\n\nConstruye cada consulta **por capas**: primero el `FROM` con los `JOIN` y un `LIMIT 10` para ver las filas; después los filtros; después el `GROUP BY`; al final el formato (redondeos, alias, orden). En cada capa mira cuántas filas hay y pregúntate si tiene sentido. Antes de enviar, relee el enunciado y compara: ¿las columnas son esas y en ese orden?, ¿se redondea como se pide?, ¿excluiste lo que había que excluir?\n\nEn una entrevista, además, te pedirán que expliques en voz alta lo que haces. Practica hoy: di qué tablas usas y por qué, y qué esperas que devuelva cada capa antes de correrla.",
+     "tip": "Escribe la hora de inicio en un papel y anota cuánto tardas en cada ejercicio. Al corregir, esa lista te muestra qué tipo de consulta todavía te cuesta y qué conviene repasar el 29 de diciembre.",
+     "example": "-- ¿Cuántas filas hay en cada capa? Te dice si un JOIN multiplicó filas.\nSELECT 'pedidos' AS capa, COUNT(*) AS filas\nFROM pedidos\nUNION ALL\nSELECT 'pedidos no cancelados', COUNT(*)\nFROM pedidos\nWHERE estado <> 'cancelado'\nUNION ALL\nSELECT 'líneas de esos pedidos', COUNT(*)\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado';",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Primera lectura: clasifica los seis",
+       "body": "Lee todos los enunciados antes de escribir. Anota al lado de cada uno la herramienta principal y una estimación de dificultad. Este plan en comentarios te toma cinco minutos y te ahorra muchos más.",
+       "code": "-- 1. JOIN de 5 tablas + GROUP BY             fácil\n-- 2. GROUP BY + HAVING con dos condiciones    media\n-- 3. Subconsulta correlacionada              media\n-- 4. CTE + CASE + agregados por dos columnas  media\n-- 5. Ventana RANK dentro de una CTE           difícil\n-- 6. UPDATE con subconsulta (SELECT primero)  difícil\nSELECT 'plan listo' AS estado;",
+       "language": "sql"
+      },
+      {
+       "title": "Primera capa: las filas, sin agrupar",
+       "body": "Arma solo los `JOIN` y los filtros y mira unas filas. Comprueba que cada columna que vas a necesitar está ahí y que los valores tienen sentido (fechas en el rango, estados correctos).",
+       "code": "SELECT p.id, p.fecha, p.estado, pr.nombre, d.cantidad\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nWHERE p.estado <> 'cancelado'\nLIMIT 10;",
+       "language": "sql"
+      },
+      {
+       "title": "Controla el tamaño en cada capa",
+       "body": "Antes de agrupar, cuenta filas y entidades distintas. Si esperas 387 pedidos no cancelados y el conteo distinto da otra cosa, el problema está en los filtros o en un JOIN, no en el `GROUP BY`.",
+       "code": "SELECT COUNT(*) AS lineas,\n       COUNT(DISTINCT p.id) AS pedidos\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado';",
+       "language": "sql"
+      },
+      {
+       "title": "En la modificación, el SELECT va primero",
+       "body": "Escribe el `SELECT` con el `WHERE` exacto que usarás en el `UPDATE` y revisa fila por fila. Solo cuando la lista es la correcta, copia ese `WHERE` literalmente al `UPDATE`. Ejemplo: subir 5 % los productos activos de café y bebidas.",
+       "code": "SELECT id, nombre, precio, ROUND(precio * 1.05) AS precio_nuevo\nFROM productos\nWHERE categoria_id = 1 AND activo = 1;",
+       "language": "sql"
+      },
+      {
+       "title": "Revisa los detalles que hacen fallar una respuesta correcta",
+       "body": "Divisiones enteras, redondeos y orden de columnas son la causa más común de una respuesta «casi» correcta. Esta consulta te recuerda la trampa de la división entera: `7 / 2` da 3, no 3.5.",
+       "code": "SELECT 7 / 2 AS entera,\n       7 / 2.0 AS decimal,\n       ROUND(7 * 100.0 / 3, 1) AS porcentaje;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "La respuesta tiene las cifras correctas, pero se califica como incorrecta",
+       "cause": "Hay una columna de más, faltan columnas, están en otro orden o no se redondeó como pedía el enunciado.",
+       "fix": "Relee el enunciado y copia la lista de columnas en un comentario arriba de tu consulta; compárala con tu `SELECT` antes de enviar."
+      },
+      {
+       "error": "no such column: total",
+       "cause": "Usaste en el `WHERE` un alias definido en el `SELECT`. El `WHERE` se evalúa antes del `SELECT`, así que el alias todavía no existe.",
+       "fix": "Repite la expresión en el `WHERE`, usa `HAVING` si es un agregado o calcula el alias en una CTE y filtra afuera."
+      },
+      {
+       "error": "El UPDATE cambió filas distintas de las que revisaste",
+       "cause": "El `WHERE` del `UPDATE` no es idéntico al del `SELECT` que probaste: cambiaste una condición al copiarlo.",
+       "fix": "Copia y pega el `WHERE` completo, sin reescribirlo. Si puedes, haz el cambio dentro de `BEGIN` y revísalo antes del `COMMIT`."
+      },
+      {
+       "error": "Llevas 30 minutos en un ejercicio y no avanzas",
+       "cause": "Intentas escribir la consulta completa de una vez y, cuando falla, no sabes en qué parte está el problema.",
+       "fix": "Vuelve a la primera capa y avanza de a una, mirando el resultado en cada paso. Si aun así no sale, anota dónde ibas y pasa al siguiente ejercicio."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-23-1",
+     "title": "Tecnología por vendedor",
+     "prompt": "El jefe de ventas quiere reconocer a quien más tecnología vende en la tienda física. Para cada empleado que haya atendido al menos un pedido no cancelado con productos de la categoría «Tecnología», muestra su nombre completo (nombre, un espacio y apellido), la cantidad de pedidos distintos que incluyen tecnología y las unidades de tecnología vendidas, en ese orden.",
+     "hint": "Necesitas cinco tablas: empleados → pedidos → detalle_pedido → productos → categorias. Filtra por el nombre de la categoría y por el estado, agrupa por el id del empleado y usa `COUNT(DISTINCT p.id)` para los pedidos.",
+     "solution": "SELECT e.nombre || ' ' || e.apellido AS empleado,\n       COUNT(DISTINCT p.id) AS pedidos,\n       SUM(d.cantidad) AS unidades\nFROM empleados e\nJOIN pedidos p ON p.empleado_id = e.id\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE c.nombre = 'Tecnología'\n  AND p.estado <> 'cancelado'\nGROUP BY e.id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-23-2",
+     "title": "Clientes fieles de 2026",
+     "prompt": "Mercadeo prepara un regalo para los clientes más fieles de 2026. Considera solo pedidos no cancelados de 2026. Muestra el nombre completo (nombre, un espacio y apellido), la cantidad de pedidos y el gasto total redondeado a 0 decimales (suma de las líneas, sin envío) de los clientes que tienen al menos 6 pedidos y un gasto total de al menos ₡150 000.",
+     "hint": "Las dos condiciones son sobre grupos, así que van juntas en el `HAVING` con `AND`. Recuerda contar los pedidos con `COUNT(DISTINCT p.id)`, porque cada pedido aparece una vez por línea.",
+     "solution": "SELECT c.nombre || ' ' || c.apellido AS cliente,\n       COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS gasto\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\n  AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\nGROUP BY c.id\nHAVING COUNT(DISTINCT p.id) >= 6\n   AND SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) >= 150000;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-23-3",
+     "title": "Más caros que su categoría",
+     "prompt": "Para revisar la política de precios, muestra el nombre del producto, el nombre de su categoría y su precio, en ese orden, de los productos activos cuyo precio es mayor que el precio promedio de los productos activos de su misma categoría.",
+     "hint": "Es una subconsulta correlacionada: el `AVG` de adentro filtra por `categoria_id = p.categoria_id` de la fila de afuera. Las dos partes, la de afuera y la de adentro, deben pedir `activo = 1`.",
+     "solution": "SELECT p.nombre AS producto,\n       c.nombre AS categoria,\n       p.precio\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE p.activo = 1\n  AND p.precio > (\n    SELECT AVG(p2.precio)\n    FROM productos p2\n    WHERE p2.categoria_id = p.categoria_id\n      AND p2.activo = 1\n  );",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-23-4",
+     "title": "En línea frente a tienda",
+     "prompt": "La gerente quiere comparar los canales de venta. Un pedido es 'en línea' si no tiene empleado y 'en tienda' si lo tiene (escribe esos textos exactos). Con los pedidos no cancelados, calcula el total de cada pedido (suma de sus líneas, sin envío) y luego, para cada año y canal, muestra el año como texto `AAAA`, el canal, la cantidad de pedidos, el ticket promedio y los ingresos, en ese orden, con los dos últimos redondeados a 0 decimales.",
+     "hint": "Usa una CTE que deje una fila por pedido con su año, su canal (un `CASE WHEN p.empleado_id IS NULL ...`) y su total. Después agrupa esa CTE por año y canal: el ticket promedio es el `AVG` de los totales por pedido.",
+     "solution": "WITH totales AS (\n  SELECT p.id,\n         substr(p.fecha, 1, 4) AS anio,\n         CASE WHEN p.empleado_id IS NULL THEN 'en línea' ELSE 'en tienda' END AS canal,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.estado <> 'cancelado'\n  GROUP BY p.id\n)\nSELECT anio,\n       canal,\n       COUNT(*) AS pedidos,\n       ROUND(AVG(total)) AS ticket_promedio,\n       ROUND(SUM(total)) AS ingresos\nFROM totales\nGROUP BY anio, canal;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-23-5",
+     "title": "Los dos más vendidos de cada categoría",
+     "prompt": "Para armar la vitrina de enero, bodega necesita los dos productos con más unidades vendidas de cada categoría, contando solo pedidos no cancelados. Muestra la categoría, el producto, las unidades vendidas y su puesto dentro de la categoría, en ese orden. El puesto se calcula con `RANK()` por unidades, de mayor a menor; muestra los productos con puesto 1 o 2.",
+     "hint": "Primero una CTE con las unidades por producto; luego otra con `RANK() OVER (PARTITION BY ... ORDER BY unidades DESC)`. El filtro por el puesto va en la consulta de afuera, porque una ventana no se puede usar en el `WHERE` del mismo nivel.",
+     "solution": "WITH vendidos AS (\n  SELECT pr.id, pr.nombre, pr.categoria_id, SUM(d.cantidad) AS unidades\n  FROM detalle_pedido d\n  JOIN pedidos p ON p.id = d.pedido_id\n  JOIN productos pr ON pr.id = d.producto_id\n  WHERE p.estado <> 'cancelado'\n  GROUP BY pr.id\n),\nranking AS (\n  SELECT c.nombre AS categoria, v.nombre AS producto, v.unidades,\n         RANK() OVER (PARTITION BY v.categoria_id ORDER BY v.unidades DESC) AS puesto\n  FROM vendidos v\n  JOIN categorias c ON c.id = v.categoria_id\n)\nSELECT categoria, producto, unidades, puesto\nFROM ranking\nWHERE puesto <= 2;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-23-6",
+     "title": "Agotados y sin ventas recientes",
+     "prompt": "Bodega pide desactivar (`activo = 0`) los productos que hoy están activos, tienen `stock` 0 y no aparecen en ningún pedido no cancelado con fecha desde el 1 de julio de 2026. Escribe el `UPDATE`. Se comprobará mirando el `id`, el `nombre` y `activo` de todos los productos con stock 0.",
+     "hint": "Primero escribe el `SELECT` que lista esos productos y revísalo: deberían ser pocos. La condición de «sin ventas recientes» es un `id NOT IN (SELECT d.producto_id FROM detalle_pedido d JOIN pedidos p ...)` con los filtros de fecha y estado.",
+     "solution": "UPDATE productos\nSET activo = 0\nWHERE activo = 1\n  AND stock = 0\n  AND id NOT IN (\n    SELECT d.producto_id\n    FROM detalle_pedido d\n    JOIN pedidos p ON p.id = d.pedido_id\n    WHERE p.estado <> 'cancelado'\n      AND p.fecha >= '2026-07-01'\n  );",
+     "check": "SELECT id, nombre, activo\nFROM productos\nWHERE stock = 0\nORDER BY id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Informe mensual con ventanas",
+    "description": "Arma el informe mensual de 2026 que pediría una gerencia: para cada mes, los ingresos (sin cancelados, redondeados), el cambio porcentual respecto al mes anterior con un decimal, el acumulado del año y el puesto del mes en un ranking de ingresos de mayor a menor. Ordénalo por mes. Luego responde por escrito: ¿qué mes creció más respecto al anterior y cuál cayó más?",
+    "hint": "Una CTE con los ingresos por mes y, encima, tres ventanas: `LAG(ingresos) OVER (ORDER BY mes)` para el mes anterior, `SUM(ingresos) OVER (ORDER BY mes)` para el acumulado y `RANK() OVER (ORDER BY ingresos DESC)` para el puesto. Multiplica por `100.0` para no caer en la división entera.",
+    "solution": "WITH mensual AS (\n  SELECT substr(p.fecha, 1, 7) AS mes,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ingresos\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.estado <> 'cancelado'\n    AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\n  GROUP BY mes\n)\nSELECT mes,\n       ROUND(ingresos) AS ingresos,\n       ROUND(100.0 * (ingresos - LAG(ingresos) OVER (ORDER BY mes))\n             / LAG(ingresos) OVER (ORDER BY mes), 1) AS cambio_pct,\n       ROUND(SUM(ingresos) OVER (ORDER BY mes)) AS acumulado,\n       RANK() OVER (ORDER BY ingresos DESC) AS puesto\nFROM mensual\nORDER BY mes;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "orden lógico",
+     "definition": "Orden en que se procesa una consulta: FROM y JOIN, WHERE, GROUP BY, HAVING, SELECT (con las ventanas), ORDER BY y LIMIT."
+    },
+    {
+     "term": "subconsulta correlacionada",
+     "definition": "Subconsulta que usa una columna de la consulta de afuera, por lo que se evalúa de nuevo para cada fila."
+    },
+    {
+     "term": "NOT EXISTS",
+     "definition": "Condición verdadera cuando la subconsulta no devuelve ninguna fila; es la forma segura de buscar «lo que nunca pasó»."
+    },
+    {
+     "term": "función de ventana",
+     "definition": "Función que calcula un valor para cada fila mirando un grupo de filas relacionadas (OVER), sin colapsarlas como GROUP BY."
+    },
+    {
+     "term": "RANK",
+     "definition": "Función de ventana que numera por posición y deja huecos tras un empate: 1, 1, 3."
+    },
+    {
+     "term": "DENSE_RANK",
+     "definition": "Como RANK, pero sin huecos tras un empate: 1, 1, 2."
+    },
+    {
+     "term": "transacción",
+     "definition": "Grupo de cambios que se confirman juntos con COMMIT o se deshacen juntos con ROLLBACK."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: la sentencia SELECT",
+     "url": "https://www.sqlite.org/lang_select.html"
+    },
+    {
+     "title": "SQLite: funciones de ventana",
+     "url": "https://www.sqlite.org/windowfunctions.html"
+    },
+    {
+     "title": "SQLite: la cláusula WITH (CTE)",
+     "url": "https://www.sqlite.org/lang_with.html"
+    },
+    {
+     "title": "SQLite: la sentencia UPDATE",
+     "url": "https://www.sqlite.org/lang_update.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "En una entrevista te preguntan: «¿Cuál es la diferencia entre WHERE y HAVING?». ¿Cuál es la mejor respuesta?",
+     "code": "",
+     "options": [
+      "Son equivalentes; HAVING es la forma moderna de escribir WHERE",
+      "WHERE filtra filas antes de agrupar y HAVING filtra grupos después de agrupar, por eso solo HAVING puede usar agregados",
+      "WHERE se usa con texto y HAVING con números",
+      "HAVING filtra antes del GROUP BY y WHERE después"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: no son equivalentes; actúan en momentos distintos de la consulta.",
+      "Correcto: es la respuesta precisa y además explica la consecuencia práctica.",
+      "No: los dos pueden filtrar cualquier tipo de dato.",
+      "No: es al revés; WHERE va antes del GROUP BY y HAVING después."
+     ],
+     "explanation": "El orden lógico es FROM, WHERE, GROUP BY, HAVING, SELECT. Por eso un `SUM` en el WHERE da error y en el HAVING funciona.",
+     "hint": "Piensa en qué existe en cada momento: filas sueltas o grupos."
+    },
+    {
+     "type": "choice",
+     "prompt": "Tres vendedores tienen ingresos de 900, 900 y 800. ¿Qué puestos da `DENSE_RANK() OVER (ORDER BY ingresos DESC)`?",
+     "code": "",
+     "options": [
+      "1, 2, 3",
+      "1, 1, 3",
+      "1, 2, 2",
+      "1, 1, 2"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso es ROW_NUMBER, que no reconoce empates.",
+      "No: eso es RANK, que deja un hueco después del empate.",
+      "No: los dos primeros empatan, así que comparten el puesto 1.",
+      "Correcto: DENSE_RANK da el mismo puesto a los empatados y sigue con el número siguiente, sin huecos."
+     ],
+     "explanation": "ROW_NUMBER: 1, 2, 3. RANK: 1, 1, 3. DENSE_RANK: 1, 1, 2. Es una de las preguntas de entrevista más frecuentes.",
+     "hint": "«Dense» significa que no deja huecos."
+    },
+    {
+     "type": "choice",
+     "prompt": "`SELECT COUNT(*) FROM empleados WHERE id NOT IN (SELECT jefe_id FROM empleados);` devuelve 0 en la Tienda, aunque hay empleados que no son jefes de nadie. ¿Por qué?",
+     "code": "",
+     "options": [
+      "Porque `jefe_id` tiene un NULL (la gerente) y `NOT IN` con un NULL en la lista nunca es verdadero",
+      "Porque `NOT IN` no funciona con subconsultas de la misma tabla",
+      "Porque falta un `GROUP BY`",
+      "Porque `COUNT(*)` no cuenta filas filtradas por una subconsulta"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: comparar con NULL da «desconocido», y la condición nunca llega a ser verdadera.",
+      "No: una subconsulta puede leer la misma tabla sin problema.",
+      "No: aquí no hay grupos que formar.",
+      "No: `COUNT(*)` cuenta las filas que pasan el filtro; el problema es que ninguna pasa."
+     ],
+     "explanation": "`x NOT IN (2, 3, NULL)` significa `x <> 2 AND x <> 3 AND x <> NULL`, y lo último nunca es verdadero. `NOT EXISTS` o filtrar `jefe_id IS NOT NULL` lo resuelven.",
+     "hint": "¿Quién es la única empleada sin jefe?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "`UNION` elimina las filas duplicadas y `UNION ALL` no; por eso `UNION ALL` suele ser más rápido cuando sabes que no hay duplicados.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `UNION` tiene que comparar todas las filas para quitar repetidas; `UNION ALL` solo las junta.",
+      "Sí es verdadero: es justo la diferencia entre los dos operadores."
+     ],
+     "explanation": "Usa `UNION ALL` cuando las partes no pueden repetirse o cuando quieres conservar los repetidos; `UNION` cuando necesitas eliminarlos.",
+     "hint": "¿Qué trabajo extra tiene que hacer `UNION`?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "En la tabla `clientes` de la Tienda, `COUNT(*)` y `COUNT(email)` dan el mismo resultado.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: hay clientes sin email, y `COUNT(email)` no los cuenta.",
+      "Correcto: `COUNT(*)` da 80 y `COUNT(email)` da 78, porque dos clientes tienen el email en NULL."
+     ],
+     "explanation": "`COUNT(*)` cuenta filas; `COUNT(columna)` cuenta solo los valores no nulos de esa columna.",
+     "hint": "¿Todos los clientes tienen email?"
+    },
+    {
+     "type": "output",
+     "prompt": "Pregunta clásica de entrevista: el tercer salario más alto (sin contar repetidos). ¿Qué devuelve esta consulta sobre la Tienda?",
+     "code": "WITH r AS (\n  SELECT salario, DENSE_RANK() OVER (ORDER BY salario DESC) AS pos\n  FROM empleados\n)\nSELECT MIN(salario)\nFROM r\nWHERE pos <= 3;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "1380000"
+     ],
+     "optionFeedback": [],
+     "explanation": "Los tres salarios distintos más altos son 2 450 000 (gerente), 1 650 000 (jefe de ventas) y 1 380 000 (jefa de bodega). El menor de ellos es 1 380 000.",
+     "hint": "Los tres salarios más altos son los de la gerente y dos jefaturas."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta sobre la Tienda?",
+     "code": "SELECT COUNT(*)\nFROM clientes c\nWHERE NOT EXISTS (\n  SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id\n);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "20"
+     ],
+     "optionFeedback": [],
+     "explanation": "Hay 20 clientes registrados que nunca hicieron un pedido.",
+     "hint": "Son los clientes para los que la subconsulta no encuentra ningún pedido."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para mostrar solo los departamentos cuyo salario promedio supera ₡1 000 000.",
+     "code": "SELECT departamento, ROUND(AVG(salario)) AS promedio\nFROM empleados\nGROUP BY departamento\n___ AVG(salario) > 1000000;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "HAVING"
+     ],
+     "optionFeedback": [],
+     "explanation": "La condición es sobre un agregado de cada grupo, así que va en `HAVING`, después del `GROUP BY`.",
+     "hint": "Es el filtro que actúa sobre grupos."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-24",
+   "kind": "free",
+   "title": "Nochebuena",
+   "summary": "Día libre: hoy no hay taller. Disfruta con tu familia."
+  },
+  {
+   "date": "2026-12-25",
+   "kind": "holiday",
+   "title": "Navidad",
+   "summary": "Feriado nacional: hoy no hay taller."
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-12-26",
+  "kind": "mini-project",
+  "path": "Tu repositorio del proyecto final en GitHub",
+  "description": "Primera versión completa de tu proyecto final, publicada en GitHub: la base de datos con su script de creación y carga, `consultas.sql` con las preguntas respondidas, el código con clases y el patrón repositorio, las pruebas con pytest y al menos una gráfica. Lo ideal es enviarlo el miércoles 23 en la noche, al terminar el simulacro, para tener libres el 24 y el 25; el plazo final es el sábado 26.",
+  "criteria": [
+   "Siguiendo el README en una carpeta limpia, el proyecto se instala, crea la base y corre `main.py` sin errores.",
+   "`consultas.sql` responde cada pregunta de negocio del plan, con la pregunta en un comentario, la respuesta anotada y un cálculo de control.",
+   "Todo el acceso a la base está en una clase repositorio con parámetros `?`; los reportes usan una dataclass y ningún SQL se arma con f-strings.",
+   "Hay al menos 8 pruebas de pytest sobre una base `:memory:` y todas pasan con `python -m pytest`.",
+   "La gráfica está en el repositorio, tiene un título que cuenta el hallazgo, ejes con unidades y aparece en el README.",
+   "El historial de Git muestra commits pequeños con mensajes claros a lo largo de la semana."
+  ],
+  "steps": [
+   "Lunes 21: escribe `consultas.sql` con una consulta por pregunta, su respuesta y su cálculo de control; luego pasa las consultas al repositorio y arma los reportes con `Reporte`.",
+   "Lunes 21: termina `main.py` para que imprima todos los reportes y exporte al menos uno a CSV en `salidas/`. Commit y push.",
+   "Martes 22: haz la gráfica de tu pregunta principal con `graficas.py`, guárdala en `salidas/` y llámala desde `main.py`.",
+   "Martes 22: escribe las pruebas en `tests/` (fixture en `conftest.py`, una prueba por método del repositorio, una para los reportes y una para la gráfica) hasta que `python -m pytest -v` pase completo.",
+   "Martes 22: limpia el código, genera `requirements.txt`, revisa `.gitignore` y escribe el README con preguntas, hallazgos, comandos, estructura y la gráfica.",
+   "Miércoles 23 en la noche, después del simulacro: clona el repositorio en otra carpeta, sigue el README al pie de la letra, corrige lo que falle, haz push y envía el enlace."
+  ],
+  "tips": [
+   "El revisor clona el repositorio y sigue tus instrucciones sin preguntarte nada. Si falta un comando o un archivo, el criterio de «correr desde cero» falla aunque en tu computador todo funcione.",
+   "Haz commit cada vez que algo funcione, no al final del día: si rompes algo, vuelves al último commit bueno con `git restore`.",
+   "Si te falta tiempo, prioriza que lo que hay funcione desde cero y tenga pruebas; una pregunta menos bien resuelta vale más que todas a medias."
+  ],
+  "stretch": "Agrega a `main.py` un argumento opcional con `sys.argv` para elegir qué mostrar (`python main.py 2` imprime solo el reporte 2) y una segunda gráfica que compare dos grupos o dos periodos con leyenda, como en el reto del martes.",
+  "checklist": [
+   "El enlace del repositorio abre y el README se ve completo en la página principal, con la gráfica visible.",
+   "Clonaste el repositorio en otra carpeta y los comandos del README funcionaron tal cual.",
+   "`python -m pytest` pasa con al menos 8 pruebas.",
+   "Buscaste `execute(f` en todo el proyecto y no hay resultados.",
+   "No hay prints de depuración, código comentado ni archivos de `.venv/` o `__pycache__/` en el repositorio.",
+   "Cada pregunta de `consultas.sql` tiene su respuesta anotada y coincide con lo que imprime `main.py`."
+  ],
+  "exercises": []
+ }
+}

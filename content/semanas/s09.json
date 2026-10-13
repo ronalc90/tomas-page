@@ -1,0 +1,1979 @@
+{
+ "id": "s09",
+ "number": 9,
+ "phaseId": 4,
+ "title": "POO y Python con SQL",
+ "rangeLabel": "7 dic – 12 dic",
+ "days": [
+  {
+   "date": "2026-12-07",
+   "kind": "workshop",
+   "title": "Clases y objetos",
+   "summary": "Empiezas la programación orientada a objetos con la tienda: defines las clases Producto y Cliente, con sus datos, lo que saben hacer y las reglas que protegen sus valores.",
+   "objectives": [
+    "Definir una clase con `__init__` y crear varios objetos independientes a partir de ella.",
+    "Escribir métodos que leen y modifican los atributos del objeto a través de `self`.",
+    "Implementar `__str__` para que un objeto se imprima de forma clara.",
+    "Proteger un atributo con guion bajo y `@property`, validando los valores nuevos en un setter.",
+    "Convertir filas de la base Tienda (tuplas) en una lista de objetos `Producto` y trabajar con ellos."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: class, __init__, atributos y métodos",
+     "minutes": 75
+    },
+    {
+     "label": "Tema 2: __str__, encapsulación y propiedades",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: tareas en curso-python/semana-09 y repaso SQL",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "class, __init__, atributos y métodos",
+     "concept": "La semana pasada cada producto era un diccionario: `{'nombre': 'Salsa Lizano 700 ml', 'precio': 2450}`. Funciona, pero nada impide escribir mal una clave o guardar un texto donde va un número, y las funciones que trabajan con productos quedan regadas por todo el programa. Una **clase** junta en un solo lugar los datos de una cosa y lo que esa cosa sabe hacer. `Producto` es el molde; cada producto concreto, como el café Tarrazú, es un **objeto** (o instancia) fabricado con ese molde.\n\nEl método especial `__init__` se ejecuta solo cuando escribes `Producto(...)`: recibe los datos y los guarda en el objeto con `self.precio = precio`. `self` es el objeto con el que se está trabajando; Python lo pasa automáticamente, por eso no lo escribes al llamar. Los datos guardados en `self` se llaman atributos, y cada objeto tiene los suyos.\n\nUn método es una función definida dentro de la clase cuyo primer parámetro es `self`. `cafe.margen()` calcula con los atributos de ese café, y `cafe.vender(5)` cambia su stock sin tocar el de ningún otro producto.",
+     "tip": "Nombra las clases en singular y con mayúscula inicial (`Producto`, `LineaPedido`) y los objetos en minúscula (`cafe`, `linea`). Si Python dice que un atributo no existe, revisa primero que en el `__init__` escribiste `self.` delante.",
+     "example": "class Producto:\n    \"\"\"Un producto del catálogo de la Tienda Pura Vida.\"\"\"\n\n    def __init__(self, id, nombre, precio, costo, stock=0):\n        self.id = id\n        self.nombre = nombre\n        self.precio = precio\n        self.costo = costo\n        self.stock = stock\n\n    def margen(self):\n        return self.precio - self.costo\n\n    def valor_inventario(self):\n        return self.costo * self.stock\n\n    def vender(self, cantidad):\n        if cantidad > self.stock:\n            raise ValueError(f\"Solo quedan {self.stock} unidades de {self.nombre}\")\n        self.stock -= cantidad\n\n\ncafe = Producto(1, \"Café molido Tarrazú 500 g\", 6500, 3600, 120)\nlizano = Producto(7, \"Salsa Lizano 700 ml\", 2450, 1700, 300)\n\nprint(cafe.nombre, \"-> margen por unidad:\", cafe.margen())\ncafe.vender(5)\nprint(\"Stock del café:\", cafe.stock)\nprint(\"Stock de la Lizano:\", lizano.stock)\nprint(f\"Inventario del café al costo: ₡{cafe.valor_inventario():,}\")\ntry:\n    lizano.vender(500)\nexcept ValueError as error:\n    print(\"No se pudo vender:\", error)\n",
+     "language": "python",
+     "exampleOutput": "Café molido Tarrazú 500 g -> margen por unidad: 2900\nStock del café: 115\nStock de la Lizano: 300\nInventario del café al costo: ₡414,000\nNo se pudo vender: Solo quedan 300 unidades de Salsa Lizano 700 ml",
+     "steps": [
+      {
+       "title": "Define la clase y fabrica dos objetos",
+       "body": "Crea la carpeta `curso-python/semana-09/` y dentro `producto.py`. Escribe la clase con su `__init__` y fabrica dos productos reales de la tienda. `type()` confirma que ambos son de la clase `Producto`, y cada uno guarda sus propios datos.",
+       "code": "class Producto:\n    def __init__(self, id, nombre, precio, costo, stock=0):\n        self.id = id\n        self.nombre = nombre\n        self.precio = precio\n        self.costo = costo\n        self.stock = stock\n\n\ncafe = Producto(1, \"Café molido Tarrazú 500 g\", 6500, 3600, 120)\ncajeta = Producto(10, \"Cajeta de leche\", 1200, 600, 180)\nprint(type(cafe).__name__)\nprint(cafe.nombre, cafe.precio)\nprint(cajeta.nombre, cajeta.precio)",
+       "language": "python"
+      },
+      {
+       "title": "Descubre qué es self",
+       "body": "Cuando escribes `cafe.margen()`, Python ejecuta en realidad `Producto.margen(cafe)`: el objeto que va antes del punto llega como `self`. Comprueba que las dos llamadas dan lo mismo; con eso `self` deja de ser un misterio.",
+       "code": "class Producto:\n    def __init__(self, nombre, precio, costo):\n        self.nombre = nombre\n        self.precio = precio\n        self.costo = costo\n\n    def margen(self):\n        return self.precio - self.costo\n\n\ncafe = Producto(\"Café molido Tarrazú 500 g\", 6500, 3600)\nprint(cafe.margen())\nprint(Producto.margen(cafe))",
+       "language": "python"
+      },
+      {
+       "title": "Métodos que cambian el objeto",
+       "body": "Agrega `vender` y `reponer`. Los dos modifican `self.stock`, y `vender` lanza `ValueError` si no alcanza la mercadería, igual que harías con una función de la semana pasada. Fíjate en que vender un café no cambia el stock de la cajeta: cada objeto es independiente.",
+       "code": "class Producto:\n    def __init__(self, nombre, stock=0):\n        self.nombre = nombre\n        self.stock = stock\n\n    def vender(self, cantidad):\n        if cantidad > self.stock:\n            raise ValueError(f\"Solo quedan {self.stock} unidades\")\n        self.stock -= cantidad\n\n    def reponer(self, cantidad):\n        if cantidad <= 0:\n            raise ValueError(\"La cantidad debe ser positiva\")\n        self.stock += cantidad\n\n\ncafe = Producto(\"Café molido Tarrazú 500 g\", 120)\ncajeta = Producto(\"Cajeta de leche\", 180)\ncafe.vender(20)\ncafe.reponer(50)\nprint(cafe.stock, cajeta.stock)\ntry:\n    cajeta.vender(200)\nexcept ValueError as error:\n    print(error)",
+       "language": "python"
+      },
+      {
+       "title": "Crea la clase Cliente",
+       "body": "Una clase por cada cosa del negocio. `Cliente` guarda los datos de la tabla `clientes` y ofrece métodos útiles: `nombre_completo()` y `tiene_email()`, que trata el `None` (el NULL de la base) como dato faltante. Usa como valor por defecto `None` para lo que puede faltar.",
+       "code": "class Cliente:\n    def __init__(self, id, nombre, apellido, email=None, telefono=None):\n        self.id = id\n        self.nombre = nombre\n        self.apellido = apellido\n        self.email = email\n        self.telefono = telefono\n\n    def nombre_completo(self):\n        return f\"{self.nombre} {self.apellido}\"\n\n    def tiene_email(self):\n        return self.email is not None\n\n\ndaniel = Cliente(1, \"Daniel\", \"Ramírez\", \"daniel.ramirez@hotmail.com\", \"6905-3658\")\nnuevo = Cliente(99, \"Laura\", \"Mora\")\nprint(daniel.nombre_completo(), daniel.tiene_email())\nprint(nuevo.nombre_completo(), nuevo.tiene_email())",
+       "language": "python"
+      },
+      {
+       "title": "De filas de la base a objetos",
+       "body": "Una consulta devuelve filas como tuplas. Si las columnas vienen en el mismo orden que los parámetros del `__init__`, `Producto(*fila)` reparte cada valor en su lugar. Con una comprensión conviertes todo el resultado en objetos, y `max` con `key` encuentra el de mayor margen.",
+       "code": "class Producto:\n    def __init__(self, id, nombre, precio, costo, stock=0):\n        self.id = id\n        self.nombre = nombre\n        self.precio = precio\n        self.costo = costo\n        self.stock = stock\n\n    def margen(self):\n        return self.precio - self.costo\n\n\n# Filas copiadas del laboratorio: id, nombre, precio, costo, stock\nfilas = [\n    (7, \"Salsa Lizano 700 ml\", 2450, 1700, 300),\n    (9, \"Chocolate artesanal 70 % cacao\", 3500, 1700, 80),\n    (13, \"Maní garapiñado 250 g\", 2100, 1200, 90),\n]\nproductos = [Producto(*fila) for fila in filas]\nmejor = max(productos, key=lambda p: p.margen())\nprint(len(productos), \"productos\")\nprint(\"Mayor margen:\", mejor.nombre, mejor.margen())",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "TypeError: Producto.margen() takes 0 positional arguments but 1 was given",
+       "cause": "Definiste el método como `def margen():` sin `self`. Python siempre pasa el objeto como primer argumento y el método no tiene dónde recibirlo.",
+       "fix": "Escribe `self` como primer parámetro de todos los métodos: `def margen(self):`."
+      },
+      {
+       "error": "AttributeError: 'Producto' object has no attribute 'precio'",
+       "cause": "En el `__init__` escribiste `precio = precio` (una variable local que desaparece al terminar) en lugar de `self.precio = precio`.",
+       "fix": "Cada dato que el objeto debe recordar se guarda con `self.` delante. Revisa el `__init__` línea por línea."
+      },
+      {
+       "error": "TypeError: Producto.__init__() missing 1 required positional argument: 'costo'",
+       "cause": "Al crear el objeto pasaste menos datos de los que pide el `__init__` (sin contar `self`).",
+       "fix": "Pasa todos los argumentos en el orden del `__init__` o dale un valor por defecto al parámetro que puede faltar, como `stock=0`."
+      },
+      {
+       "error": "Se imprime <bound method Producto.margen of ...> en vez de un número",
+       "cause": "Escribiste `cafe.margen` sin paréntesis: eso es el método mismo, no su resultado.",
+       "fix": "Llama al método con paréntesis: `cafe.margen()`."
+      }
+     ]
+    },
+    {
+     "title": "__str__, encapsulación y propiedades",
+     "concept": "Si imprimes un objeto sin más, Python muestra algo como `<__main__.Producto object at 0x7f3a...>`, que no le sirve a nadie. El método especial `__str__` decide el texto: **devuelve** (no imprime) una cadena, y Python la usa en `print(producto)`, en `str(producto)` y dentro de una f-string.\n\nEncapsular es lograr que los datos de un objeto solo cambien respetando sus reglas. Un precio de la tienda es un entero mayor que cero, igual que exige el `CHECK (precio > 0)` de la tabla `productos`. Python no tiene atributos privados de verdad: por convención, un nombre con guion bajo, como `_precio`, significa «interno, no lo toques desde fuera».\n\nPara leerlo sin paréntesis se usa `@property`: `p.precio` ejecuta un método que devuelve `self._precio`. Si además defines un setter con `@precio.setter`, la asignación `p.precio = 8500` pasa por tu método, que puede rechazar valores inválidos con `raise ValueError`. Si el `__init__` asigna con `self.precio = precio`, la regla protege al objeto desde que nace. Una propiedad sin setter es de **solo lectura**, y también sirve para valores calculados que siempre están al día, como el porcentaje de margen.",
+     "tip": "No conviertas todo en propiedad. Usa `_atributo` con `@property` solo para datos con reglas (precio, stock) o para valores calculados; un nombre o una descripción libre pueden quedarse como atributos normales.",
+     "example": "class Producto:\n    def __init__(self, id, nombre, precio, costo, stock=0):\n        self.id = id\n        self.nombre = nombre\n        self.costo = costo\n        self.precio = precio      # pasa por el setter: se valida al nacer\n        self._stock = stock\n\n    @property\n    def precio(self):\n        return self._precio\n\n    @precio.setter\n    def precio(self, valor):\n        if not isinstance(valor, int) or valor <= 0:\n            raise ValueError(f\"Precio inválido: {valor!r}\")\n        self._precio = valor\n\n    @property\n    def stock(self):              # sin setter: solo lectura\n        return self._stock\n\n    @property\n    def margen_pct(self):         # calculada: siempre al día\n        return round((self.precio - self.costo) * 100 / self.precio, 1)\n\n    def vender(self, cantidad):\n        if cantidad <= 0 or cantidad > self._stock:\n            raise ValueError(\"Cantidad inválida\")\n        self._stock -= cantidad\n\n    def __str__(self):\n        return f\"{self.nombre} - ₡{self.precio:,} ({self.stock} en bodega)\"\n\n\nfunda = Producto(39, \"Funda de celular con diseño de tucán\", 7900, 3550, 90)\nprint(funda)\nprint(\"Margen:\", funda.margen_pct, \"%\")\n\nfunda.precio = 8500\nfunda.vender(4)\nprint(f\"Después del cambio: {funda}\")\nprint(\"Margen:\", funda.margen_pct, \"%\")\n\nfor intento in (0, \"mil\"):\n    try:\n        funda.precio = intento\n    except ValueError as error:\n        print(error)\ntry:\n    funda.stock = 1000\nexcept AttributeError:\n    print(\"El stock solo cambia vendiendo o reponiendo\")\n",
+     "language": "python",
+     "exampleOutput": "Funda de celular con diseño de tucán - ₡7,900 (90 en bodega)\nMargen: 55.1 %\nDespués del cambio: Funda de celular con diseño de tucán - ₡8,500 (86 en bodega)\nMargen: 58.2 %\nPrecio inválido: 0\nPrecio inválido: 'mil'\nEl stock solo cambia vendiendo o reponiendo",
+     "steps": [
+      {
+       "title": "Mira qué imprime un objeto sin __str__",
+       "body": "Imprime un `Producto` que todavía no tiene `__str__`. Verás el nombre de la clase y una dirección de memoria que cambia en cada ejecución. Ese texto es el que vas a reemplazar por uno útil.",
+       "code": "class Producto:\n    def __init__(self, nombre, precio):\n        self.nombre = nombre\n        self.precio = precio\n\n\nprint(Producto(\"Camiseta Pura Vida\", 9500))",
+       "language": "python"
+      },
+      {
+       "title": "Agrega __str__ y úsalo en todas partes",
+       "body": "`__str__` debe terminar en `return` con un texto. Una vez definido, lo usan `print`, `str()` y las f-strings, así que el formato de un producto queda definido en un solo lugar.",
+       "code": "class Producto:\n    def __init__(self, nombre, precio):\n        self.nombre = nombre\n        self.precio = precio\n\n    def __str__(self):\n        return f\"{self.nombre} (₡{self.precio:,})\"\n\n\ncamiseta = Producto(\"Camiseta Pura Vida\", 9500)\nprint(camiseta)\ntexto = str(camiseta)\nprint(f\"Producto del día: {camiseta}\")\nprint(len(texto))",
+       "language": "python"
+      },
+      {
+       "title": "Protege el precio con propiedad y setter",
+       "body": "Guarda el dato en `_precio`, léelo con `@property` y valida en `@precio.setter`. Como el `__init__` asigna con `self.precio`, crear un producto con precio 0 también falla. Observa que desde fuera se sigue escribiendo `p.precio`, sin guion bajo ni paréntesis.",
+       "code": "class Producto:\n    def __init__(self, nombre, precio):\n        self.nombre = nombre\n        self.precio = precio\n\n    @property\n    def precio(self):\n        return self._precio\n\n    @precio.setter\n    def precio(self, valor):\n        if not isinstance(valor, int) or valor <= 0:\n            raise ValueError(f\"Precio inválido: {valor!r}\")\n        self._precio = valor\n\n\ngorra = Producto(\"Gorra bordada Costa Rica\", 8500)\ngorra.precio = 9000\nprint(gorra.precio)\nfor malo in (-500, \"9000\"):\n    try:\n        gorra.precio = malo\n    except ValueError as error:\n        print(error)\ntry:\n    Producto(\"Regalo\", 0)\nexcept ValueError as error:\n    print(\"No nace:\", error)",
+       "language": "python"
+      },
+      {
+       "title": "Un stock de solo lectura",
+       "body": "El stock no se debería poder escribir a mano: solo cambia cuando se vende o se repone. Una propiedad sin setter lo deja de solo lectura; los métodos de la propia clase sí pueden cambiar `self._stock`. Intentar asignarlo desde fuera lanza `AttributeError`.",
+       "code": "class Producto:\n    def __init__(self, nombre, stock=0):\n        self.nombre = nombre\n        self._stock = stock\n\n    @property\n    def stock(self):\n        return self._stock\n\n    def reponer(self, cantidad):\n        if cantidad <= 0:\n            raise ValueError(\"La cantidad debe ser positiva\")\n        self._stock += cantidad\n\n\nbolso = Producto(\"Bolso de manta\", 0)\nbolso.reponer(30)\nprint(bolso.stock)\ntry:\n    bolso.stock = 500\nexcept AttributeError as error:\n    print(\"Error:\", error)",
+       "language": "python"
+      },
+      {
+       "title": "Propiedades calculadas",
+       "body": "`margen` y `margen_pct` no se guardan: se calculan cada vez que los lees, así nunca quedan desactualizados cuando cambia el precio. Compara los números con los del ejercicio «Margen de la tecnología» del laboratorio.",
+       "code": "class Producto:\n    def __init__(self, nombre, precio, costo):\n        self.nombre = nombre\n        self.precio = precio\n        self.costo = costo\n\n    @property\n    def margen(self):\n        return self.precio - self.costo\n\n    @property\n    def margen_pct(self):\n        return round(self.margen * 100 / self.precio, 1)\n\n\ncable = Producto(\"Cable HDMI 2 m\", 4500, 2700)\nprint(cable.margen, cable.margen_pct)\ncable.precio = 5000\nprint(cable.margen, cable.margen_pct)",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "RecursionError: maximum recursion depth exceeded",
+       "cause": "Dentro del getter o del setter escribiste `self.precio` en lugar de `self._precio`: la propiedad se llama a sí misma sin fin.",
+       "fix": "Dentro de la propiedad usa siempre el nombre interno con guion bajo: `return self._precio` y `self._precio = valor`."
+      },
+      {
+       "error": "AttributeError: property 'stock' of 'Producto' object has no setter",
+       "cause": "Intentaste asignar a una propiedad de solo lectura (en versiones anteriores de Python el mensaje es `can't set attribute`).",
+       "fix": "Cambia el valor con un método de la clase (`reponer`, `vender`) o, si de verdad debe poder asignarse, agrega un `@stock.setter` con su validación."
+      },
+      {
+       "error": "TypeError: 'int' object is not callable",
+       "cause": "Llamaste a una propiedad con paréntesis, `p.precio()`. La propiedad ya devolvió el número y luego intentaste «llamar» a ese número.",
+       "fix": "Las propiedades se leen sin paréntesis: `p.precio`, `p.margen_pct`."
+      },
+      {
+       "error": "TypeError: __str__ returned non-string (type NoneType)",
+       "cause": "Dentro de `__str__` usaste `print(...)` en vez de `return ...`; el método terminó sin devolver nada.",
+       "fix": "`__str__` siempre termina con `return` y una cadena, por ejemplo `return f\"{self.nombre} (₡{self.precio:,})\"`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-07-1",
+     "title": "Ficha de los snacks",
+     "prompt": "Vas a crear objetos `Producto` con filas de la base, así que primero prepara la consulta. Muestra `id`, `nombre`, `precio`, `costo` y `stock`, en ese orden, de los productos **activos** de la categoría «Snacks y dulces». Busca la categoría por su nombre con un JOIN, no por su número.",
+     "hint": "Une `productos` con `categorias` por `categoria_id` y filtra con `c.nombre = 'Snacks y dulces'` y `p.activo = 1`. Como las dos tablas tienen `id` y `nombre`, antepón el alias de tabla.",
+     "solution": "SELECT p.id, p.nombre, p.precio, p.costo, p.stock\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE c.nombre = 'Snacks y dulces' AND p.activo = 1;",
+     "check": "",
+     "setup": "",
+     "starter": "SELECT p.id, p.nombre\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE ...;",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-07-2",
+     "title": "Margen de la tecnología",
+     "prompt": "La propiedad `margen_pct` de tu clase calcula `(precio - costo) * 100 / precio`. Comprueba el cálculo en SQL: para los productos **activos** de la categoría «Tecnología», muestra el `nombre`, el margen en colones (`precio - costo`) y el margen en porcentaje redondeado a 1 decimal, en ese orden. Ordénalos del mayor porcentaje al menor y, si empatan, por nombre.",
+     "hint": "Para que la división no sea entera multiplica por `100.0`. `ROUND(x, 1)` redondea a un decimal y puedes ordenar por el alias de la columna calculada.",
+     "solution": "SELECT p.nombre,\n       p.precio - p.costo AS margen,\n       ROUND((p.precio - p.costo) * 100.0 / p.precio, 1) AS margen_pct\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE c.nombre = 'Tecnología' AND p.activo = 1\nORDER BY margen_pct DESC, p.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [
+    "Crea `curso-python/semana-09/producto.py` con la clase `Producto(id, nombre, precio, costo, stock=0)` y los métodos `margen()` y `valor_inventario()`. Copia del laboratorio el resultado del ejercicio «Ficha de los snacks», crea con esas filas una lista de objetos y muestra para cada uno su nombre, su margen y el valor de su inventario al costo. Al final imprime el valor total del inventario de snacks.",
+    "Agrega a `Producto` los métodos `vender(cantidad)` y `reponer(cantidad)`. Los dos rechazan cantidades que no sean positivas con `ValueError`, y `vender` también rechaza vender más de lo que hay. Escribe al menos 4 `assert` que comprueben un caso válido y uno inválido de cada método (para los inválidos usa `try`/`except` y una variable que registre si hubo error).",
+    "Encapsula el producto: `precio` con propiedad y setter (entero mayor que cero), `stock` como propiedad de solo lectura que solo cambian `vender` y `reponer`, y las propiedades calculadas `margen` y `margen_pct`. Agrega un `__str__` con el formato `Salsa Lizano 700 ml - ₡2,450 (300 en bodega)`. Comprueba que `Producto(1, 'X', 0, 100)` lanza `ValueError`.",
+    "En `curso-python/semana-09/cliente.py` crea la clase `Cliente(id, nombre, apellido, email=None, telefono=None)` con la propiedad `nombre_completo`, el método `contacto()` (devuelve el email, o el teléfono si no hay email, o `'sin contacto'`) y un `__str__`. Pruébala con tres clientes reales de la tabla `clientes`, incluido uno sin email (búscalo en el laboratorio con `WHERE email IS NULL`).",
+    "Al final de `producto.py`, dentro de `if __name__ == \"__main__\":`, usa los objetos de los snacks para imprimir: el producto con mayor `margen_pct` (con `max` y `key`), los productos con menos de 70 unidades y la lista ordenada por precio de mayor a menor con `sorted`. Comprueba que el mayor margen coincide con lo que calcularías en SQL."
+   ],
+   "taskHints": [
+    "`productos = [Producto(*fila) for fila in filas]`, donde `filas` es una lista de tuplas que pegas desde el laboratorio. El total sale con `sum(p.valor_inventario() for p in productos)`.",
+    "Para probar un error: `fallo = False`, luego `try: p.vender(-1)` / `except ValueError: fallo = True`, y al final `assert fallo`. Revisa el stock antes y después de un `vender` válido.",
+    "Recuerda el orden: en el `__init__` guarda `costo` antes de asignar `self.precio = precio`, y el stock directo en `self._stock`. Dentro de las propiedades usa siempre el nombre con guion bajo.",
+    "`contacto()` es una cadena de decisiones: `if self.email is not None: return self.email`, después `elif self.telefono is not None:` y por último `return 'sin contacto'`.",
+    "`max(productos, key=lambda p: p.margen_pct)` y `sorted(productos, key=lambda p: p.precio, reverse=True)`. Para el filtro usa una comprensión con `if p.stock < 70`."
+   ],
+   "challenge": {
+    "title": "Carrito de compras",
+    "description": "Escribe la clase `Carrito(cliente)` que guarda líneas de compra de objetos `Producto` (usa una versión sencilla con `nombre`, `precio` y `stock`). Necesita: `agregar(producto, cantidad)`, que rechaza con `ValueError` cantidades no positivas o que, sumadas a lo que ya hay en el carrito de ese producto, superen el stock; si el producto ya estaba, suma la cantidad en vez de repetir la línea; la propiedad `total`; la propiedad `articulos` (cuántas unidades hay en total); y un `__str__` de varias líneas con el detalle y el total. Pruébalo con productos reales de la tienda e intenta agregar más tazas de las que hay en bodega.",
+    "hint": "Guarda las líneas en un diccionario `{producto: cantidad}`: los objetos pueden ser claves. Para validar, suma `self.lineas.get(producto, 0) + cantidad` y compáralo con `producto.stock`. En `__str__` arma una lista de líneas de texto y únelas con `'\\n'.join(...)`.",
+    "solution": "class Producto:\n    def __init__(self, nombre, precio, stock):\n        self.nombre = nombre\n        self.precio = precio\n        self.stock = stock\n\n\nclass Carrito:\n    def __init__(self, cliente):\n        self.cliente = cliente\n        self.lineas = {}\n\n    def agregar(self, producto, cantidad):\n        if cantidad <= 0:\n            raise ValueError(\"La cantidad debe ser positiva\")\n        nueva = self.lineas.get(producto, 0) + cantidad\n        if nueva > producto.stock:\n            raise ValueError(f\"Solo hay {producto.stock} de {producto.nombre}\")\n        self.lineas[producto] = nueva\n\n    @property\n    def total(self):\n        return sum(p.precio * c for p, c in self.lineas.items())\n\n    @property\n    def articulos(self):\n        return sum(self.lineas.values())\n\n    def __str__(self):\n        filas = [f\"Carrito de {self.cliente}\"]\n        for p, c in self.lineas.items():\n            filas.append(f\"  {c} x {p.nombre:<28} ₡{p.precio * c:>8,}\")\n        filas.append(f\"  {self.articulos} artículos, total ₡{self.total:,}\")\n        return \"\\n\".join(filas)\n\n\ntaza = Producto(\"Taza de cerámica pintada\", 6000, 85)\ncafe = Producto(\"Café molido Tarrazú 500 g\", 6500, 120)\ncarrito = Carrito(\"Ana Méndez\")\ncarrito.agregar(cafe, 2)\ncarrito.agregar(taza, 1)\ncarrito.agregar(cafe, 1)\nprint(carrito)\ntry:\n    carrito.agregar(taza, 85)\nexcept ValueError as error:\n    print(\"Rechazado:\", error)",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Clase",
+     "definition": "Molde que define qué datos (atributos) y qué comportamiento (métodos) tendrán los objetos de un tipo, como `Producto`."
+    },
+    {
+     "term": "Objeto",
+     "definition": "Cada ejemplar concreto creado a partir de una clase; también se llama instancia. El café Tarrazú es un objeto de la clase `Producto`."
+    },
+    {
+     "term": "self",
+     "definition": "Primer parámetro de todo método: es el objeto sobre el que se llamó el método. Python lo pasa automáticamente."
+    },
+    {
+     "term": "__init__",
+     "definition": "Método especial que Python ejecuta al crear un objeto; recibe los datos iniciales y los guarda como atributos."
+    },
+    {
+     "term": "Método",
+     "definition": "Función definida dentro de una clase que trabaja con los atributos del objeto, como `vender` o `margen`."
+    },
+    {
+     "term": "Encapsulación",
+     "definition": "Principio de que los datos de un objeto solo cambian a través de la propia clase, que conoce y aplica sus reglas."
+    },
+    {
+     "term": "@property",
+     "definition": "Decorador que permite leer un método como si fuera un atributo, sin paréntesis; con un setter puede validar asignaciones."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: clases (en español)",
+     "url": "https://docs.python.org/es/3/tutorial/classes.html"
+    },
+    {
+     "title": "Documentación de Python: la función property (en español)",
+     "url": "https://docs.python.org/es/3/library/functions.html#property"
+    },
+    {
+     "title": "Real Python: clases y programación orientada a objetos (en inglés)",
+     "url": "https://realpython.com/python-classes/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Dentro de `def vender(self, cantidad):`, ¿qué es `self` cuando escribes `cafe.vender(5)`?",
+     "code": "",
+     "options": [
+      "La clase Producto completa",
+      "El número 5",
+      "El objeto cafe, que Python pasa automáticamente",
+      "Una variable global que hay que crear antes"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la clase es el molde; `self` es el ejemplar concreto sobre el que se llamó el método.",
+      "No: el 5 llega al parámetro `cantidad`, que va después de `self`.",
+      "Correcto: `cafe.vender(5)` equivale a `Producto.vender(cafe, 5)`.",
+      "No: `self` es un parámetro normal que Python rellena solo; no hay que crearlo."
+     ],
+     "explanation": "Python traduce `objeto.metodo(args)` a `Clase.metodo(objeto, args)`. Por eso el primer parámetro, `self`, siempre recibe el objeto que va antes del punto.",
+     "hint": "Piensa en qué hay antes del punto en `cafe.vender(5)`."
+    },
+    {
+     "type": "choice",
+     "prompt": "Una clase tiene `@property def precio(self): return self._precio`, sin setter. ¿Qué pasa con `p.precio = 7000`?",
+     "code": "",
+     "options": [
+      "Se guarda 7000 en _precio",
+      "Lanza AttributeError porque la propiedad es de solo lectura",
+      "Crea un atributo nuevo llamado precio que tapa a la propiedad",
+      "Lanza ValueError porque 7000 no es válido"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: para eso haría falta un `@precio.setter` que lo guarde.",
+      "Correcto: sin setter, la propiedad no se puede asignar y Python lanza `AttributeError`.",
+      "No: la propiedad está definida en la clase y tiene prioridad; Python no deja crear un atributo con ese nombre.",
+      "No: `ValueError` solo saldría si tú lo lanzaras dentro de un setter; aquí no hay setter."
+     ],
+     "explanation": "Una propiedad sin setter es de solo lectura. Es la forma de exponer un dato que solo debe cambiar a través de métodos de la clase.",
+     "hint": "¿Qué decorador hace falta para permitir la asignación?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál es la forma correcta de escribir `__str__` para un producto?",
+     "code": "",
+     "options": [
+      "def __str__(self): print(self.nombre)",
+      "def __str__(): return self.nombre",
+      "def str(self): return self.nombre",
+      "def __str__(self): return f\"{self.nombre} (₡{self.precio:,})\""
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `__str__` debe devolver la cadena; con `print` devuelve `None` y Python lanza `TypeError`.",
+      "No: falta `self`, así que el método no puede leer los atributos.",
+      "No: el nombre especial lleva dos guiones bajos a cada lado; `str` sería un método común que `print` no usa.",
+      "Correcto: recibe `self` y devuelve una cadena con el formato deseado."
+     ],
+     "explanation": "`__str__` recibe `self` y devuelve una cadena; `print`, `str()` y las f-strings la usan automáticamente.",
+     "hint": "Fíjate en tres cosas: los guiones bajos, `self` y `return`."
+    },
+    {
+     "type": "boolean",
+     "prompt": "En una clase normal sin métodos especiales de comparación, `Producto(7, 'Salsa Lizano', 2450, 1700) == Producto(7, 'Salsa Lizano', 2450, 1700)` da `True`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: sin un `__eq__` propio, `==` solo es `True` si es exactamente el mismo objeto en memoria.",
+      "Correcto: son dos objetos distintos con los mismos datos; sin `__eq__`, Python los considera diferentes. Mañana verás que `@dataclass` lo resuelve."
+     ],
+     "explanation": "Por defecto `==` entre objetos compara identidad, no contenido. Para comparar por datos hay que definir `__eq__` o usar `@dataclass`.",
+     "hint": "¿Cuántas veces se llamó a `Producto(...)`?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si el `__init__` asigna con `self.precio = precio` y existe un `@precio.setter` que valida, crear `Producto(1, 'X', -5, 100)` también pasa por la validación.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `self.precio = ...` usa la propiedad, así que el setter se ejecuta también al crear el objeto.",
+      "No: solo se saltaría la validación si el `__init__` escribiera directo `self._precio = precio`."
+     ],
+     "explanation": "Asignar a través de la propiedad dentro del `__init__` hace que las reglas vivan en un solo lugar y protejan al objeto desde que nace.",
+     "hint": "¿`self.precio` lleva guion bajo?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "class Producto:\n    def __init__(self, nombre, stock):\n        self.nombre = nombre\n        self.stock = stock\n\n    def vender(self, cantidad):\n        self.stock -= cantidad\n\n\ncafe = Producto(\"Café molido Tarrazú 500 g\", 120)\nlizano = Producto(\"Salsa Lizano 700 ml\", 300)\ncafe.vender(5)\nlizano.vender(10)\ncafe.vender(15)\nprint(cafe.stock, lizano.stock)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "100 290"
+     ],
+     "optionFeedback": [],
+     "explanation": "Cada objeto tiene su propio `stock`. El café pierde 5 y luego 15 (120 - 20 = 100); la Lizano solo pierde 10 (300 - 10 = 290).",
+     "hint": "Lleva la cuenta de cada objeto por separado."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "class Producto:\n    def __init__(self, precio, costo):\n        self.precio = precio\n        self.costo = costo\n\n    @property\n    def margen(self):\n        return self.precio - self.costo\n\n\ngorra = Producto(8500, 3800)\ngorra.precio = 9000\nprint(gorra.margen)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "5200"
+     ],
+     "optionFeedback": [],
+     "explanation": "`margen` es una propiedad calculada: se recalcula cada vez que se lee, así que usa el precio nuevo: 9000 - 3800 = 5200.",
+     "hint": "La propiedad no guarda el valor; lo calcula en el momento."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa el decorador para que la asignación `p.precio = valor` pase por este método.",
+     "code": "@property\ndef precio(self):\n    return self._precio\n\n@precio.___\ndef precio(self, valor):\n    if valor <= 0:\n        raise ValueError(\"Precio inválido\")\n    self._precio = valor",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "setter"
+     ],
+     "optionFeedback": [],
+     "explanation": "El decorador `@precio.setter` registra el método que se ejecuta cuando alguien asigna a la propiedad `precio`.",
+     "hint": "Es la palabra inglesa para «el que asigna»."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-08",
+   "kind": "workshop",
+   "title": "Herencia y dataclasses",
+   "summary": "Reutilizas clases con herencia y super(), y escribes Pedido y LineaPedido como dataclasses: menos código repetido y objetos que ya saben imprimirse y compararse.",
+   "objectives": [
+    "Crear una clase hija que herede atributos y métodos de su clase padre y comprobar la relación con `isinstance`.",
+    "Llamar al constructor del padre con `super().__init__` y sobrescribir o extender un método.",
+    "Recorrer una lista de objetos de clases distintas que responden al mismo método (polimorfismo).",
+    "Definir `LineaPedido` y `Pedido` con `@dataclass`, valores por defecto y `field(default_factory=list)`.",
+    "Validar los datos de una dataclass en `__post_init__` con las mismas reglas que los `CHECK` de la base."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Herencia y super()",
+     "minutes": 75
+    },
+    {
+     "label": "Tema 2: @dataclass",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: tareas en curso-python/semana-09 y repaso SQL",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Herencia y super()",
+     "concept": "En la tienda hay productos que vencen, como el chocolate o el café, y otros que no, como una taza. Un producto perecedero tiene todo lo de un producto normal (nombre, precio, stock) y algo más: una fecha de vencimiento. Copiar la clase `Producto` entera para agregar un atributo duplicaría el código. La **herencia** lo evita: `class ProductoPerecedero(Producto):` crea una clase hija que recibe automáticamente todos los atributos y métodos del padre. La relación se lee «es un»: un producto perecedero **es un** producto, y por eso `isinstance(choco, Producto)` da `True`.\n\nSi la hija necesita su propio `__init__`, no repite las líneas del padre: llama `super().__init__(nombre, precio, stock)` y después agrega lo suyo. `super()` significa «la clase de arriba».\n\nLa hija también puede **sobrescribir** un método definiéndolo con el mismo nombre: `precio_final` del perecedero aplica una rebaja si vence pronto. Y puede **extenderlo**, reutilizando el resultado del padre con `super().__str__()` y agregándole algo. Cuando recorres una lista con objetos de ambas clases y llamas `p.precio_final(hoy)`, cada uno responde a su manera: eso se llama polimorfismo.",
+     "tip": "Antes de heredar di la frase en voz alta: «un ProductoPerecedero es un Producto» suena bien; «un Pedido es un Cliente» suena mal. Si la frase no funciona, la relación es «tiene un» y lo correcto es guardar un objeto dentro del otro, no heredar.",
+     "example": "from datetime import date\n\n\nclass Producto:\n    def __init__(self, nombre, precio, stock=0):\n        self.nombre = nombre\n        self.precio = precio\n        self.stock = stock\n\n    def precio_final(self, hoy):\n        return self.precio\n\n    def __str__(self):\n        return f\"{self.nombre} (₡{self.precio:,})\"\n\n\nclass ProductoPerecedero(Producto):\n    def __init__(self, nombre, precio, vence, stock=0):\n        super().__init__(nombre, precio, stock)      # lo común lo hace el padre\n        self.vence = date.fromisoformat(vence)\n\n    def dias_para_vencer(self, hoy):\n        return (self.vence - hoy).days\n\n    def precio_final(self, hoy):                     # sobrescribe\n        if self.dias_para_vencer(hoy) <= 7:\n            return round(self.precio * 0.75)         # 25 % de rebaja\n        return self.precio\n\n    def __str__(self):                               # extiende\n        return f\"{super().__str__()} vence {self.vence}\"\n\n\nhoy = date(2026, 9, 30)\nproductos = [\n    Producto(\"Taza de cerámica pintada\", 6000, 85),\n    ProductoPerecedero(\"Chocolate artesanal 70 % cacao\", 3500, \"2026-10-05\", 80),\n    ProductoPerecedero(\"Café molido Orosi 250 g\", 3800, \"2027-03-01\", 95),\n]\nfor p in productos:\n    print(f\"{p} -> hoy cuesta ₡{p.precio_final(hoy):,}\")\n\nchoco = productos[1]\nprint(isinstance(choco, ProductoPerecedero), isinstance(choco, Producto))\nprint(isinstance(productos[0], ProductoPerecedero))\n",
+     "language": "python",
+     "exampleOutput": "Taza de cerámica pintada (₡6,000) -> hoy cuesta ₡6,000\nChocolate artesanal 70 % cacao (₡3,500) vence 2026-10-05 -> hoy cuesta ₡2,625\nCafé molido Orosi 250 g (₡3,800) vence 2027-03-01 -> hoy cuesta ₡3,800\nTrue True\nFalse",
+     "steps": [
+      {
+       "title": "Una hija que no escribe nada",
+       "body": "Crea `curso-python/semana-09/herencia.py`. Define una hija con `pass` como único contenido: aun así tiene el `__init__`, los atributos y los métodos del padre. `isinstance` confirma que una artesanía es también un producto.",
+       "code": "class Producto:\n    def __init__(self, nombre, precio):\n        self.nombre = nombre\n        self.precio = precio\n\n    def con_iva(self):\n        return round(self.precio * 1.13)\n\n\nclass ProductoArtesanal(Producto):\n    pass\n\n\nmascara = ProductoArtesanal(\"Máscara boruca tallada\", 45000)\nprint(mascara.nombre, mascara.con_iva())\nprint(isinstance(mascara, Producto), type(mascara).__name__)",
+       "language": "python"
+      },
+      {
+       "title": "Agrega atributos con super().__init__",
+       "body": "La artesanía guarda además la región de origen. Su `__init__` recibe todo, le pasa al padre lo que le corresponde con `super().__init__(...)` y luego guarda lo nuevo. Si olvidas la llamada a `super()`, el objeto queda sin `nombre` ni `precio`.",
+       "code": "class Producto:\n    def __init__(self, nombre, precio):\n        self.nombre = nombre\n        self.precio = precio\n\n\nclass ProductoArtesanal(Producto):\n    def __init__(self, nombre, precio, region):\n        super().__init__(nombre, precio)\n        self.region = region\n\n\ncarreta = ProductoArtesanal(\"Carreta típica de Sarchí (miniatura)\", 7500, \"Sarchí, Alajuela\")\nprint(carreta.nombre, carreta.precio, carreta.region)",
+       "language": "python"
+      },
+      {
+       "title": "Sobrescribe y extiende métodos",
+       "body": "Si la hija define un método con el mismo nombre que el padre, gana el de la hija. Para no repetir la lógica del padre, pide su resultado con `super().metodo()` y agrégale lo que falta, como hace aquí `__str__`.",
+       "code": "class Producto:\n    def __init__(self, nombre, precio):\n        self.nombre = nombre\n        self.precio = precio\n\n    def __str__(self):\n        return f\"{self.nombre} (₡{self.precio:,})\"\n\n\nclass ProductoArtesanal(Producto):\n    def __init__(self, nombre, precio, region):\n        super().__init__(nombre, precio)\n        self.region = region\n\n    def __str__(self):\n        return f\"{super().__str__()} hecho en {self.region}\"\n\n\nprint(Producto(\"Taza de cerámica pintada\", 6000))\nprint(ProductoArtesanal(\"Hamaca de algodón\", 32000, \"Guanacaste\"))",
+       "language": "python"
+      },
+      {
+       "title": "Clientes con y sin descuento",
+       "body": "La herencia también sirve con clientes. `ClienteFrecuente` sobrescribe `descuento()`, y la función `cobrar` no necesita saber de qué clase es cada cliente: le basta con que todos respondan a `descuento()`. Gabriela Vargas es la clienta con más pedidos de la tienda: 32.",
+       "code": "class Cliente:\n    def __init__(self, nombre):\n        self.nombre = nombre\n\n    def descuento(self):\n        return 0\n\n\nclass ClienteFrecuente(Cliente):\n    def descuento(self):\n        return 0.05\n\n\ndef cobrar(cliente, monto):\n    return round(monto * (1 - cliente.descuento()))\n\n\nfor c in [Cliente(\"Daniel Ramírez\"), ClienteFrecuente(\"Gabriela Vargas\")]:\n    print(c.nombre, cobrar(c, 20000))",
+       "language": "python"
+      },
+      {
+       "title": "Mira la cadena de herencia",
+       "body": "Python busca un método primero en la clase del objeto y luego sube hacia el padre. Esa ruta se llama MRO y la puedes ver con `__mro__`. Al final de toda cadena está `object`, la clase de la que heredan todas.",
+       "code": "class Producto:\n    pass\n\n\nclass ProductoPerecedero(Producto):\n    pass\n\n\nprint([clase.__name__ for clase in ProductoPerecedero.__mro__])",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "AttributeError: 'ProductoPerecedero' object has no attribute 'nombre'",
+       "cause": "La hija tiene su propio `__init__` pero no llama a `super().__init__(...)`, así que el código del padre que crea `nombre` y `precio` nunca se ejecuta.",
+       "fix": "Pon `super().__init__(nombre, precio, stock)` como primera línea del `__init__` de la hija."
+      },
+      {
+       "error": "TypeError: Producto.__init__() takes from 3 to 4 positional arguments but 5 were given",
+       "cause": "Le pasaste a `super().__init__` también el dato nuevo de la hija (por ejemplo `vence`), que el padre no conoce.",
+       "fix": "Al padre pásale solo sus parámetros; el dato nuevo guárdalo tú con `self.vence = ...`."
+      },
+      {
+       "error": "Usar type(p) == Producto para saber si algo es un producto",
+       "cause": "`type()` devuelve la clase exacta, así que un `ProductoPerecedero` da `False` aunque sí es un producto.",
+       "fix": "Usa `isinstance(p, Producto)`, que respeta la herencia."
+      },
+      {
+       "error": "Heredar cuando la relación es «tiene un»",
+       "cause": "Escribir `class Pedido(Cliente)` porque el pedido necesita datos del cliente. Un pedido no es un cliente: tiene un cliente.",
+       "fix": "Guarda el objeto como atributo: `self.cliente = cliente`. Hereda solo cuando la frase «X es un Y» sea verdadera."
+      }
+     ]
+    },
+    {
+     "title": "@dataclass",
+     "concept": "Muchas clases solo guardan datos, y su `__init__` es una lista de `self.x = x`. El decorador `@dataclass` del módulo `dataclasses` escribe ese código por ti: declaras los campos con su tipo (`producto: str`, `cantidad: int`) y Python genera el `__init__`, un `__repr__` legible como `LineaPedido(producto='Mouse inalámbrico', cantidad=1, ...)` y un `__eq__` que compara **campo por campo**, de modo que dos líneas con los mismos datos son iguales.\n\nLos campos pueden tener valor por defecto (`descuento: float = 0.0`), pero deben ir después de los que no lo tienen. Para una lista se usa `field(default_factory=list)`, que crea una lista nueva en cada objeto; con `= []` todos compartirían la misma y Python lo prohíbe.\n\nUna dataclass sigue siendo una clase normal: admite métodos, propiedades y herencia. Para validar, define `__post_init__`, que corre justo después del `__init__` generado; ahí puedes exigir lo mismo que los `CHECK` de la tabla `detalle_pedido`, como `cantidad > 0`. Con `@dataclass(frozen=True)` los objetos quedan inmutables. Para modelar las filas de la tienda (`Pedido`, `LineaPedido`, `Cliente`), las dataclasses son la herramienta ideal.",
+     "tip": "Si dudas de qué campos tiene una dataclass, imprime el objeto: el `__repr__` automático los muestra todos con su valor. Y anota los tipos con cuidado: `@dataclass` ignora cualquier atributo de clase que no tenga anotación de tipo.",
+     "example": "from dataclasses import dataclass, field\n\n\n@dataclass\nclass LineaPedido:\n    producto: str\n    cantidad: int\n    precio_unitario: int\n    descuento: float = 0.0\n\n    @property\n    def subtotal(self):\n        return round(self.cantidad * self.precio_unitario * (1 - self.descuento))\n\n\n@dataclass\nclass Pedido:\n    id: int\n    cliente: str\n    fecha: str\n    costo_envio: int = 0\n    lineas: list[LineaPedido] = field(default_factory=list)\n\n    def agregar(self, linea):\n        self.lineas.append(linea)\n\n    @property\n    def total(self):\n        return sum(linea.subtotal for linea in self.lineas) + self.costo_envio\n\n\npedido = Pedido(18, \"Gabriela Vargas\", \"2025-02-23\")\npedido.agregar(LineaPedido(\"Café molido Orosi 250 g\", 1, 3550))\npedido.agregar(LineaPedido(\"Mouse inalámbrico\", 1, 9300, 0.1))\npedido.agregar(LineaPedido(\"Camiseta Pura Vida\", 1, 8950))\npedido.agregar(LineaPedido(\"Máscara boruca tallada\", 1, 42300))\n\nprint(pedido.lineas[1])\nfor linea in pedido.lineas:\n    print(f\"{linea.producto:<24} ₡{linea.subtotal:>7,}\")\nprint(f\"Total del pedido {pedido.id}: ₡{pedido.total:,}\")\nprint(LineaPedido(\"Cajeta de leche\", 2, 1200) == LineaPedido(\"Cajeta de leche\", 2, 1200))\n",
+     "language": "python",
+     "exampleOutput": "LineaPedido(producto='Mouse inalámbrico', cantidad=1, precio_unitario=9300, descuento=0.1)\nCafé molido Orosi 250 g  ₡  3,550\nMouse inalámbrico        ₡  8,370\nCamiseta Pura Vida       ₡  8,950\nMáscara boruca tallada   ₡ 42,300\nTotal del pedido 18: ₡63,170\nTrue",
+     "steps": [
+      {
+       "title": "De clase normal a dataclass",
+       "body": "Crea `curso-python/semana-09/modelos.py` y escribe `Cliente` como dataclass. Compara: no hay `__init__`, pero el objeto se crea igual, se imprime con todos sus campos y `==` compara por contenido.",
+       "code": "from dataclasses import dataclass\n\n\n@dataclass\nclass Cliente:\n    id: int\n    nombre: str\n    apellido: str\n    email: str | None = None\n\n    @property\n    def nombre_completo(self):\n        return f\"{self.nombre} {self.apellido}\"\n\n\nrodrigo = Cliente(32, \"Rodrigo\", \"Castro\")\nprint(rodrigo)\nprint(rodrigo.nombre_completo)\nprint(rodrigo == Cliente(32, \"Rodrigo\", \"Castro\"))",
+       "language": "python"
+      },
+      {
+       "title": "El orden de los campos con valor por defecto",
+       "body": "Un campo sin valor por defecto no puede ir después de uno que sí lo tiene, por la misma regla de los parámetros de una función. Este código falla a propósito al definir la clase; mueve `costo_envio` al final para arreglarlo.",
+       "code": "from dataclasses import dataclass\n\n\n@dataclass\nclass Pedido:\n    id: int\n    costo_envio: int = 0\n    fecha: str",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Listas con default_factory",
+       "body": "Cada pedido necesita su propia lista de líneas. `field(default_factory=list)` llama a `list()` cada vez que se crea un pedido. Comprueba que agregar una línea a un pedido no toca el otro.",
+       "code": "from dataclasses import dataclass, field\n\n\n@dataclass\nclass Pedido:\n    id: int\n    lineas: list = field(default_factory=list)\n\n\np1 = Pedido(18)\np2 = Pedido(19)\np1.lineas.append(\"Café molido Orosi 250 g\")\nprint(len(p1.lineas), len(p2.lineas))",
+       "language": "python"
+      },
+      {
+       "title": "Valida en __post_init__",
+       "body": "La tabla `detalle_pedido` exige `cantidad > 0` y un descuento entre 0 y 1. Pon las mismas reglas en `__post_init__`, que corre justo después del `__init__` generado. Así un objeto inválido no llega ni a crearse.",
+       "code": "from dataclasses import dataclass\n\n\n@dataclass\nclass LineaPedido:\n    producto: str\n    cantidad: int\n    precio_unitario: int\n    descuento: float = 0.0\n\n    def __post_init__(self):\n        if self.cantidad <= 0:\n            raise ValueError(\"La cantidad debe ser mayor que cero\")\n        if not 0 <= self.descuento < 1:\n            raise ValueError(\"El descuento es una fracción entre 0 y 1\")\n\n\nfor datos in [(\"Cajeta de leche\", 0, 1200), (\"Cajeta de leche\", 2, 1200, 10)]:\n    try:\n        LineaPedido(*datos)\n    except ValueError as error:\n        print(error)",
+       "language": "python"
+      },
+      {
+       "title": "Objetos inmutables con frozen=True",
+       "body": "Un pedido entregado no debería cambiar. Con `frozen=True` cualquier asignación a un campo lanza `FrozenInstanceError`. Además, los objetos inmutables pueden usarse como claves de diccionario o dentro de un conjunto.",
+       "code": "from dataclasses import dataclass, FrozenInstanceError\n\n\n@dataclass(frozen=True)\nclass Provincia:\n    id: int\n    nombre: str\n\n\nheredia = Provincia(4, \"Heredia\")\ntry:\n    heredia.nombre = \"Cartago\"\nexcept FrozenInstanceError as error:\n    print(\"No se puede:\", error)\nprint({heredia, Provincia(4, \"Heredia\")})",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "TypeError: non-default argument 'fecha' follows default argument 'costo_envio'",
+       "cause": "Declaraste un campo sin valor por defecto después de uno que sí lo tiene.",
+       "fix": "Pon primero todos los campos obligatorios y al final los que tienen valor por defecto."
+      },
+      {
+       "error": "ValueError: mutable default <class 'list'> for field lineas is not allowed: use default_factory",
+       "cause": "Escribiste `lineas: list = []`. Esa lista sería compartida por todos los pedidos, y `@dataclass` lo impide.",
+       "fix": "Usa `lineas: list = field(default_factory=list)` e importa `field` de `dataclasses`."
+      },
+      {
+       "error": "El campo no aparece en el __init__ ni al imprimir el objeto",
+       "cause": "Lo escribiste sin anotación de tipo (`estado = 'pendiente'`). Sin los dos puntos y el tipo, `@dataclass` no lo considera un campo.",
+       "fix": "Agrega el tipo: `estado: str = 'pendiente'`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-08-1",
+     "title": "Líneas del pedido 18",
+     "prompt": "Vas a reconstruir el pedido 18 con objetos `LineaPedido`. Saca sus datos de la base: para cada línea del pedido 18 muestra el `nombre` del producto, la `cantidad`, el `precio_unitario`, el `descuento` y el subtotal (`cantidad * precio_unitario * (1 - descuento)`) redondeado a colones, en ese orden.",
+     "hint": "Une `detalle_pedido` con `productos` y filtra por `pedido_id = 18`. Para redondear a colones usa `ROUND(..., 0)` o simplemente `ROUND(...)`.",
+     "solution": "SELECT pr.nombre, d.cantidad, d.precio_unitario, d.descuento,\n       ROUND(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS subtotal\nFROM detalle_pedido d\nJOIN productos pr ON pr.id = d.producto_id\nWHERE d.pedido_id = 18;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-08-2",
+     "title": "Pedidos de Ana Méndez",
+     "prompt": "La propiedad `total` de tu `Pedido` suma los subtotales de las líneas más el `costo_envio`. Calcula lo mismo en SQL para la clienta Ana Méndez (cliente `11`): muestra el `id` del pedido, la `fecha` y el total (líneas + envío) redondeado a colones, en ese orden y ordenados por fecha.",
+     "hint": "Agrupa por pedido después de unir `pedidos` con `detalle_pedido`. El envío está una sola vez por pedido: súmalo fuera del `SUM` de las líneas, por ejemplo `ROUND(SUM(...) + p.costo_envio)`.",
+     "solution": "SELECT p.id, p.fecha,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) + p.costo_envio) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.cliente_id = 11\nGROUP BY p.id, p.fecha, p.costo_envio\nORDER BY p.fecha;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [
+    "En `curso-python/semana-09/herencia.py` crea `ProductoPerecedero(Producto)` a partir del `Producto` de ayer, con el atributo `vence` (texto `'AAAA-MM-DD'` convertido con `date.fromisoformat`), el método `dias_para_vencer(hoy)`, `precio_final(hoy)` sobrescrito con un 25 % de rebaja si faltan 7 días o menos, y `__str__` extendido con `super()`. Pruébalo con la fecha `date(2026, 9, 30)` y tres productos, uno de ellos ya vencido.",
+    "En el mismo archivo crea `Cliente` con el método `descuento()` que devuelve 0 y la hija `ClienteFrecuente` que devuelve 0.05. Escribe la función `cobrar(cliente, monto)` y recórrela sobre una lista con dos clientes de cada clase. Agrega 3 `assert` con `isinstance` y uno que compruebe que `cobrar(ClienteFrecuente(...), 20000) == 19000`.",
+    "En `curso-python/semana-09/modelos.py` define las dataclasses `LineaPedido(producto, cantidad, precio_unitario, descuento=0.0)` con la propiedad `subtotal`, y `Pedido(id, cliente, fecha, estado='pendiente', costo_envio=0, lineas=...)` con `agregar(linea)` y la propiedad `total`. Reconstruye el pedido 18 con los datos del ejercicio «Líneas del pedido 18» y comprueba con `assert` que el total es 63170.",
+    "Agrega `__post_init__` a las dos dataclasses: `LineaPedido` exige `cantidad > 0`, `precio_unitario > 0` y `0 <= descuento < 1`; `Pedido` exige que `estado` sea uno de los cinco que acepta la tabla `pedidos` (`pendiente`, `pagado`, `enviado`, `entregado`, `cancelado`). Prueba tres casos inválidos con `try`/`except` e imprime los mensajes.",
+    "Agrega a `modelos.py` las dataclasses `Producto(id, nombre, categoria_id, precio, costo, stock=0, activo=True)` con las propiedades `margen` y `margen_pct`, y `Cliente(id, nombre, apellido, email=None, telefono=None)` con `nombre_completo`. Valida en `Producto.__post_init__` que `precio > 0`, `costo > 0` y `stock >= 0`. Este archivo es la base del repositorio del viernes y del mini-proyecto."
+   ],
+   "taskHints": [
+    "`(self.vence - hoy).days` da los días que faltan; si es negativo, el producto ya venció. En `__str__` usa `f\"{super().__str__()} vence {self.vence}\"`.",
+    "`ClienteFrecuente` no necesita `__init__`: hereda el del padre. Solo redefine `descuento`. Para el cálculo: `round(monto * (1 - cliente.descuento()))`.",
+    "Recuerda importar `field` y escribir `lineas: list[LineaPedido] = field(default_factory=list)` como último campo. El total del pedido 18 es la suma de 3550, 8370, 8950 y 42300, sin envío.",
+    "Guarda los estados válidos en una constante de la clase o del módulo, por ejemplo `ESTADOS = {'pendiente', 'pagado', 'enviado', 'entregado', 'cancelado'}`, y comprueba con `if self.estado not in ESTADOS:`.",
+    "El orden de los campos debe coincidir con el de las columnas que seleccionarás el miércoles: `id, nombre, categoria_id, precio, costo, stock, activo`. Así podrás crear objetos con `Producto(*fila)`."
+   ],
+   "challenge": {
+    "title": "Métodos de pago",
+    "description": "La tienda acepta tarjeta, SINPE Móvil, efectivo y transferencia (los valores de `metodo_pago`). Supón estas comisiones: tarjeta 3 % del monto, transferencia ₡250 fijos, SINPE Móvil y efectivo sin comisión. Escribe la dataclass `Pago(pedido_id, monto)` con los métodos `comision()` (devuelve 0) y `neto()` (monto menos comisión), y las hijas `PagoTarjeta`, `PagoSinpe`, `PagoEfectivo` y `PagoTransferencia`, que solo sobrescriben `comision()` donde haga falta. Luego escribe `resumen(pagos)` que devuelva un diccionario `{nombre de la clase: total neto}` y pruébalo con al menos cinco pagos.",
+    "hint": "Las hijas de una dataclass heredan sus campos, así que no necesitan `@dataclass` si no agregan campos. Para el nombre de la clase usa `type(pago).__name__`, y para el diccionario, `get(clave, 0) + valor`.",
+    "solution": "from dataclasses import dataclass\n\n\n@dataclass\nclass Pago:\n    pedido_id: int\n    monto: int\n\n    def comision(self):\n        return 0\n\n    def neto(self):\n        return self.monto - self.comision()\n\n\nclass PagoTarjeta(Pago):\n    def comision(self):\n        return round(self.monto * 0.03)\n\n\nclass PagoSinpe(Pago):\n    pass\n\n\nclass PagoEfectivo(Pago):\n    pass\n\n\nclass PagoTransferencia(Pago):\n    def comision(self):\n        return 250\n\n\ndef resumen(pagos):\n    totales = {}\n    for pago in pagos:\n        clase = type(pago).__name__\n        totales[clase] = totales.get(clase, 0) + pago.neto()\n    return totales\n\n\npagos = [\n    PagoTarjeta(18, 63170),\n    PagoSinpe(52, 11950),\n    PagoTarjeta(106, 36450),\n    PagoTransferencia(113, 60260),\n    PagoEfectivo(236, 7500),\n]\nfor pago in pagos:\n    print(pago, \"comisión:\", pago.comision())\nprint(resumen(pagos))",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Herencia",
+     "definition": "Mecanismo por el que una clase hija recibe los atributos y métodos de una clase padre; expresa una relación «es un»."
+    },
+    {
+     "term": "super()",
+     "definition": "Función que da acceso a los métodos de la clase padre desde la hija, como `super().__init__(...)`."
+    },
+    {
+     "term": "Sobrescribir",
+     "definition": "Definir en la hija un método con el mismo nombre que uno del padre para que los objetos de la hija usen la nueva versión."
+    },
+    {
+     "term": "Polimorfismo",
+     "definition": "Capacidad de objetos de clases distintas de responder al mismo método, cada uno a su manera."
+    },
+    {
+     "term": "@dataclass",
+     "definition": "Decorador que genera `__init__`, `__repr__` y `__eq__` a partir de los campos declarados con su tipo."
+    },
+    {
+     "term": "__post_init__",
+     "definition": "Método que una dataclass ejecuta justo después de su `__init__` generado; se usa para validar o calcular campos."
+    },
+    {
+     "term": "default_factory",
+     "definition": "Parámetro de `field()` con una función que crea un valor por defecto nuevo para cada objeto, como una lista vacía."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: herencia (en español)",
+     "url": "https://docs.python.org/es/3/tutorial/classes.html#inheritance"
+    },
+    {
+     "title": "Documentación de Python: dataclasses (en español)",
+     "url": "https://docs.python.org/es/3/library/dataclasses.html"
+    },
+    {
+     "title": "Real Python: guía de dataclasses (en inglés)",
+     "url": "https://realpython.com/python-data-classes/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "`ProductoPerecedero` hereda de `Producto` y tiene su propio `__init__(self, nombre, precio, vence)`. ¿Cuál es la primera línea correcta de ese `__init__`?",
+     "code": "",
+     "options": [
+      "super().__init__(nombre, precio)",
+      "super().__init__(nombre, precio, vence)",
+      "Producto(nombre, precio)",
+      "self = Producto(nombre, precio)"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: el padre recibe solo lo que conoce; `vence` lo guarda la hija después.",
+      "No: el `__init__` del padre no tiene parámetro `vence` y lanzaría `TypeError`.",
+      "No: eso crea un producto nuevo y lo descarta; el objeto actual queda sin atributos.",
+      "No: reasignar `self` solo cambia la variable local; el objeto real queda igual."
+     ],
+     "explanation": "`super().__init__(...)` ejecuta el constructor del padre sobre el mismo objeto, con los datos que el padre necesita.",
+     "hint": "¿Qué parámetros conoce el `__init__` del padre?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estas relaciones justifica usar herencia?",
+     "code": "",
+     "options": [
+      "Un Pedido y un Cliente",
+      "Un Pedido y sus LineaPedido",
+      "Un ClienteFrecuente y un Cliente",
+      "Un Producto y su Categoría"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: un pedido tiene un cliente, no es un cliente.",
+      "No: un pedido tiene líneas; es composición (una lista dentro del pedido).",
+      "Correcto: un cliente frecuente es un cliente, con un comportamiento distinto en algo.",
+      "No: un producto pertenece a una categoría; no es una categoría."
+     ],
+     "explanation": "La herencia expresa «es un». Cuando la relación es «tiene un», se guarda un objeto dentro de otro.",
+     "hint": "Prueba la frase «X es un Y» con cada par."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué genera `@dataclass` automáticamente si no le pasas opciones?",
+     "code": "",
+     "options": [
+      "Solo el __init__",
+      "__init__, __repr__ y __eq__",
+      "__init__, __str__ y métodos para guardar en la base",
+      "Propiedades con setter para cada campo"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: también genera el `__repr__` legible y la comparación por campos.",
+      "Correcto: constructor, representación legible y comparación campo por campo.",
+      "No: no sabe nada de bases de datos; eso lo harás con el repositorio el viernes.",
+      "No: los campos son atributos normales; las propiedades las escribes tú si las necesitas."
+     ],
+     "explanation": "Por defecto `@dataclass` genera `__init__`, `__repr__` y `__eq__`. Con opciones como `frozen=True` u `order=True` agrega más comportamiento.",
+     "hint": "Imprime un objeto y compara dos iguales con `==`."
+    },
+    {
+     "type": "boolean",
+     "prompt": "En una dataclass puedes escribir `lineas: list = []` para que cada pedido empiece con su propia lista vacía.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: Python lanza `ValueError: mutable default ... use default_factory` al definir la clase.",
+      "Correcto: hay que usar `field(default_factory=list)` para que cada objeto reciba una lista nueva."
+     ],
+     "explanation": "Una lista como valor por defecto sería compartida entre todos los objetos; `default_factory` crea una lista nueva cada vez.",
+     "hint": "Recuerda el error que aparece al definir la clase."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si `ClienteFrecuente` hereda de `Cliente`, entonces `isinstance(ClienteFrecuente('Gabriela'), Cliente)` da `True`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: un objeto de la hija también es una instancia del padre.",
+      "No: `isinstance` respeta la herencia; el que compara la clase exacta es `type()`."
+     ],
+     "explanation": "`isinstance` devuelve `True` para la clase del objeto y para todas sus clases padre.",
+     "hint": "Un cliente frecuente, ¿es un cliente?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "class Producto:\n    def __init__(self, precio):\n        self.precio = precio\n\n    def precio_final(self):\n        return self.precio\n\n\nclass ProductoEnOferta(Producto):\n    def precio_final(self):\n        return super().precio_final() - 1000\n\n\nproductos = [Producto(6000), ProductoEnOferta(9500), Producto(1200)]\nprint(sum(p.precio_final() for p in productos))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "15700"
+     ],
+     "optionFeedback": [],
+     "explanation": "Los productos normales devuelven su precio (6000 y 1200); el producto en oferta devuelve 9500 - 1000 = 8500. La suma es 15700.",
+     "hint": "Solo el objeto de la clase hija usa el método sobrescrito."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "from dataclasses import dataclass\n\n\n@dataclass\nclass LineaPedido:\n    producto: str\n    cantidad: int\n    precio_unitario: int\n    descuento: float = 0.0\n\n\na = LineaPedido(\"Cajeta de leche\", 2, 1200)\nb = LineaPedido(\"Cajeta de leche\", 2, 1200, 0.0)\nprint(a == b, a is b)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "True False"
+     ],
+     "optionFeedback": [],
+     "explanation": "El `__eq__` generado compara campo por campo, y todos coinciden (el descuento por defecto es 0.0), así que `==` da `True`. Pero son dos objetos distintos en memoria, por eso `is` da `False`.",
+     "hint": "`==` compara contenido; `is` compara si es el mismo objeto."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea para que cada pedido tenga su propia lista de líneas.",
+     "code": "from dataclasses import dataclass, field\n\n@dataclass\nclass Pedido:\n    id: int\n    lineas: list = field(___=list)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "default_factory"
+     ],
+     "optionFeedback": [],
+     "explanation": "`field(default_factory=list)` llama a `list()` cada vez que se crea un `Pedido`, así que ninguna lista se comparte.",
+     "hint": "Es el parámetro que recibe una «fábrica» de valores por defecto."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-09",
+   "kind": "workshop",
+   "title": "sqlite3 desde Python",
+   "summary": "Conectas Python con tienda.db: ejecutas las consultas que ya dominas, recorres los resultados como tuplas o por nombre de columna y pasas los datos del usuario con parámetros seguros.",
+   "objectives": [
+    "Abrir `tienda.db` desde Python con `sqlite3.connect` usando una ruta que no dependa de la carpeta desde donde se ejecuta.",
+    "Ejecutar consultas con `execute` y leer los resultados con `fetchall`, `fetchone` y un `for` sobre el cursor.",
+    "Usar `sqlite3.Row` para acceder a las columnas por nombre y convertir filas en objetos `Producto`.",
+    "Pasar valores a una consulta con parámetros `?` y parámetros con nombre, nunca con f-strings.",
+    "Explicar qué es la inyección SQL y demostrar con un ejemplo por qué los parámetros la evitan."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: connect, execute, fetchall y sqlite3.Row",
+     "minutes": 75
+    },
+    {
+     "label": "Tema 2: Parámetros con ? e inyección SQL",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: consultas a tienda.db desde Python y repaso SQL",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "connect, execute, fetchall y sqlite3.Row",
+     "concept": "Todo lo que hiciste en el laboratorio lo puede hacer un programa de Python con el módulo `sqlite3`, que ya viene incluido. Primero descarga `tienda.db` desde el laboratorio de la página y guárdala en `curso-python/semana-09/`: es la misma base, con las mismas tablas y datos.\n\nEl flujo tiene cuatro pasos. `con = sqlite3.connect(ruta)` abre el archivo y devuelve una **conexión**. `cur = con.execute('SELECT ...')` ejecuta la consulta y devuelve un **cursor**, que apunta al resultado. `cur.fetchall()` trae todas las filas como una lista de tuplas; `fetchone()` trae solo la siguiente fila, o `None` si no hay más; y también puedes recorrer el cursor con `for`. Al final, `con.close()`.\n\nCon `con.row_factory = sqlite3.Row` cada fila permite leer las columnas **por nombre**, `fila['precio']`, que es más claro y no se rompe si cambias el orden del SELECT. Ojo: si el archivo no existe, `connect` crea una base vacía sin avisar, y el error aparece después como `no such table`. Por eso conviene construir la ruta con `Path(__file__).parent / 'tienda.db'`, que apunta a la carpeta del programa y no a la carpeta desde donde lo ejecutas.",
+     "tip": "Prueba cada consulta primero en el laboratorio y, cuando dé el resultado correcto, cópiala a Python dentro de comillas triples. Así separas los problemas: si falla en el laboratorio es el SQL; si solo falla en Python, es el código.",
+     "example": "import sqlite3\nfrom pathlib import Path\n\nRUTA = Path(__file__).parent / \"tienda.db\"   # la base vive junto a este archivo\n\ncon = sqlite3.connect(RUTA)\ncon.row_factory = sqlite3.Row                # filas con acceso por nombre\n\nactivos = con.execute(\"SELECT COUNT(*) FROM productos WHERE activo = 1\").fetchone()[0]\nprint(\"Productos activos:\", activos)\n\ncur = con.execute(\"\"\"\n    SELECT p.nombre, c.nombre AS categoria, p.precio\n    FROM productos p\n    JOIN categorias c ON c.id = p.categoria_id\n    ORDER BY p.precio DESC\n    LIMIT 3\n\"\"\")\nfor fila in cur.fetchall():\n    print(f\"{fila['nombre']:<38} {fila['categoria']:<11} ₡{fila['precio']:>7,}\")\ncon.close()\n",
+     "language": "python",
+     "exampleOutput": "Productos activos: 37\nMáscara boruca tallada                 Artesanía   ₡ 45,000\nHamaca de algodón                      Artesanía   ₡ 32,000\nParlante bluetooth resistente al agua  Tecnología  ₡ 29,900",
+     "steps": [
+      {
+       "title": "Comprueba que Python ve la base",
+       "body": "Guarda `tienda.db` en `curso-python/semana-09/` y crea ahí `explorar.py`. Lista las tablas consultando `sqlite_master`, el catálogo interno de SQLite. Si la lista sale vacía, Python abrió (o creó) otro archivo: revisa la ruta.",
+       "code": "import sqlite3\nfrom pathlib import Path\n\nruta = Path(__file__).parent / \"tienda.db\"\nprint(\"¿Existe?\", ruta.exists())\ncon = sqlite3.connect(ruta)\ntablas = con.execute(\"SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name\").fetchall()\nprint([t[0] for t in tablas])\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "fetchall: una lista de tuplas",
+       "body": "Ejecuta un SELECT y mira qué devuelve `fetchall()`: una lista con una tupla por fila, con los valores en el orden de las columnas. Accedes a cada valor por posición o desempaquetando la tupla en el `for`.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\nfilas = con.execute(\"SELECT id, nombre FROM provincias ORDER BY id\").fetchall()\nprint(type(filas).__name__, len(filas))\nprint(filas[0])\nfor id_, nombre in filas[:3]:\n    print(id_, nombre)\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "fetchone para un solo valor",
+       "body": "Para un `COUNT`, un `SUM` o la búsqueda por `id`, usa `fetchone()`. Devuelve una tupla aunque tenga un solo valor, así que tomas el primero con `[0]`. Si la consulta no encuentra nada, devuelve `None`: compruébalo antes de usar `[0]`.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\nfila = con.execute(\"SELECT COUNT(*), SUM(stock) FROM productos WHERE activo = 1\").fetchone()\nprint(fila, \"->\", fila[0], \"productos y\", fila[1], \"unidades\")\nnada = con.execute(\"SELECT nombre FROM productos WHERE id = 999\").fetchone()\nprint(nada)\nif nada is None:\n    print(\"No existe el producto 999\")\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "Columnas por nombre con sqlite3.Row",
+       "body": "Asigna `con.row_factory = sqlite3.Row` justo después de conectar. Cada fila se comporta como un diccionario de solo lectura: `fila['email']`. Con `keys()` ves los nombres de las columnas, y `dict(fila)` la convierte en un diccionario normal.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\ncon.row_factory = sqlite3.Row\nfila = con.execute(\"SELECT id, nombre, apellido, email FROM clientes WHERE id = 32\").fetchone()\nprint(fila.keys())\nprint(fila[\"nombre\"], fila[\"apellido\"], fila[\"email\"])\nprint(dict(fila))\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "De filas a objetos Producto",
+       "body": "Junta lo de esta semana: importa (o copia) la dataclass `Producto` de `modelos.py` y crea un objeto por fila. Si las columnas del SELECT van en el mismo orden que los campos, basta con `Producto(*fila)`. Desde aquí trabajas con objetos y propiedades, no con posiciones.",
+       "code": "import sqlite3\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Producto:\n    id: int\n    nombre: str\n    categoria_id: int\n    precio: int\n    costo: int\n    stock: int = 0\n    activo: bool = True\n\n    @property\n    def margen(self):\n        return self.precio - self.costo\n\n\ncon = sqlite3.connect(\"tienda.db\")\nsql = \"SELECT id, nombre, categoria_id, precio, costo, stock, activo FROM productos WHERE categoria_id = 5\"\nproductos = [Producto(*fila) for fila in con.execute(sql)]\ncon.close()\nfor p in productos:\n    print(p.nombre, p.margen)",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "sqlite3.OperationalError: no such table: productos",
+       "cause": "Python no encontró `tienda.db` en la carpeta desde donde ejecutaste el programa y `connect` creó un archivo vacío con ese nombre.",
+       "fix": "Usa `Path(__file__).parent / 'tienda.db'` como ruta y comprueba `ruta.exists()`. Borra el `tienda.db` vacío (0 KB) que se haya creado en otra carpeta."
+      },
+      {
+       "error": "TypeError: tuple indices must be integers or slices, not str",
+       "cause": "Escribiste `fila['precio']` pero no configuraste `row_factory`, así que las filas son tuplas normales.",
+       "fix": "Agrega `con.row_factory = sqlite3.Row` antes de ejecutar las consultas, o accede por posición: `fila[2]`."
+      },
+      {
+       "error": "TypeError: 'NoneType' object is not subscriptable",
+       "cause": "`fetchone()` no encontró filas y devolvió `None`; luego intentaste `None[0]`.",
+       "fix": "Guarda el resultado en una variable y revisa `if fila is None:` antes de usar `fila[0]`."
+      },
+      {
+       "error": "sqlite3.ProgrammingError: Cannot operate on a closed database.",
+       "cause": "Cerraste la conexión con `con.close()` y después intentaste ejecutar otra consulta o recorrer un cursor.",
+       "fix": "Cierra la conexión solo al final, cuando ya leíste todo lo que necesitas (convierte las filas en una lista u objetos antes de cerrar)."
+      }
+     ]
+    },
+    {
+     "title": "Parámetros con ? e inyección SQL",
+     "concept": "Casi siempre la consulta depende de un dato que escribe el usuario: la categoría que elige o el texto que busca. La tentación es pegarlo con una f-string, `f\"... WHERE c.nombre = '{categoria}'\"`. **Nunca lo hagas.** Primero, se rompe con datos normales: un texto con apóstrofo, como `Taza 'Pura Vida'`, cierra la comilla antes de tiempo y SQLite lanza un error de sintaxis. Segundo, abre la puerta a la **inyección SQL**: alguien puede escribir un texto diseñado para cambiar el sentido de la consulta, como `x' OR '1'='1`, que convierte el filtro en una condición siempre verdadera.\n\nLa solución son los parámetros: escribes `?` donde va el valor y pasas los valores en una tupla aparte, `con.execute(sql, (categoria,))`. SQLite recibe la consulta y los datos por separado, así que el dato nunca se interpreta como SQL, tenga las comillas que tenga. La coma de `(categoria,)` es obligatoria: los parámetros siempre van en una tupla o lista. También existen parámetros con nombre (`:desde`, `:hasta`), que se pasan con un diccionario.\n\nLos parámetros sirven para **valores**, no para nombres de tablas o columnas: esos los escribes tú en el código o los eliges de una lista permitida.",
+     "tip": "Regla práctica: si un valor viene de `input()`, de un archivo o de otra persona, va en un `?`. Cuando revises tu código, busca `execute(f` y signos `+` cerca de un `execute`: cada uno es un error esperando a ocurrir.",
+     "example": "import sqlite3\nfrom pathlib import Path\n\ncon = sqlite3.connect(Path(__file__).parent / \"tienda.db\")\n\n\ndef productos_de_categoria(con, categoria):\n    sql = \"\"\"\n        SELECT p.nombre, p.precio\n        FROM productos p\n        JOIN categorias c ON c.id = p.categoria_id\n        WHERE c.nombre = ? AND p.activo = 1\n        ORDER BY p.precio DESC\n    \"\"\"\n    return con.execute(sql, (categoria,)).fetchall()\n\n\nfor nombre, precio in productos_de_categoria(con, \"Artesanía\"):\n    print(f\"{nombre:<38} ₡{precio:>7,}\")\n\nmalicioso = \"Artesanía' OR '1'='1\"\nprint(\"Con el texto malicioso:\", len(productos_de_categoria(con, malicioso)), \"filas\")\ncon.close()\n",
+     "language": "python",
+     "exampleOutput": "Máscara boruca tallada                 ₡ 45,000\nHamaca de algodón                      ₡ 32,000\nCarreta típica de Sarchí (mediana)     ₡ 18,500\nCarreta típica de Sarchí (miniatura)   ₡  7,500\nPulsera de semillas                    ₡  2,500\nCon el texto malicioso: 0 filas",
+     "steps": [
+      {
+       "title": "El problema inocente: una comilla",
+       "body": "Arma la consulta con una f-string y busca un producto cuyo nombre lleva comillas simples. Python no se queja, pero SQLite recibe un texto mal formado. Atrapamos el error para ver el mensaje sin detener el programa.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\nbuscado = \"Taza 'Pura Vida'\"\nsql = f\"SELECT COUNT(*) FROM productos WHERE nombre = '{buscado}'\"\nprint(sql)\ntry:\n    con.execute(sql)\nexcept sqlite3.OperationalError as error:\n    print(\"Error:\", error)\nprint(con.execute(\"SELECT COUNT(*) FROM productos WHERE nombre = ?\", (buscado,)).fetchone()[0])\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "Una inyección, en una base de juguete",
+       "body": "Para ver el peligro sin tocar `tienda.db`, crea una base en memoria (`':memory:'`) con una tabla de usuarios de prueba. Con f-string, el texto `admin' --` comenta el resto de la consulta y entra sin clave. Con `?`, el mismo texto se busca literalmente y no entra.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\":memory:\")\ncon.execute(\"CREATE TABLE usuarios (usuario TEXT, clave TEXT)\")\ncon.execute(\"INSERT INTO usuarios VALUES ('admin', 'Secreta#2026')\")\n\nusuario = \"admin' --\"\nclave = \"cualquier cosa\"\n\ninsegura = f\"SELECT COUNT(*) FROM usuarios WHERE usuario = '{usuario}' AND clave = '{clave}'\"\nprint(insegura)\nprint(\"f-string ->\", con.execute(insegura).fetchone()[0], \"usuario encontrado\")\n\nsegura = \"SELECT COUNT(*) FROM usuarios WHERE usuario = ? AND clave = ?\"\nprint(\"parámetros ->\", con.execute(segura, (usuario, clave)).fetchone()[0], \"usuarios encontrados\")\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "Búsquedas con LIKE: el % va en el valor",
+       "body": "Para buscar por parte del nombre, el comodín se pega al valor en Python y la consulta solo lleva `?`. Escribir `'%?%'` no funciona: dentro de comillas el `?` es un carácter más, no un parámetro.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\ntexto = \"coco\"\nfilas = con.execute(\n    \"SELECT nombre FROM productos WHERE nombre LIKE ? ORDER BY nombre\",\n    (f\"%{texto}%\",),\n).fetchall()\nprint([f[0] for f in filas])\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "Parámetros con nombre",
+       "body": "Con varios valores, los nombres (`:desde`, `:hasta`) se leen mejor que contar signos de pregunta, y el orden del diccionario deja de importar. Esta función calcula las ventas de cualquier rango de fechas, sin pedidos cancelados.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\n\n\ndef ventas_entre(con, desde, hasta):\n    sql = \"\"\"\n        SELECT COUNT(DISTINCT p.id), ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)))\n        FROM pedidos p JOIN detalle_pedido d ON d.pedido_id = p.id\n        WHERE p.fecha BETWEEN :desde AND :hasta AND p.estado <> 'cancelado'\n    \"\"\"\n    return con.execute(sql, {\"desde\": desde, \"hasta\": hasta}).fetchone()\n\n\npedidos, total = ventas_entre(con, \"2026-08-01\", \"2026-08-31\")\nprint(f\"Agosto 2026: {pedidos} pedidos, ₡{total:,.0f}\")\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "Columnas elegidas por el usuario: lista permitida",
+       "body": "Un `?` no puede reemplazar el nombre de una columna: `ORDER BY ?` ordenaría por una constante. Si el usuario elige el orden, compara su elección con una lista de columnas permitidas y solo entonces pégala en el SQL; los valores siguen yendo en `?`.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\nPERMITIDAS = {\"precio\", \"stock\", \"nombre\"}\n\n\ndef listar(con, orden):\n    if orden not in PERMITIDAS:\n        raise ValueError(f\"No se puede ordenar por {orden!r}\")\n    sql = \"SELECT nombre, \" + orden + \" FROM productos WHERE categoria_id = ? ORDER BY \" + orden + \" DESC, nombre LIMIT 3\"\n    return con.execute(sql, (4,)).fetchall()\n\n\nprint(listar(con, \"precio\"))\ntry:\n    listar(con, \"precio; DROP TABLE productos\")\nexcept ValueError as error:\n    print(error)\ncon.close()",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 1, and there are 9 supplied.",
+       "cause": "Pasaste una cadena suelta en vez de una tupla: `execute(sql, 'Artesanía')`. Python la recorre letra por letra y cree que son 9 valores.",
+       "fix": "Envuelve el valor en una tupla con coma: `(categoria,)`."
+      },
+      {
+       "error": "sqlite3.OperationalError: near \"Pura\": syntax error",
+       "cause": "Armaste el SQL con una f-string y el dato traía una comilla simple que cerró el texto antes de tiempo.",
+       "fix": "Usa `?` y pasa el dato como parámetro; SQLite se encarga de las comillas."
+      },
+      {
+       "error": "sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 0, and there are 1 supplied.",
+       "cause": "Escribiste `LIKE '%?%'`: dentro de las comillas el `?` es texto, así que la consulta no tiene parámetros.",
+       "fix": "Escribe `LIKE ?` y arma el patrón en Python: `(f'%{texto}%',)`."
+      },
+      {
+       "error": "ORDER BY ? no ordena nada",
+       "cause": "Los parámetros solo sustituyen valores; `ORDER BY ?` ordena por un texto constante, igual para todas las filas.",
+       "fix": "Valida el nombre de la columna contra una lista permitida y escríbelo en el SQL; los datos del usuario siguen en `?`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-09-1",
+     "title": "Catálogo de Artesanía",
+     "prompt": "Prepara la consulta que tu función `productos_de_categoria` va a usar con `?`. Muestra el `id`, el `nombre` y el `precio`, en ese orden, de los productos **activos** de la categoría «Artesanía», del más caro al más barato.",
+     "hint": "Une `productos` con `categorias`, filtra por el nombre de la categoría y por `activo = 1`, y ordena por precio descendente. En Python, el texto `'Artesanía'` se convertirá en un `?`.",
+     "solution": "SELECT p.id, p.nombre, p.precio\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE c.nombre = 'Artesanía' AND p.activo = 1\nORDER BY p.precio DESC;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-09-2",
+     "title": "Clientes de Guanacaste",
+     "prompt": "Servicio al cliente quiere una lista de contacto por provincia. Muestra `nombre`, `apellido` y `email` de los clientes de Guanacaste, en ese orden, ordenados por apellido y, si empatan, por nombre. Filtra por el nombre de la provincia, no por su número.",
+     "hint": "Une `clientes` con `provincias` por `provincia_id`. Como las dos tablas tienen una columna `nombre`, usa alias: `c.nombre` y `v.nombre`.",
+     "solution": "SELECT c.nombre, c.apellido, c.email\nFROM clientes c\nJOIN provincias v ON v.id = c.provincia_id\nWHERE v.nombre = 'Guanacaste'\nORDER BY c.apellido, c.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-09-3",
+     "title": "Ventas de agosto de 2026",
+     "prompt": "La función `ventas_entre(con, desde, hasta)` recibe un rango de fechas. Pruébala primero en SQL con agosto de 2026: muestra la cantidad de pedidos distintos y el total vendido (suma de `cantidad * precio_unitario * (1 - descuento)`) redondeado a colones, en ese orden, sin contar los pedidos cancelados.",
+     "hint": "Al unir pedidos con sus líneas, cada pedido aparece varias veces: cuéntalos con `COUNT(DISTINCT p.id)`. Las fechas son texto ISO, así que `BETWEEN '2026-08-01' AND '2026-08-31'` funciona.",
+     "solution": "SELECT COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS ventas\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.fecha BETWEEN '2026-08-01' AND '2026-08-31'\n  AND p.estado <> 'cancelado';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Descarga `tienda.db` desde el laboratorio y guárdala en `curso-python/semana-09/`. Crea `consultas.py` con una constante `RUTA = Path(__file__).parent / 'tienda.db'` y una función `conectar()` que compruebe que el archivo existe (si no, lanza `FileNotFoundError` con un mensaje claro), abra la conexión y configure `row_factory = sqlite3.Row`. Imprime cuántas filas tiene cada una de las 8 tablas.",
+    "Agrega a `consultas.py` las funciones `productos_de_categoria(con, categoria)`, `clientes_de_provincia(con, provincia)` y `ventas_entre(con, desde, hasta)`, con las consultas de los ejercicios de hoy y todos los valores en `?` o parámetros con nombre. Llámalas con «Artesanía», «Guanacaste» y agosto de 2026 y compara los resultados con el laboratorio.",
+    "Escribe `buscar_productos(con, texto)` que devuelva los productos cuyo nombre contiene el texto (con `LIKE ?`) como objetos `Producto` de tu `modelos.py`. Pruébala con «Café», «café» y «cafe» y anota en un comentario qué pasó con las mayúsculas y con la tilde (el `LIKE` de SQLite ignora mayúsculas, pero una letra con tilde y una sin tilde son distintas).",
+    "Crea `inyeccion.py` que demuestre la inyección sobre una base `:memory:` con una tabla de prueba (nunca sobre `tienda.db`): una versión con f-string que se deja engañar y otra con `?` que no. Al inicio escribe un comentario de tres líneas que explique con tus palabras qué es la inyección SQL y por qué `?` la evita.",
+    "Escribe un pequeño programa `buscar.py` que pida con `input()` el nombre de una provincia y muestre sus clientes con `clientes_de_provincia`; si la provincia no existe o no tiene clientes, debe decirlo. Pruébalo con «Limón», con «limón» y con el texto `x' OR '1'='1`."
+   ],
+   "taskHints": [
+    "`for tabla in ('provincias', 'clientes', ...)`: aquí el nombre de la tabla no viene del usuario sino de tu lista, así que puedes armar `'SELECT COUNT(*) FROM ' + tabla`. Para los valores, siempre `?`.",
+    "Pega en cada función la consulta del laboratorio entre comillas triples y reemplaza cada valor fijo por `?`. Recuerda `(categoria,)` con coma.",
+    "Si `modelos.py` está en la misma carpeta, `from modelos import Producto` funciona. Selecciona las columnas en el orden de los campos de la dataclass para poder usar `Producto(*fila)` (con `sqlite3.Row` también funciona).",
+    "Copia la idea del paso «Una inyección, en una base de juguete» y cambia la tabla por algo propio, por ejemplo cupones de descuento con su código.",
+    "Si la lista que devuelve la función está vacía, `if not clientes:` te permite mostrar el aviso. El texto malicioso debe dar cero resultados."
+   ],
+   "challenge": {
+    "title": "Buscador con filtros opcionales",
+    "description": "Escribe `buscar(con, texto=None, precio_max=None, categoria=None)` que devuelva nombre, categoría y precio de los productos activos aplicando solo los filtros que no sean `None`: el nombre contiene `texto`, el precio es menor o igual a `precio_max` y la categoría tiene exactamente ese nombre. Arma la consulta agregando condiciones a una lista y los valores a otra: la estructura del SQL la escribes tú y todos los datos van en `?`. Ordena por precio y luego por nombre. Pruébala con varias combinaciones y con un texto malicioso.",
+    "hint": "Empieza con `condiciones = ['p.activo = 1']` y `valores = []`. Por cada filtro presente agrega algo como `'p.precio <= ?'` a `condiciones` y el número a `valores`. Al final: `sql += ' WHERE ' + ' AND '.join(condiciones)` y `con.execute(sql, valores)`.",
+    "solution": "import sqlite3\n\n\ndef buscar(con, texto=None, precio_max=None, categoria=None):\n    sql = \"\"\"\n        SELECT p.nombre, c.nombre, p.precio\n        FROM productos p JOIN categorias c ON c.id = p.categoria_id\n    \"\"\"\n    condiciones = [\"p.activo = 1\"]\n    valores = []\n    if texto is not None:\n        condiciones.append(\"p.nombre LIKE ?\")\n        valores.append(f\"%{texto}%\")\n    if precio_max is not None:\n        condiciones.append(\"p.precio <= ?\")\n        valores.append(precio_max)\n    if categoria is not None:\n        condiciones.append(\"c.nombre = ?\")\n        valores.append(categoria)\n    sql += \" WHERE \" + \" AND \".join(condiciones) + \" ORDER BY p.precio, p.nombre\"\n    return con.execute(sql, valores).fetchall()\n\n\ncon = sqlite3.connect(\"tienda.db\")\nfor fila in buscar(con, texto=\"Café\"):\n    print(fila)\nprint(buscar(con, precio_max=2000, categoria=\"Snacks y dulces\"))\nprint(len(buscar(con, categoria=\"Ropa\")))\nprint(buscar(con, texto=\"x' OR '1'='1\"))\ncon.close()",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "sqlite3",
+     "definition": "Módulo de la biblioteca estándar de Python para trabajar con bases SQLite; no hay que instalar nada."
+    },
+    {
+     "term": "Conexión",
+     "definition": "Objeto que devuelve `sqlite3.connect`; representa la base abierta y permite ejecutar sentencias, confirmar cambios y cerrarla."
+    },
+    {
+     "term": "Cursor",
+     "definition": "Objeto que devuelve `execute` y que apunta al resultado; se lee con `fetchall`, `fetchone` o recorriéndolo con `for`."
+    },
+    {
+     "term": "sqlite3.Row",
+     "definition": "Tipo de fila que se activa con `row_factory` y permite leer las columnas por nombre, como `fila['precio']`."
+    },
+    {
+     "term": "Parámetro ?",
+     "definition": "Marcador de la consulta que SQLite reemplaza por un valor pasado aparte, en una tupla; evita errores con comillas e inyección SQL."
+    },
+    {
+     "term": "Inyección SQL",
+     "definition": "Ataque en el que un dato del usuario se interpreta como parte del SQL porque se pegó a la consulta con f-string o concatenación."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Documentación de Python: módulo sqlite3 (en español)",
+     "url": "https://docs.python.org/es/3/library/sqlite3.html"
+    },
+    {
+     "title": "Python sqlite3: cómo usar marcadores de posición",
+     "url": "https://docs.python.org/es/3/library/sqlite3.html#sqlite3-placeholders"
+    },
+    {
+     "title": "OWASP: qué es la inyección SQL (en inglés)",
+     "url": "https://owasp.org/www-community/attacks/SQL_Injection"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estas llamadas es segura si `categoria` viene de `input()`?",
+     "code": "",
+     "options": [
+      "con.execute(f\"SELECT * FROM categorias WHERE nombre = '{categoria}'\")",
+      "con.execute(\"SELECT * FROM categorias WHERE nombre = '\" + categoria + \"'\")",
+      "con.execute(\"SELECT * FROM categorias WHERE nombre = '?'\", (categoria,))",
+      "con.execute(\"SELECT * FROM categorias WHERE nombre = ?\", (categoria,))"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la f-string pega el texto del usuario dentro del SQL; una comilla lo rompe o lo cambia.",
+      "No: concatenar con `+` es igual de peligroso que la f-string.",
+      "No: entre comillas el `?` es un carácter más; la consulta no tiene parámetros y sqlite3 lanza `ProgrammingError`.",
+      "Correcto: el `?` va sin comillas y el valor viaja aparte, en una tupla."
+     ],
+     "explanation": "Solo con parámetros el dato llega separado de la consulta, así que su contenido nunca cambia la estructura del SQL.",
+     "hint": "Busca la opción donde el valor no forma parte del texto de la consulta."
+    },
+    {
+     "type": "choice",
+     "prompt": "Ejecutas `python semana-09/consultas.py` desde la carpeta `curso-python` y obtienes `no such table: productos`, aunque `tienda.db` está en `semana-09`. El código usa `sqlite3.connect('tienda.db')`. ¿Qué pasó?",
+     "code": "",
+     "options": [
+      "La base descargada está dañada",
+      "La ruta relativa se buscó en `curso-python`, donde no había base, y `connect` creó un archivo vacío",
+      "Falta instalar el módulo sqlite3 con pip",
+      "Hay que escribir los nombres de las tablas en mayúsculas"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el laboratorio funciona con la misma base; el problema es qué archivo abrió Python.",
+      "Correcto: las rutas relativas se resuelven desde la carpeta de trabajo, y `connect` crea la base si no existe.",
+      "No: `sqlite3` viene incluido con Python; si faltara, el error sería al importar.",
+      "No: SQLite no distingue mayúsculas en los nombres de tabla."
+     ],
+     "explanation": "Con `Path(__file__).parent / 'tienda.db'` la ruta se calcula a partir del archivo del programa, sin importar desde dónde lo ejecutes.",
+     "hint": "¿Desde qué carpeta se busca una ruta relativa?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué devuelve `con.execute('SELECT nombre FROM productos WHERE id = 999').fetchone()` en la base Tienda?",
+     "code": "",
+     "options": [
+      "None, porque no existe el producto 999",
+      "Una tupla vacía ()",
+      "Una lista vacía []",
+      "Lanza sqlite3.OperationalError"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `fetchone` devuelve `None` cuando no quedan filas.",
+      "No: si hubiera una fila sería una tupla con valores; si no hay filas, es `None`.",
+      "No: la lista vacía es lo que devolvería `fetchall()`.",
+      "No: la consulta es válida; simplemente no encuentra filas."
+     ],
+     "explanation": "`fetchone()` devuelve la siguiente fila o `None`; por eso hay que comprobar `if fila is None` antes de usar `fila[0]`.",
+     "hint": "Compara con lo que devolvería `fetchall()` para la misma consulta."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Con `con.row_factory = sqlite3.Row`, puedes leer el precio de una fila tanto con `fila['precio']` como con su posición, por ejemplo `fila[2]`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `sqlite3.Row` admite acceso por nombre y por posición.",
+      "No: `sqlite3.Row` conserva el acceso por posición y le agrega el acceso por nombre."
+     ],
+     "explanation": "`sqlite3.Row` se comporta como una tupla con nombres: admite índices, nombres de columna, `keys()` y `dict(fila)`.",
+     "hint": "Row agrega una forma de acceso; no quita la anterior."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Se puede usar un parámetro para elegir la columna de orden: `con.execute('SELECT * FROM productos ORDER BY ?', ('precio',))` ordena por precio.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el `?` se convierte en el texto constante `'precio'`, igual para todas las filas, así que no ordena nada.",
+      "Correcto: los parámetros solo reemplazan valores; los nombres de columnas se validan contra una lista permitida."
+     ],
+     "explanation": "Un parámetro siempre es un valor. Para elegir columnas, compara la opción del usuario con una lista de nombres permitidos.",
+     "hint": "¿Un `?` puede ser un nombre de columna o solo un valor?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "import sqlite3\n\ncon = sqlite3.connect(\":memory:\")\ncon.execute(\"CREATE TABLE cupones (codigo TEXT, descuento REAL)\")\ncon.execute(\"INSERT INTO cupones VALUES ('PURAVIDA', 0.1), ('NAVIDAD', 0.15)\")\nentrada = \"x' OR '1'='1\"\na = con.execute(f\"SELECT COUNT(*) FROM cupones WHERE codigo = '{entrada}'\").fetchone()[0]\nb = con.execute(\"SELECT COUNT(*) FROM cupones WHERE codigo = ?\", (entrada,)).fetchone()[0]\nprint(a, b)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2 0"
+     ],
+     "optionFeedback": [],
+     "explanation": "Con la f-string la condición queda `codigo = 'x' OR '1'='1'`, que es verdadera para los 2 cupones. Con `?` se busca un cupón cuyo código sea literalmente ese texto, y no hay ninguno.",
+     "hint": "Escribe en papel cómo queda la consulta después de la f-string."
+    },
+    {
+     "type": "output",
+     "prompt": "Con `tienda.db` (productos de Hogar y cocina, `categoria_id = 5`), ¿qué imprime este código?",
+     "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\nfila = con.execute(\n    \"SELECT COUNT(*), MAX(precio) FROM productos WHERE categoria_id = ? AND activo = ?\",\n    (5, 1),\n).fetchone()\nprint(fila)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "(5, 14500)"
+     ],
+     "optionFeedback": [],
+     "explanation": "Hay 5 productos activos de Hogar y cocina (el molinillo de ₡21,000 está inactivo) y el más caro es el chorreador de café de ₡14,500. `fetchone` devuelve la fila como tupla.",
+     "hint": "Puedes comprobarlo en el laboratorio con la misma consulta y los valores en lugar de los `?`."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea para que las filas permitan leer las columnas por nombre, como `fila['precio']`.",
+     "code": "con = sqlite3.connect(ruta)\ncon.___ = sqlite3.Row",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "row_factory"
+     ],
+     "optionFeedback": [],
+     "explanation": "`row_factory` decide qué tipo de objeto se construye para cada fila; con `sqlite3.Row` se puede acceder por nombre de columna.",
+     "hint": "Es la «fábrica de filas» de la conexión."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-10",
+   "kind": "workshop",
+   "title": "Modificar datos desde Python",
+   "summary": "Agregas y actualizas productos desde Python con transacciones que se confirman o se deshacen completas, y cargas un CSV entero a la base con executemany.",
+   "objectives": [
+    "Ejecutar INSERT y UPDATE con parámetros desde Python y confirmar los cambios con `commit`.",
+    "Agrupar varias sentencias en una transacción con `with con:` y comprobar que un error las deshace todas.",
+    "Usar `lastrowid` y `rowcount` para saber qué id se creó y cuántas filas cambiaron.",
+    "Cargar un archivo CSV a SQLite con `csv.DictReader` y `executemany`, validando cada fila antes de insertar."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: INSERT y UPDATE con commit y transacciones",
+     "minutes": 75
+    },
+    {
+     "label": "Tema 2: executemany y cargar un CSV a SQLite",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: tareas sobre tienda_practica.db y repaso SQL",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "INSERT y UPDATE con commit y transacciones",
+     "concept": "En la semana 5 aprendiste `BEGIN`, `COMMIT` y `ROLLBACK` en SQL. Desde Python funciona igual, con una diferencia importante: `sqlite3` abre una transacción **automáticamente** antes de un INSERT, UPDATE o DELETE, y los cambios quedan pendientes hasta que llamas `con.commit()`. Si el programa termina sin `commit`, los cambios se pierden.\n\nLa forma más segura es usar la conexión como administrador de contexto: dentro de `with con:` ejecutas una o varias sentencias; si el bloque termina bien, Python hace `commit`; si ocurre una excepción, hace `rollback` y deja la base como estaba. Ojo: `with con:` no cierra la conexión, solo maneja la transacción. Eso es lo que necesita una venta, que debe registrar el pedido, sus líneas y bajar el stock: **o todo o nada**.\n\nEl cursor que devuelve `execute` trae dos datos útiles: `lastrowid`, el id que SQLite asignó a la fila recién insertada, y `rowcount`, cuántas filas cambió un UPDATE o un DELETE (0 si el `WHERE` no encontró nada). Si se viola una restricción (`CHECK`, `NOT NULL`, clave foránea), Python lanza `sqlite3.IntegrityError`, que puedes atrapar. Recuerda activar las claves foráneas en cada conexión con `PRAGMA foreign_keys = ON`.",
+     "tip": "Practica siempre sobre una copia: `shutil.copy('tienda.db', 'tienda_practica.db')`. Si algo sale mal, borras la copia y vuelves a empezar con la base intacta, y `tienda.db` queda limpia para el mini-proyecto.",
+     "example": "import shutil\nimport sqlite3\nfrom pathlib import Path\n\nCARPETA = Path(__file__).parent\nshutil.copy(CARPETA / \"tienda.db\", CARPETA / \"tienda_practica.db\")   # practica sobre una copia\n\ncon = sqlite3.connect(CARPETA / \"tienda_practica.db\")\ncon.execute(\"PRAGMA foreign_keys = ON\")\n\n\ndef agregar_producto(con, nombre, categoria_id, precio, costo, stock):\n    with con:                                   # commit al salir, rollback si hay error\n        cur = con.execute(\n            \"\"\"INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento)\n               VALUES (?, ?, ?, ?, ?, ?)\"\"\",\n            (nombre, categoria_id, precio, costo, stock, \"2026-12-10\"),\n        )\n    return cur.lastrowid\n\n\nnuevo = agregar_producto(con, \"Cuentos de mi tía Panchita\", 8, 8500, 5100, 20)\nprint(\"Id del producto nuevo:\", nuevo)\n\nwith con:\n    cur = con.execute(\"UPDATE productos SET stock = stock + ? WHERE id = ?\", (30, 4))\nprint(\"Filas actualizadas:\", cur.rowcount)\n\ntry:\n    agregar_producto(con, \"Libro sin precio\", 8, 0, 5100, 5)\nexcept sqlite3.IntegrityError as error:\n    print(\"Rechazado:\", error)\n\nfila = con.execute(\"SELECT COUNT(*) FROM productos WHERE categoria_id = 8\").fetchone()\nprint(\"Libros en el catálogo:\", fila[0])\nprint(\"Stock del descafeinado:\", con.execute(\"SELECT stock FROM productos WHERE id = 4\").fetchone()[0])\ncon.close()\n",
+     "language": "python",
+     "exampleOutput": "Id del producto nuevo: 43\nFilas actualizadas: 1\nRechazado: CHECK constraint failed: precio > 0\nLibros en el catálogo: 1\nStock del descafeinado: 30",
+     "steps": [
+      {
+       "title": "Sin commit, el cambio no se guarda",
+       "body": "Inserta un producto y fíjate en `con.in_transaction`: vale `True` mientras hay cambios pendientes. Abre una segunda conexión al mismo archivo y cuenta los libros: no ve el libro nuevo hasta que la primera conexión hace `commit`.",
+       "code": "import shutil\nimport sqlite3\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\ncon = sqlite3.connect(\"tienda_practica.db\")\notra = sqlite3.connect(\"tienda_practica.db\")\ncontar = \"SELECT COUNT(*) FROM productos WHERE categoria_id = 8\"\n\ncon.execute(\"INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento) VALUES (?, ?, ?, ?, ?, ?)\",\n            (\"Mamita Yunai\", 8, 9500, 5700, 12, \"2026-12-10\"))\nprint(\"Pendiente:\", con.in_transaction, \"| la otra conexión ve\", otra.execute(contar).fetchone()[0])\ncon.commit()\nprint(\"Pendiente:\", con.in_transaction, \"| la otra conexión ve\", otra.execute(contar).fetchone()[0])\ncon.close()\notra.close()",
+       "language": "python"
+      },
+      {
+       "title": "lastrowid y rowcount",
+       "body": "Después de un INSERT, `cur.lastrowid` dice el id nuevo; después de un UPDATE, `cur.rowcount` dice cuántas filas cambiaron. Si es 0, el id no existía: úsalo para avisar al usuario en vez de suponer que todo salió bien.",
+       "code": "import shutil\nimport sqlite3\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\ncon = sqlite3.connect(\"tienda_practica.db\")\n\n\ndef cambiar_precio(con, producto_id, precio):\n    with con:\n        cur = con.execute(\"UPDATE productos SET precio = ? WHERE id = ?\", (precio, producto_id))\n    return cur.rowcount\n\n\nprint(\"Gorra:\", cambiar_precio(con, 21, 9000), \"fila\")\nprint(\"Producto 999:\", cambiar_precio(con, 999, 9000), \"filas\")\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "Una venta completa: todo o nada",
+       "body": "Registrar una venta son tres sentencias: el pedido, su línea y la rebaja de stock. Primero se venden 2 de las 6 máscaras boruca. Luego se intentan vender 10, pero solo quedan 4: el `CHECK (stock >= 0)` falla en la tercera sentencia y `with con:` deshace también las dos primeras. Al final hay 421 pedidos (los 420 originales más la primera venta) y ninguno de la venta fallida.",
+       "code": "import shutil\nimport sqlite3\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\ncon = sqlite3.connect(\"tienda_practica.db\")\ncon.execute(\"PRAGMA foreign_keys = ON\")\n\n\ndef vender(con, cliente_id, producto_id, cantidad):\n    with con:\n        precio = con.execute(\"SELECT precio FROM productos WHERE id = ?\", (producto_id,)).fetchone()[0]\n        cur = con.execute(\n            \"INSERT INTO pedidos (cliente_id, fecha, estado, metodo_pago) VALUES (?, ?, 'pagado', 'sinpe')\",\n            (cliente_id, \"2026-12-10\"),\n        )\n        con.execute(\n            \"INSERT INTO detalle_pedido (pedido_id, producto_id, cantidad, precio_unitario) VALUES (?, ?, ?, ?)\",\n            (cur.lastrowid, producto_id, cantidad, precio),\n        )\n        con.execute(\"UPDATE productos SET stock = stock - ? WHERE id = ?\", (cantidad, producto_id))\n    return cur.lastrowid\n\n\nprint(\"Pedido nuevo:\", vender(con, 11, 16, 2))\ntry:\n    vender(con, 11, 16, 10)\nexcept sqlite3.IntegrityError as error:\n    print(\"Venta cancelada:\", error)\nprint(con.execute(\"SELECT COUNT(*) FROM pedidos\").fetchone()[0], \"pedidos\")\nprint(con.execute(\"SELECT stock FROM productos WHERE id = 16\").fetchone()[0], \"máscaras en bodega\")\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "Traduce los errores de la base",
+       "body": "Un `IntegrityError` en inglés no le sirve a quien usa tu programa. Atrápalo en la función que escribe y lanza un `ValueError` con un mensaje en español. Activa `PRAGMA foreign_keys = ON` para que una categoría inexistente también se rechace.",
+       "code": "import shutil\nimport sqlite3\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\ncon = sqlite3.connect(\"tienda_practica.db\")\ncon.execute(\"PRAGMA foreign_keys = ON\")\n\n\ndef agregar(con, nombre, categoria_id, precio, costo):\n    try:\n        with con:\n            con.execute(\n                \"INSERT INTO productos (nombre, categoria_id, precio, costo, fecha_lanzamiento) VALUES (?, ?, ?, ?, '2026-12-10')\",\n                (nombre, categoria_id, precio, costo),\n            )\n    except sqlite3.IntegrityError as error:\n        if \"FOREIGN KEY\" in str(error):\n            raise ValueError(f\"La categoría {categoria_id} no existe\") from error\n        raise ValueError(f\"Datos inválidos para {nombre!r}: {error}\") from error\n\n\nfor datos in [(\"Agenda 2027\", 99, 3000, 1500), (\"Libro roto\", 8, -1, 500)]:\n    try:\n        agregar(con, *datos)\n    except ValueError as error:\n        print(error)\ncon.close()",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Los cambios hechos desde Python no aparecen en la base",
+       "cause": "Faltó `con.commit()` y la transacción se descartó al terminar el programa.",
+       "fix": "Escribe dentro de `with con:`, que confirma solo, o llama `con.commit()` después de cada grupo de cambios."
+      },
+      {
+       "error": "sqlite3.IntegrityError: CHECK constraint failed: precio > 0",
+       "cause": "El valor viola una restricción de la tabla; en este caso, un precio de 0 o negativo.",
+       "fix": "Valida los datos antes de insertarlos (por ejemplo, en el `__post_init__` de tu dataclass) y atrapa `IntegrityError` para mostrar un mensaje claro."
+      },
+      {
+       "error": "Se insertó un producto con una categoría que no existe",
+       "cause": "SQLite trae las claves foráneas apagadas y cada conexión nueva empieza así.",
+       "fix": "Ejecuta `con.execute('PRAGMA foreign_keys = ON')` justo después de cada `connect`; entonces el INSERT lanza `IntegrityError: FOREIGN KEY constraint failed`."
+      },
+      {
+       "error": "sqlite3.OperationalError: database is locked",
+       "cause": "Otra conexión (otro programa abierto o un `connect` olvidado) tiene una transacción sin confirmar sobre el mismo archivo.",
+       "fix": "Confirma o cierra las otras conexiones, y usa `with con:` para que las transacciones duren lo menos posible."
+      }
+     ]
+    },
+    {
+     "title": "executemany y cargar un CSV a SQLite",
+     "concept": "Cuando hay que insertar muchas filas, `executemany(sql, filas)` recibe una sola consulta con `?` y una lista de tuplas, y la ejecuta una vez por tupla. Es más corto y mucho más rápido que un `execute` por fila, y dentro de `with con:` todas las filas entran en **una sola transacción**: si una falla, no entra ninguna. Después, `cur.rowcount` dice cuántas filas se insertaron.\n\nEl caso típico es un CSV, como la lista de productos nuevos que manda un proveedor. La receta junta lo de la semana pasada con lo de hoy: lees el archivo con `csv.DictReader` (con `encoding='utf-8'` y `newline=''`), conviertes cada valor al tipo correcto con `int()` (en un CSV todo llega como texto), traduces los nombres a ids (la categoría «Libros» es el id 8) con un diccionario armado a partir de un SELECT, y separas las filas buenas de las malas antes de tocar la base.\n\nValidar primero es la clave: es mejor rechazar una fila con un mensaje claro, como «línea 6: categoría desconocida», que dejar que SQLite lance un error a mitad de la carga. Al final, comprueba el resultado con un `COUNT(*)`, como harías en el laboratorio.",
+     "tip": "Arma el diccionario de traducción con `dict(con.execute('SELECT nombre, id FROM categorias'))`: un SELECT de dos columnas se convierte directamente en `{nombre: id}`. Así no haces una consulta por cada fila del CSV.",
+     "example": "import csv\nimport shutil\nimport sqlite3\nfrom pathlib import Path\n\nCARPETA = Path(__file__).parent\nshutil.copy(CARPETA / \"tienda.db\", CARPETA / \"tienda_practica.db\")\n\n# El archivo que mandó el proveedor (aquí lo creamos para que el ejemplo corra solo)\n(CARPETA / \"nuevos_productos.csv\").write_text(\n    \"nombre,categoria,precio,costo,stock\\n\"\n    \"Cuentos de mi tía Panchita,Libros,8500,5100,20\\n\"\n    \"Mamita Yunai,Libros,9500,5700,12\\n\"\n    \"Cocina tica tradicional,Libros,12500,7800,8\\n\"\n    \"Taza Pura Vida grande,Hogar y cocina,7000,3600,40\\n\"\n    \"Calendario 2027,Papelería,4500,2000,30\\n\",\n    encoding=\"utf-8\",\n)\n\ncon = sqlite3.connect(CARPETA / \"tienda_practica.db\")\ncategorias = dict(con.execute(\"SELECT nombre, id FROM categorias\"))   # {'Libros': 8, ...}\n\nfilas, rechazadas = [], []\nwith open(CARPETA / \"nuevos_productos.csv\", encoding=\"utf-8\", newline=\"\") as archivo:\n    for numero, registro in enumerate(csv.DictReader(archivo), start=2):\n        if registro[\"categoria\"] not in categorias:\n            rechazadas.append(f\"línea {numero}: categoría desconocida {registro['categoria']!r}\")\n            continue\n        filas.append((registro[\"nombre\"], categorias[registro[\"categoria\"]],\n                      int(registro[\"precio\"]), int(registro[\"costo\"]), int(registro[\"stock\"]),\n                      \"2026-12-10\"))\n\nwith con:\n    cur = con.executemany(\n        \"\"\"INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento)\n           VALUES (?, ?, ?, ?, ?, ?)\"\"\",\n        filas,\n    )\nprint(\"Insertados:\", cur.rowcount)\nfor aviso in rechazadas:\n    print(\"Rechazada\", aviso)\nprint(\"Productos en total:\", con.execute(\"SELECT COUNT(*) FROM productos\").fetchone()[0])\ncon.close()\n",
+     "language": "python",
+     "exampleOutput": "Insertados: 4\nRechazada línea 6: categoría desconocida 'Papelería'\nProductos en total: 46",
+     "steps": [
+      {
+       "title": "executemany con una lista de tuplas",
+       "body": "La gerencia decidió nuevos precios para tres productos de Ropa. Arma una lista de tuplas `(precio, id)` en el mismo orden de los `?` y ejecútala con `executemany`. `rowcount` suma las filas que cambió cada ejecución.",
+       "code": "import shutil\nimport sqlite3\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\ncon = sqlite3.connect(\"tienda_practica.db\")\nnuevos_precios = [(9900, 20), (8900, 21), (19900, 23)]\nwith con:\n    cur = con.executemany(\"UPDATE productos SET precio = ? WHERE id = ?\", nuevos_precios)\nprint(\"Filas actualizadas:\", cur.rowcount)\nprint(con.execute(\"SELECT nombre, precio FROM productos WHERE id IN (20, 21, 23) ORDER BY id\").fetchall())\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "Lee el CSV y convierte los tipos",
+       "body": "`csv.DictReader` entrega cada línea como un diccionario de textos. Convierte los números con `int()` antes de insertarlos; si una celda viene vacía o con letras, `int()` lanza `ValueError` y sabes exactamente qué línea está mal.",
+       "code": "import csv\nfrom pathlib import Path\n\nruta = Path(\"reposicion.csv\")\nruta.write_text(\"producto_id,cantidad\\n4,40\\n11,25\\n22,\\n34,30\\n\", encoding=\"utf-8\")\n\nbuenas = []\nwith open(ruta, encoding=\"utf-8\", newline=\"\") as archivo:\n    for numero, fila in enumerate(csv.DictReader(archivo), start=2):\n        try:\n            buenas.append((int(fila[\"cantidad\"]), int(fila[\"producto_id\"])))\n        except ValueError:\n            print(f\"Línea {numero} inválida: {fila}\")\nprint(buenas)",
+       "language": "python"
+      },
+      {
+       "title": "Traduce nombres a ids con un diccionario",
+       "body": "El CSV trae el nombre de la categoría, pero la tabla `productos` guarda `categoria_id`. Un SELECT de dos columnas pasado a `dict()` da la tabla de traducción completa con una sola consulta.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\ncategorias = dict(con.execute(\"SELECT nombre, id FROM categorias\"))\nprint(categorias[\"Libros\"], categorias[\"Tecnología\"])\nprint(\"Papelería\" in categorias)\ncon.close()",
+       "language": "python"
+      },
+      {
+       "title": "Todo o nada con executemany",
+       "body": "Si una de las tuplas viola una restricción, `with con:` deshace también las que ya habían entrado. Aquí la tercera fila tiene costo 0 y el `CHECK (costo > 0)` la rechaza: el conteo de productos no cambia.",
+       "code": "import shutil\nimport sqlite3\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\ncon = sqlite3.connect(\"tienda_practica.db\")\nfilas = [\n    (\"Mamita Yunai\", 8, 9500, 5700, 12, \"2026-12-10\"),\n    (\"Cocina tica tradicional\", 8, 12500, 7800, 8, \"2026-12-10\"),\n    (\"Libro de regalo\", 8, 5000, 0, 10, \"2026-12-10\"),\n]\nantes = con.execute(\"SELECT COUNT(*) FROM productos\").fetchone()[0]\ntry:\n    with con:\n        con.executemany(\n            \"INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento) VALUES (?, ?, ?, ?, ?, ?)\",\n            filas,\n        )\nexcept sqlite3.IntegrityError as error:\n    print(\"Carga cancelada:\", error)\ndespues = con.execute(\"SELECT COUNT(*) FROM productos\").fetchone()[0]\nprint(antes, despues)\ncon.close()",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "ValueError: invalid literal for int() with base 10: ''",
+       "cause": "Una celda del CSV viene vacía (o con texto) y `int()` no puede convertirla.",
+       "fix": "Convierte dentro de un `try`/`except ValueError` y guarda la línea como rechazada con su número, en vez de detener toda la carga."
+      },
+      {
+       "error": "Las tildes salen como Ã© o aparece UnicodeDecodeError",
+       "cause": "Abriste el CSV sin indicar la codificación y el sistema usó otra distinta de UTF-8.",
+       "fix": "Abre siempre con `open(ruta, encoding='utf-8', newline='')`, igual que hiciste la semana pasada con `csv`."
+      },
+      {
+       "error": "sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 6, and there are 5 supplied.",
+       "cause": "Alguna tupla de la lista tiene menos valores que signos `?` tiene la consulta.",
+       "fix": "Arma todas las tuplas con la misma función o comprensión para que tengan el mismo largo y el mismo orden que las columnas del INSERT."
+      },
+      {
+       "error": "Al ejecutar el programa dos veces, los productos quedan duplicados",
+       "cause": "Cada ejecución vuelve a insertar las mismas filas; la tabla no tiene nada que lo impida.",
+       "fix": "Antes de insertar, consulta si ya existe un producto con ese nombre (`SELECT id FROM productos WHERE nombre = ?`) y sáltalo, o trabaja siempre sobre una copia nueva de la base."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-10-1",
+     "title": "Alta de un libro",
+     "prompt": "La categoría «Libros» (id `8`) por fin recibe su primer producto. Escribe el INSERT que luego harás desde Python: agrega el producto «Cuentos de mi tía Panchita» con precio 8500, costo 5100, stock 20 y fecha de lanzamiento `'2026-12-10'`. No indiques el `id` ni `activo`: deja que la base los ponga.",
+     "hint": "`INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento) VALUES (...)`. El texto va entre comillas simples y los números sin comillas.",
+     "solution": "INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento)\nVALUES ('Cuentos de mi tía Panchita', 8, 8500, 5100, 20, '2026-12-10');",
+     "check": "SELECT nombre, categoria_id, precio, costo, stock, activo, fecha_lanzamiento FROM productos WHERE categoria_id = 8;",
+     "setup": "",
+     "starter": "INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento)\nVALUES ();",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-10-2",
+     "title": "Reponer los agotados",
+     "prompt": "Llegó mercadería: deja en 25 unidades el `stock` de los productos **activos** que hoy tienen stock 0. Los productos inactivos agotados no se reponen y ningún otro producto debe cambiar. Antes de ejecutar el UPDATE, comprueba con un SELECT qué filas va a tocar.",
+     "hint": "La regla de oro de la semana 5: escribe primero `SELECT id, nombre FROM productos WHERE ...`, y cuando muestre exactamente los productos correctos, cambia el principio por `UPDATE productos SET stock = 25`.",
+     "solution": "UPDATE productos\nSET stock = 25\nWHERE activo = 1 AND stock = 0;",
+     "check": "SELECT id, stock FROM productos ORDER BY id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `curso-python/semana-09/modificar.py`. Al inicio copia `tienda.db` a `tienda_practica.db` y conecta con `PRAGMA foreign_keys = ON`. Escribe `agregar_producto(con, nombre, categoria, precio, costo, stock)` que reciba el **nombre** de la categoría, busque su id (si no existe, `ValueError`), inserte dentro de `with con:` y devuelva `lastrowid`. Agrega el libro del ejercicio «Alta de un libro» y comprueba en el laboratorio de tu copia (o con un SELECT) que quedó bien.",
+    "Agrega `reponer(con, producto_id, cantidad)` y `desactivar(con, producto_id)`, las dos con `with con:` y devolviendo `rowcount`; si es 0, el programa debe avisar que el producto no existe. `reponer` rechaza cantidades que no sean positivas antes de tocar la base. Repón los agotados del ejercicio «Reponer los agotados» llamando a la función en un `for`.",
+    "Escribe `vender(con, cliente_id, producto_id, cantidad, metodo_pago)` que registre el pedido, la línea (con el precio actual del producto) y la rebaja de stock en una sola transacción. Demuestra con dos llamadas que una venta posible se guarda completa y que una venta con más unidades de las que hay no deja ni el pedido ni la línea (cuenta los pedidos antes y después).",
+    "Crea a mano `nuevos_productos.csv` con al menos 6 productos (cuatro libros de autores costarricenses y dos de otras categorías) e incluye a propósito dos filas malas: una con una categoría inexistente y otra con el precio vacío. Escribe `cargar_csv(con, ruta)` que valide cada fila, cargue las buenas con `executemany` en una sola transacción y devuelva una tupla `(insertadas, rechazadas)` con los mensajes de las malas.",
+    "Al final de `modificar.py`, dentro de `if __name__ == \"__main__\":`, imprime un pequeño informe con los productos de la categoría Libros y el stock de los que repusiste, y una línea que diga cuántos productos hay en total. Ejecuta el programa dos veces y explica en un comentario por qué la copia de la base evita que los productos se dupliquen."
+   ],
+   "taskHints": [
+    "`fila = con.execute('SELECT id FROM categorias WHERE nombre = ?', (categoria,)).fetchone()`; si `fila is None`, lanza el error. El INSERT necesita la fecha de lanzamiento: usa `'2026-12-10'`.",
+    "`cur = con.execute('UPDATE productos SET stock = stock + ? WHERE id = ?', (cantidad, producto_id))` dentro de `with con:`, y después `return cur.rowcount`. Los agotados activos son los ids 4, 11, 22 y 34.",
+    "Mira el paso «Una venta completa: todo o nada». El precio se lee con un SELECT dentro del mismo `with con:` y el `CHECK (stock >= 0)` de la tabla hace el trabajo de rechazar la venta imposible.",
+    "Guarda las filas buenas como tuplas en el orden de las columnas del INSERT y los errores como textos. `enumerate(lector, start=2)` da el número de línea real del archivo (la 1 es el encabezado).",
+    "Como el programa copia `tienda.db` cada vez que arranca, siempre parte de la base original. Para el informe usa un JOIN con `categorias` y filtra por `c.nombre = ?`."
+   ],
+   "challenge": {
+    "title": "Ajuste de precios con bitácora",
+    "description": "La gerencia quiere subir 5 % los precios de una categoría y dejar registro. Escribe `ajustar_precios(con, categoria, porcentaje)` que, en una sola transacción: cree si no existe la tabla `bitacora_precios(id INTEGER PRIMARY KEY, producto_id INTEGER, precio_anterior INTEGER, precio_nuevo INTEGER, fecha TEXT)`, lea los productos activos de esa categoría, calcule cada precio nuevo redondeado a la centena de colones más cercana, actualice los precios con `executemany` y guarde una fila de bitácora por producto con fecha `'2026-12-10'`. Devuelve cuántos productos cambió. Pruébalo con «Café y bebidas» sobre una copia de la base e imprime la bitácora.",
+    "hint": "Redondear a la centena: `round(precio * 1.05 / 100) * 100`. Arma dos listas de tuplas, una para el UPDATE `(nuevo, id)` y otra para la bitácora `(id, anterior, nuevo, fecha)`, y ejecuta los dos `executemany` dentro del mismo `with con:`.",
+    "solution": "import shutil\nimport sqlite3\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\ncon = sqlite3.connect(\"tienda_practica.db\")\n\n\ndef ajustar_precios(con, categoria, porcentaje):\n    with con:\n        con.execute(\n            \"\"\"CREATE TABLE IF NOT EXISTS bitacora_precios (\n                   id INTEGER PRIMARY KEY, producto_id INTEGER,\n                   precio_anterior INTEGER, precio_nuevo INTEGER, fecha TEXT)\"\"\"\n        )\n        productos = con.execute(\n            \"\"\"SELECT p.id, p.precio FROM productos p\n               JOIN categorias c ON c.id = p.categoria_id\n               WHERE c.nombre = ? AND p.activo = 1\"\"\",\n            (categoria,),\n        ).fetchall()\n        cambios, bitacora = [], []\n        for producto_id, precio in productos:\n            nuevo = round(precio * (1 + porcentaje / 100) / 100) * 100\n            cambios.append((nuevo, producto_id))\n            bitacora.append((producto_id, precio, nuevo, \"2026-12-10\"))\n        con.executemany(\"UPDATE productos SET precio = ? WHERE id = ?\", cambios)\n        con.executemany(\n            \"INSERT INTO bitacora_precios (producto_id, precio_anterior, precio_nuevo, fecha) VALUES (?, ?, ?, ?)\",\n            bitacora,\n        )\n    return len(cambios)\n\n\nprint(\"Productos ajustados:\", ajustar_precios(con, \"Café y bebidas\", 5))\nfor fila in con.execute(\"SELECT producto_id, precio_anterior, precio_nuevo FROM bitacora_precios ORDER BY producto_id\"):\n    print(fila)\ncon.close()",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "commit",
+     "definition": "Confirma los cambios pendientes de la transacción y los escribe en el archivo de la base."
+    },
+    {
+     "term": "rollback",
+     "definition": "Deshace todos los cambios pendientes de la transacción y deja la base como estaba antes de empezarla."
+    },
+    {
+     "term": "with con:",
+     "definition": "Bloque que usa la conexión como transacción: hace commit si termina bien y rollback si ocurre una excepción. No cierra la conexión."
+    },
+    {
+     "term": "lastrowid",
+     "definition": "Atributo del cursor con el id que SQLite asignó a la última fila insertada con `execute`."
+    },
+    {
+     "term": "rowcount",
+     "definition": "Atributo del cursor con la cantidad de filas que modificó un INSERT, UPDATE o DELETE."
+    },
+    {
+     "term": "executemany",
+     "definition": "Método que ejecuta la misma sentencia con `?` una vez por cada tupla de una lista."
+    },
+    {
+     "term": "IntegrityError",
+     "definition": "Excepción de `sqlite3` que aparece cuando un cambio viola una restricción: CHECK, NOT NULL, UNIQUE o FOREIGN KEY."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Documentación de Python: sqlite3 y el control de transacciones",
+     "url": "https://docs.python.org/es/3/library/sqlite3.html#sqlite3-controlling-transactions"
+    },
+    {
+     "title": "Documentación de Python: módulo csv (en español)",
+     "url": "https://docs.python.org/es/3/library/csv.html"
+    },
+    {
+     "title": "SQLite: transacciones (BEGIN, COMMIT, ROLLBACK)",
+     "url": "https://www.sqlite.org/lang_transaction.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué hace exactamente `with con:` en sqlite3?",
+     "code": "",
+     "options": [
+      "Abre la conexión al entrar y la cierra al salir",
+      "Hace commit si el bloque termina bien y rollback si ocurre una excepción",
+      "Ejecuta las sentencias del bloque en paralelo",
+      "Bloquea la base para que nadie más pueda leerla nunca"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: a diferencia de `with open(...)`, `with con:` no cierra la conexión; solo maneja la transacción.",
+      "Correcto: es una transacción automática, todo o nada.",
+      "No: las sentencias se ejecutan una tras otra, en orden.",
+      "No: solo agrupa los cambios; al terminar el bloque la transacción se cierra."
+     ],
+     "explanation": "La conexión como administrador de contexto confirma al salir sin errores y deshace si sale una excepción. Para cerrar la conexión sigue haciendo falta `con.close()`.",
+     "hint": "Piensa en la transacción, no en el archivo."
+    },
+    {
+     "type": "choice",
+     "prompt": "Ejecutas `cur = con.execute('UPDATE productos SET stock = 25 WHERE id = ?', (999,))` en la base Tienda. ¿Cuánto vale `cur.rowcount`?",
+     "code": "",
+     "options": [
+      "999",
+      "25",
+      "1",
+      "0"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: 999 es el id buscado, no la cantidad de filas.",
+      "No: 25 es el valor nuevo del stock.",
+      "No: solo sería 1 si existiera el producto 999.",
+      "Correcto: no hay ningún producto con id 999, así que no cambió ninguna fila."
+     ],
+     "explanation": "`rowcount` cuenta las filas modificadas. Un 0 es la señal para avisar que el id no existe.",
+     "hint": "¿Cuántos productos hay en la tienda?"
+    },
+    {
+     "type": "choice",
+     "prompt": "Vas a cargar 200 filas de un CSV y una de ellas viola un CHECK. Si haces `with con: con.executemany(sql, filas)`, ¿qué queda en la base?",
+     "code": "",
+     "options": [
+      "Las filas anteriores a la mala",
+      "Las 199 filas buenas",
+      "Ninguna de las 200 filas",
+      "Las 200 filas, porque executemany ignora los CHECK"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso pasaría sin transacción y con commit por fila; aquí el rollback deshace todo.",
+      "No: executemany no salta las filas malas; se detiene en el primer error.",
+      "Correcto: el error provoca rollback de toda la transacción.",
+      "No: las restricciones se aplican a cada fila insertada, venga de donde venga."
+     ],
+     "explanation": "Dentro de `with con:` todo el `executemany` es una sola transacción. Por eso conviene validar las filas antes y separar las malas.",
+     "hint": "Todo o nada."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si haces un INSERT con `con.execute(...)` y el programa termina sin `commit` ni `with con:`, el producto queda guardado en `tienda.db`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: sqlite3 abrió una transacción implícita y, sin commit, se descarta al cerrar.",
+      "Correcto: sin `commit` el cambio se pierde."
+     ],
+     "explanation": "Antes de un INSERT, UPDATE o DELETE, `sqlite3` abre una transacción automáticamente; solo `commit` (o salir bien de `with con:`) la confirma.",
+     "hint": "¿Quién confirma la transacción?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Después de `cur = con.execute('INSERT INTO productos ...', datos)`, `cur.lastrowid` contiene el id que SQLite le asignó al producto nuevo.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: así sabes qué id recibió la fila, por ejemplo para insertar después sus líneas de pedido.",
+      "No: justamente para eso existe `lastrowid`."
+     ],
+     "explanation": "`lastrowid` es el id de la fila recién insertada con `execute`. Es lo que permite encadenar el pedido con su `detalle_pedido`.",
+     "hint": "El nombre lo dice: el último rowid."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "import sqlite3\n\ncon = sqlite3.connect(\":memory:\")\ncon.execute(\"CREATE TABLE productos (id INTEGER PRIMARY KEY, nombre TEXT, stock INTEGER CHECK (stock >= 0))\")\ncon.executemany(\"INSERT INTO productos (nombre, stock) VALUES (?, ?)\", [(\"Cajeta\", 10), (\"Tosteles\", 0)])\ncon.commit()\ntry:\n    with con:\n        con.execute(\"UPDATE productos SET stock = stock - 2 WHERE id = 1\")\n        con.execute(\"UPDATE productos SET stock = stock - 2 WHERE id = 2\")\nexcept sqlite3.IntegrityError:\n    pass\nprint(con.execute(\"SELECT SUM(stock) FROM productos\").fetchone()[0])",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "10"
+     ],
+     "optionFeedback": [],
+     "explanation": "El segundo UPDATE dejaría los tosteles en -2 y viola el CHECK. `with con:` deshace también el primer UPDATE, así que el stock vuelve a 10 + 0 = 10.",
+     "hint": "¿Qué pasa con el primer UPDATE cuando el segundo falla dentro del mismo `with con:`?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "import sqlite3\n\ncon = sqlite3.connect(\":memory:\")\ncon.execute(\"CREATE TABLE resenas (id INTEGER PRIMARY KEY, producto_id INTEGER, calificacion INTEGER)\")\nnuevas = [(7, 5), (7, 4), (9, 5), (7, 3)]\nwith con:\n    cur = con.executemany(\"INSERT INTO resenas (producto_id, calificacion) VALUES (?, ?)\", nuevas)\nprint(cur.rowcount, con.execute(\"SELECT AVG(calificacion) FROM resenas WHERE producto_id = 7\").fetchone()[0])",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "4 4.0"
+     ],
+     "optionFeedback": [],
+     "explanation": "`executemany` insertó las 4 tuplas, así que `rowcount` es 4. El producto 7 tiene calificaciones 5, 4 y 3, cuyo promedio es 4.0 (AVG siempre devuelve un número decimal).",
+     "hint": "Cuenta las tuplas y luego promedia solo las del producto 7."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea para obtener el id del pedido que se acaba de insertar.",
+     "code": "cur = con.execute(\n    \"INSERT INTO pedidos (cliente_id, fecha, estado, metodo_pago) VALUES (?, ?, ?, ?)\",\n    (11, \"2026-12-10\", \"pagado\", \"sinpe\"),\n)\npedido_id = cur.___",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "lastrowid"
+     ],
+     "optionFeedback": [],
+     "explanation": "`cur.lastrowid` devuelve el id asignado a la fila recién insertada.",
+     "hint": "Es el «último rowid»."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-11",
+   "kind": "workshop",
+   "title": "Repositorio: POO + SQL",
+   "summary": "Unes clases y SQL en un ProductoRepositorio que devuelve objetos en lugar de tuplas, y lo pruebas con pytest sobre una base en memoria que no toca tus datos reales.",
+   "objectives": [
+    "Explicar qué problema resuelve el patrón repositorio y qué parte del programa debe contener el SQL.",
+    "Escribir `ProductoRepositorio` con métodos que reciben y devuelven objetos `Producto`.",
+    "Escribir pruebas con pytest usando `assert`, `pytest.raises` y un fixture.",
+    "Probar el repositorio sobre una base `:memory:` que se crea limpia para cada prueba."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: El patrón repositorio (ProductoRepositorio)",
+     "minutes": 75
+    },
+    {
+     "label": "Tema 2: Pruebas con pytest y una base :memory:",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: repositorio, pruebas y repaso SQL",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "El patrón repositorio (ProductoRepositorio)",
+     "concept": "Ya tienes clases (`Producto`, `Cliente`, `Pedido`) y sabes ejecutar SQL desde Python. Si mezclas las dos cosas en cualquier parte, el menú termina lleno de `execute` y de tuplas, y cambiar una consulta obliga a buscarla por todo el programa. El **patrón repositorio** pone orden: una clase, `ProductoRepositorio`, es la única que habla con la tabla `productos`. Hacia afuera ofrece operaciones en el idioma del negocio (`obtener(16)`, `para_reponer(10)`, `agregar(producto)`) y trabaja con **objetos**, nunca con filas.\n\nPor dentro, cada método traduce en dos direcciones. De fila a objeto: ejecuta el SELECT con `?` y construye un `Producto` por fila (un método auxiliar como `_a_producto` evita repetir esa conversión). De objeto a fila: `agregar` toma los atributos del objeto, hace el INSERT dentro de `with self.con:` y le asigna al objeto el `id` que devolvió `lastrowid`.\n\nUn detalle clave: el repositorio **recibe** la conexión en su `__init__` en vez de abrirla él mismo. Así el programa real le pasa una conexión a `tienda.db`, y las pruebas le pasan una base en memoria. Concatenar textos fijos escritos por ti, como las columnas del SELECT, es seguro; los datos nunca.",
+     "tip": "Diseña primero la interfaz: escribe los nombres de los métodos con `pass` adentro y un comentario de qué devuelven (un `Producto`, una lista o `None`). Luego rellena uno por uno, probándolo antes de pasar al siguiente.",
+     "example": "import shutil\nimport sqlite3\nfrom dataclasses import dataclass\nfrom pathlib import Path\n\n\n@dataclass\nclass Producto:\n    id: int | None\n    nombre: str\n    categoria_id: int\n    precio: int\n    costo: int\n    stock: int = 0\n    activo: bool = True\n\n    @property\n    def margen(self):\n        return self.precio - self.costo\n\n\nclass ProductoRepositorio:\n    \"\"\"Guarda y recupera objetos Producto en la tabla productos.\"\"\"\n\n    COLUMNAS = \"SELECT p.id, p.nombre, p.categoria_id, p.precio, p.costo, p.stock, p.activo FROM productos p\"\n\n    def __init__(self, con):\n        self.con = con\n\n    def _a_producto(self, fila):\n        return Producto(*fila[:6], activo=bool(fila[6]))\n\n    def obtener(self, producto_id):\n        fila = self.con.execute(self.COLUMNAS + \" WHERE p.id = ?\", (producto_id,)).fetchone()\n        return None if fila is None else self._a_producto(fila)\n\n    def por_categoria(self, categoria):\n        sql = self.COLUMNAS + \" JOIN categorias c ON c.id = p.categoria_id WHERE c.nombre = ? ORDER BY p.nombre\"\n        return [self._a_producto(f) for f in self.con.execute(sql, (categoria,))]\n\n    def para_reponer(self, minimo):\n        sql = self.COLUMNAS + \" WHERE p.activo = 1 AND p.stock < ? ORDER BY p.stock, p.id\"\n        return [self._a_producto(f) for f in self.con.execute(sql, (minimo,))]\n\n    def agregar(self, producto, fecha_lanzamiento):\n        with self.con:\n            cur = self.con.execute(\n                \"\"\"INSERT INTO productos (nombre, categoria_id, precio, costo, stock, activo, fecha_lanzamiento)\n                   VALUES (?, ?, ?, ?, ?, ?, ?)\"\"\",\n                (producto.nombre, producto.categoria_id, producto.precio, producto.costo,\n                 producto.stock, int(producto.activo), fecha_lanzamiento),\n            )\n        producto.id = cur.lastrowid\n        return producto.id\n\n\ncarpeta = Path(__file__).parent\nshutil.copy(carpeta / \"tienda.db\", carpeta / \"tienda_practica.db\")\nrepo = ProductoRepositorio(sqlite3.connect(carpeta / \"tienda_practica.db\"))\n\nmascara = repo.obtener(16)\nprint(mascara.nombre, \"| margen:\", mascara.margen)\nprint(repo.obtener(999))\nprint([p.nombre for p in repo.para_reponer(10)])\n\nlibro = Producto(None, \"Mamita Yunai\", 8, 9500, 5700, 12)\nrepo.agregar(libro, \"2026-12-11\")\nprint(\"Guardado con id\", libro.id)\nprint(repo.por_categoria(\"Libros\"))\n",
+     "language": "python",
+     "exampleOutput": "Máscara boruca tallada | margen: 15750\nNone\n['Café descafeinado 340 g', 'Tosteles de coco', 'Bolso de manta', 'Aceite de coco 250 ml', 'Máscara boruca tallada']\nGuardado con id 43\n[Producto(id=43, nombre='Mamita Yunai', categoria_id=8, precio=9500, costo=5700, stock=12, activo=True)]",
+     "steps": [
+      {
+       "title": "El esqueleto del repositorio",
+       "body": "Crea `curso-python/semana-09/repositorio.py`, importa `Producto` de tu `modelos.py` y escribe la clase con los métodos vacíos. Aunque no hagan nada, el programa ya corre y puedes ver la forma completa antes de escribir SQL.",
+       "code": "class ProductoRepositorio:\n    def __init__(self, con):\n        self.con = con\n\n    def obtener(self, producto_id):\n        \"\"\"Devuelve un Producto o None si no existe.\"\"\"\n        pass\n\n    def por_categoria(self, categoria):\n        \"\"\"Devuelve una lista de Producto de esa categoría.\"\"\"\n        return []\n\n    def agregar(self, producto, fecha_lanzamiento):\n        \"\"\"Guarda el producto, le asigna su id y lo devuelve.\"\"\"\n        pass\n\n\nrepo = ProductoRepositorio(con=None)\nprint(repo.obtener(1), repo.por_categoria(\"Ropa\"))",
+       "language": "python"
+      },
+      {
+       "title": "De fila a objeto",
+       "body": "Implementa `obtener` y el auxiliar `_a_producto`. La columna `activo` llega como 0 o 1; conviértela a `bool` para que el objeto hable el idioma de Python. Si `fetchone` da `None`, devuelve `None` en vez de fallar.",
+       "code": "import sqlite3\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Producto:\n    id: int | None\n    nombre: str\n    categoria_id: int\n    precio: int\n    costo: int\n    stock: int = 0\n    activo: bool = True\n\n\nclass ProductoRepositorio:\n    def __init__(self, con):\n        self.con = con\n\n    def _a_producto(self, fila):\n        return Producto(*fila[:6], activo=bool(fila[6]))\n\n    def obtener(self, producto_id):\n        fila = self.con.execute(\n            \"SELECT id, nombre, categoria_id, precio, costo, stock, activo FROM productos WHERE id = ?\",\n            (producto_id,),\n        ).fetchone()\n        return None if fila is None else self._a_producto(fila)\n\n\nrepo = ProductoRepositorio(sqlite3.connect(\"tienda.db\"))\nprint(repo.obtener(41))\nprint(repo.obtener(500))",
+       "language": "python"
+      },
+      {
+       "title": "De objeto a fila",
+       "body": "`agregar` recibe un `Producto` sin id (`None`), lo inserta con parámetros dentro de `with self.con:` y le pone el id nuevo. Quien llama recupera así el objeto completo, sin saber nada de `lastrowid`.",
+       "code": "import shutil\nimport sqlite3\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Producto:\n    id: int | None\n    nombre: str\n    categoria_id: int\n    precio: int\n    costo: int\n    stock: int = 0\n\n\nclass ProductoRepositorio:\n    def __init__(self, con):\n        self.con = con\n\n    def agregar(self, p, fecha_lanzamiento):\n        with self.con:\n            cur = self.con.execute(\n                \"INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento) VALUES (?, ?, ?, ?, ?, ?)\",\n                (p.nombre, p.categoria_id, p.precio, p.costo, p.stock, fecha_lanzamiento),\n            )\n        p.id = cur.lastrowid\n        return p\n\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\nrepo = ProductoRepositorio(sqlite3.connect(\"tienda_practica.db\"))\nprint(repo.agregar(Producto(None, \"Cocina tica tradicional\", 8, 12500, 7800, 8), \"2026-12-11\"))",
+       "language": "python"
+      },
+      {
+       "title": "Métodos que cambian datos y avisan",
+       "body": "`actualizar_stock` devuelve `True` o `False` según `rowcount`, y valida antes de tocar la base. Quien use el repositorio (el menú del mini-proyecto) solo decide qué mensaje mostrar; no sabe que existe un UPDATE.",
+       "code": "import shutil\nimport sqlite3\n\n\nclass ProductoRepositorio:\n    def __init__(self, con):\n        self.con = con\n\n    def actualizar_stock(self, producto_id, stock):\n        if stock < 0:\n            raise ValueError(\"El stock no puede ser negativo\")\n        with self.con:\n            cur = self.con.execute(\"UPDATE productos SET stock = ? WHERE id = ?\", (stock, producto_id))\n        return cur.rowcount == 1\n\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\nrepo = ProductoRepositorio(sqlite3.connect(\"tienda_practica.db\"))\nprint(repo.actualizar_stock(22, 40))\nprint(repo.actualizar_stock(999, 40))",
+       "language": "python"
+      },
+      {
+       "title": "Usa el repositorio desde otro archivo",
+       "body": "Crea `usar_repo.py` en la misma carpeta. Fíjate en lo que no aparece: ni SQL ni tuplas, solo objetos y métodos con nombres del negocio. Ese es el objetivo del patrón. Este paso depende de tus archivos, por eso no se ejecuta aquí.",
+       "code": "import sqlite3\nfrom pathlib import Path\n\nfrom repositorio import ProductoRepositorio\n\ncon = sqlite3.connect(Path(__file__).parent / \"tienda.db\")\nrepo = ProductoRepositorio(con)\nfor p in repo.para_reponer(20):\n    print(f\"{p.nombre:<38} quedan {p.stock}\")\ncon.close()",
+       "language": "python",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "El menú recibe tuplas y falla con AttributeError: 'tuple' object has no attribute 'nombre'",
+       "cause": "Un método del repositorio devuelve `fetchall()` directamente, sin convertir las filas en objetos.",
+       "fix": "Pasa cada fila por `_a_producto` antes de devolverla: `return [self._a_producto(f) for f in cur]`."
+      },
+      {
+       "error": "TypeError: Producto.__init__() takes from 6 to 8 positional arguments but 9 were given",
+       "cause": "El SELECT trae más columnas que campos tiene la dataclass (por ejemplo, usaste `SELECT *`, que incluye `fecha_lanzamiento`).",
+       "fix": "Escribe las columnas explícitamente, en el mismo orden que los campos de `Producto`."
+      },
+      {
+       "error": "El producto agregado tiene id None después de guardarlo",
+       "cause": "`agregar` hizo el INSERT pero no copió `cur.lastrowid` al objeto.",
+       "fix": "Después del INSERT asigna `producto.id = cur.lastrowid` y devuelve el id o el objeto."
+      }
+     ]
+    },
+    {
+     "title": "Pruebas con pytest y una base :memory:",
+     "concept": "Probar a mano no escala: cada cambio obliga a repetirlo todo. **pytest** automatiza esa revisión: al escribir `python -m pytest -v` en la carpeta del proyecto, busca los archivos `test_*.py`, ejecuta cada función cuyo nombre empieza con `test_` y te dice cuáles pasaron. Una prueba prepara datos, llama a tu código y comprueba el resultado con `assert`; si falla, pytest muestra el valor esperado y el obtenido. Para comprobar que algo lanza un error se escribe `with pytest.raises(ValueError):`.\n\nUn repositorio no se prueba contra `tienda.db`: las pruebas cambiarían tus datos. La solución es un **fixture**, una función marcada con `@pytest.fixture` que prepara lo que necesita cada prueba. El fixture abre `sqlite3.connect(':memory:')`, una base que vive solo en memoria, crea las tablas, inserta dos o tres filas conocidas y entrega el repositorio con `yield`. Cada prueba que tenga un parámetro con el nombre del fixture recibe una base **nueva y limpia**. En el ejemplo, la última línea llama a pytest desde el mismo archivo para mostrarte el resultado: cada punto es una prueba que pasó (una `F` sería una que falló). En tu proyecto lo correrás desde la terminal.",
+     "tip": "Nombra cada prueba con lo que comprueba (`test_obtener_inexistente_devuelve_none`). Cuando falle dentro de un mes, el nombre te dirá qué se rompió sin leer el código. Y cuando encuentres un error, escribe primero la prueba que lo reproduce y después el arreglo.",
+     "example": "import sqlite3\nfrom dataclasses import dataclass\n\nimport pytest\n\n\n@dataclass\nclass Producto:\n    id: int | None\n    nombre: str\n    categoria_id: int\n    precio: int\n    costo: int\n    stock: int = 0\n\n\nclass ProductoRepositorio:\n    def __init__(self, con):\n        self.con = con\n\n    def obtener(self, producto_id):\n        fila = self.con.execute(\n            \"SELECT id, nombre, categoria_id, precio, costo, stock FROM productos WHERE id = ?\",\n            (producto_id,),\n        ).fetchone()\n        return None if fila is None else Producto(*fila)\n\n    def agregar(self, p):\n        with self.con:\n            cur = self.con.execute(\n                \"INSERT INTO productos (nombre, categoria_id, precio, costo, stock) VALUES (?, ?, ?, ?, ?)\",\n                (p.nombre, p.categoria_id, p.precio, p.costo, p.stock),\n            )\n        p.id = cur.lastrowid\n        return p.id\n\n\n# ---------- test_repositorio.py ----------\nESQUEMA = \"\"\"\nCREATE TABLE productos (\n    id INTEGER PRIMARY KEY,\n    nombre TEXT NOT NULL,\n    categoria_id INTEGER NOT NULL,\n    precio INTEGER NOT NULL CHECK (precio > 0),\n    costo INTEGER NOT NULL CHECK (costo > 0),\n    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0)\n);\nINSERT INTO productos VALUES (1, 'Café molido Tarrazú 500 g', 1, 6500, 3600, 120);\n\"\"\"\n\n\n@pytest.fixture\ndef repo():\n    con = sqlite3.connect(\":memory:\")       # base nueva y vacía para cada prueba\n    con.executescript(ESQUEMA)\n    yield ProductoRepositorio(con)\n    con.close()\n\n\ndef test_obtener_existente(repo):\n    assert repo.obtener(1).precio == 6500\n\n\ndef test_obtener_inexistente_devuelve_none(repo):\n    assert repo.obtener(999) is None\n\n\ndef test_agregar_asigna_id_y_se_puede_leer(repo):\n    nuevo = Producto(None, \"Mamita Yunai\", 8, 9500, 5700, 12)\n    assert repo.agregar(nuevo) == 2\n    assert repo.obtener(2) == nuevo\n\n\ndef test_precio_cero_es_rechazado(repo):\n    with pytest.raises(sqlite3.IntegrityError):\n        repo.agregar(Producto(None, \"Regalo\", 8, 0, 100))\n\n\nif __name__ == \"__main__\":\n    pytest.main([\"-qq\", \"-p\", \"no:cacheprovider\", __file__])\n",
+     "language": "python",
+     "exampleOutput": "....                                                                     [100%]",
+     "steps": [
+      {
+       "title": "Instala pytest y compruébalo",
+       "body": "En la terminal de VS Code, dentro de `curso-python`, instala pytest con el mismo Python que usas para tus programas y verifica la versión. Si `pytest` no se reconoce como comando, usa `python -m pytest`.",
+       "code": "python -m pip install pytest\npython -m pytest --version",
+       "language": "bash"
+      },
+      {
+       "title": "Tu primera prueba",
+       "body": "Crea `curso-python/semana-09/test_modelos.py` con pruebas para la dataclass `Producto` de `modelos.py`. No imprimen nada: si el `assert` es verdadero, pasan en silencio. Para un error esperado se usa `pytest.raises`.",
+       "code": "import pytest\n\nfrom modelos import Producto\n\n\ndef test_margen():\n    cafe = Producto(1, \"Café molido Tarrazú 500 g\", 1, 6500, 3600, 120)\n    assert cafe.margen == 2900\n\n\ndef test_precio_negativo_es_rechazado():\n    with pytest.raises(ValueError):\n        Producto(1, \"Café\", 1, -6500, 3600)",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Un fixture con la base en memoria",
+       "body": "Crea `test_repositorio.py`. El fixture crea las tablas con las mismas columnas y restricciones que la tienda, carga unas pocas filas que tú conoces de memoria y entrega el repositorio. Todo lo que haga una prueba desaparece al terminar.",
+       "code": "import sqlite3\n\nimport pytest\n\nfrom repositorio import ProductoRepositorio\n\nESQUEMA = \"\"\"\nCREATE TABLE categorias (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL UNIQUE);\nCREATE TABLE productos (\n    id INTEGER PRIMARY KEY, nombre TEXT NOT NULL,\n    categoria_id INTEGER NOT NULL REFERENCES categorias(id),\n    precio INTEGER NOT NULL CHECK (precio > 0), costo INTEGER NOT NULL CHECK (costo > 0),\n    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),\n    activo INTEGER NOT NULL DEFAULT 1, fecha_lanzamiento TEXT NOT NULL\n);\nINSERT INTO categorias VALUES (1, 'Café y bebidas'), (8, 'Libros');\nINSERT INTO productos VALUES\n    (1, 'Café molido Tarrazú 500 g', 1, 6500, 3600, 120, 1, '2023-03-01'),\n    (4, 'Café descafeinado 340 g', 1, 5900, 3550, 0, 1, '2024-02-10');\n\"\"\"\n\n\n@pytest.fixture\ndef repo():\n    con = sqlite3.connect(\":memory:\")\n    con.execute(\"PRAGMA foreign_keys = ON\")\n    con.executescript(ESQUEMA)\n    yield ProductoRepositorio(con)\n    con.close()\n\n\ndef test_para_reponer_trae_solo_los_agotados(repo):\n    nombres = [p.nombre for p in repo.para_reponer(10)]\n    assert nombres == [\"Café descafeinado 340 g\"]",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Corre las pruebas y lee el informe",
+       "body": "Desde `curso-python/semana-09/` ejecuta pytest. Con `-v` ves el nombre de cada prueba y si pasó (PASSED) o falló (FAILED). Rompe algo a propósito, por ejemplo cambia el orden en `para_reponer`, y lee cómo pytest muestra la diferencia entre lo esperado y lo obtenido.",
+       "code": "cd curso-python/semana-09\npython -m pytest -v",
+       "language": "bash"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "collected 0 items",
+       "cause": "pytest no encontró pruebas: el archivo no empieza con `test_` o las funciones no empiezan con `test_`.",
+       "fix": "Nombra el archivo `test_repositorio.py` y cada prueba `def test_algo():`. Ejecuta pytest desde la carpeta donde está el archivo."
+      },
+      {
+       "error": "ModuleNotFoundError: No module named 'repositorio'",
+       "cause": "El archivo de pruebas y `repositorio.py` no están en la misma carpeta, o el nombre del módulo no coincide con el archivo.",
+       "fix": "Pon `test_repositorio.py` junto a `repositorio.py` y `modelos.py`, y corre `python -m pytest` desde esa carpeta."
+      },
+      {
+       "error": "Failed: DID NOT RAISE <class 'ValueError'>",
+       "cause": "La prueba esperaba un error dentro de `pytest.raises`, pero el código aceptó el dato inválido.",
+       "fix": "No es un problema de la prueba: tu clase o tu repositorio no valida ese caso. Agrega la validación (por ejemplo, en `__post_init__`)."
+      },
+      {
+       "error": "Las pruebas pasan solas pero fallan cuando se corren todas juntas",
+       "cause": "Comparten una misma conexión o usan `tienda.db`, y lo que una prueba inserta afecta a la siguiente.",
+       "fix": "Crea la base dentro del fixture con `:memory:`, sin alcance compartido, para que cada prueba arranque desde cero."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-11-1",
+     "title": "Productos para reponer",
+     "prompt": "El método `para_reponer(minimo)` de tu repositorio necesita esta consulta. Muestra el `id`, el `nombre` y el `stock`, en ese orden, de los productos **activos** con menos de 20 unidades, ordenados del stock más bajo al más alto y, si empatan, por `id`.",
+     "hint": "Dos condiciones en el `WHERE` (activo y stock) y dos columnas en el `ORDER BY`. En Python, el 20 será un `?`.",
+     "solution": "SELECT id, nombre, stock\nFROM productos\nWHERE activo = 1 AND stock < 20\nORDER BY stock, id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-11-2",
+     "title": "Inventario por categoría",
+     "prompt": "Para el reporte de inventario del mini-proyecto, muestra por cada categoría su `nombre`, cuántos productos **activos** tiene y el valor de su inventario al costo (suma de `costo * stock` de esos productos), en ese orden. Deben aparecer **todas** las categorías: si una no tiene productos activos, muestra 0 en las dos cantidades.",
+     "hint": "Necesitas `LEFT JOIN` desde `categorias`. Pon la condición `p.activo = 1` en el `ON` (no en el `WHERE`) para no perder las categorías vacías, y usa `COALESCE(SUM(...), 0)` para cambiar el NULL por 0.",
+     "solution": "SELECT c.nombre,\n       COUNT(p.id) AS productos,\n       COALESCE(SUM(p.costo * p.stock), 0) AS valor_inventario\nFROM categorias c\nLEFT JOIN productos p ON p.categoria_id = c.id AND p.activo = 1\nGROUP BY c.id, c.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `curso-python/semana-09/repositorio.py` con `ProductoRepositorio(con)` y los métodos `obtener(id)`, `buscar(texto)`, `por_categoria(nombre)`, `para_reponer(minimo)`, `agregar(producto, fecha_lanzamiento)` y `actualizar_stock(id, stock)`. Usa la dataclass `Producto` de tu `modelos.py`, un auxiliar `_a_producto(fila)` y `?` en todos los valores. `para_reponer` usa la consulta del ejercicio «Productos para reponer».",
+    "Escribe `usar_repo.py` que, sin una sola línea de SQL, imprima: el producto 16, los productos de «Café y bebidas» con su margen, los que hay que reponer con menos de 20 unidades y el resultado de buscar «Sarchí». Trabaja sobre una copia `tienda_practica.db`.",
+    "Instala pytest y crea `test_modelos.py` con al menos 4 pruebas para tus dataclasses: el margen de un producto, el subtotal de una línea con descuento, el total del pedido 18 (63170) y un `pytest.raises(ValueError)` para una línea con cantidad 0. Córrelas con `python -m pytest -v` hasta que todas pasen.",
+    "Crea `test_repositorio.py` con un fixture `repo` sobre `:memory:` (tablas `categorias` y `productos` con las mismas restricciones que la tienda y 3 o 4 filas conocidas) y al menos 6 pruebas: obtener existente, obtener inexistente, `por_categoria`, `para_reponer` con el orden correcto, `agregar` asigna id, y precio 0 rechazado con `pytest.raises`.",
+    "Rompe tu código a propósito: en `para_reponer` cambia `<` por `<=` y corre las pruebas. Copia en un comentario del test el mensaje de pytest que te mostró la diferencia. Después arregla el código y deja todas las pruebas en verde."
+   ],
+   "taskHints": [
+    "`COLUMNAS = 'SELECT p.id, p.nombre, p.categoria_id, p.precio, p.costo, p.stock, p.activo FROM productos p'` y luego `self.COLUMNAS + ' WHERE p.id = ?'`. Para `buscar`, el `%` va en el valor: `(f'%{texto}%',)`.",
+    "Arranca con `shutil.copy` como el jueves y crea el repositorio con esa conexión. Para el margen usa la propiedad del objeto: `p.margen`.",
+    "Las pruebas de `modelos.py` no necesitan base de datos. Para el pedido 18 crea las cuatro `LineaPedido` con los datos del ejercicio del martes.",
+    "Copia el `ESQUEMA` del paso «Un fixture con la base en memoria» y agrégale las filas que necesites. Escribe el resultado esperado de cada prueba a mano, a partir de esas filas, antes de correrla.",
+    "pytest muestra una línea que empieza con `E` y compara las dos listas. Si tu fixture tiene un producto con exactamente 10 unidades, el cambio a `<=` lo hará aparecer."
+   ],
+   "challenge": {
+    "title": "Repositorio de reseñas",
+    "description": "Escribe la dataclass `Resena(id, producto_id, cliente_id, calificacion, comentario, fecha)` y `ResenaRepositorio(con)` con tres métodos: `de_producto(producto_id)`, que devuelve sus reseñas como objetos ordenadas por fecha y luego por id; `promedio(producto_id)`, que devuelve el promedio redondeado a 2 decimales o `None` si no tiene reseñas; y `agregar(resena)`, que valida que la calificación esté entre 1 y 5 antes de insertar y le asigna el id. Pruébalo sobre una copia de `tienda.db` con la Salsa Lizano (producto 7) y con el libro nuevo, que no tiene reseñas.",
+    "hint": "`SELECT ROUND(AVG(calificacion), 2) FROM resenas WHERE producto_id = ?` devuelve `(None,)` cuando no hay filas: lee `fetchone()[0]` y devuélvelo tal cual. Para las reseñas, selecciona las columnas en el orden de los campos y usa `Resena(*fila)`.",
+    "solution": "import shutil\nimport sqlite3\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Resena:\n    id: int | None\n    producto_id: int\n    cliente_id: int\n    calificacion: int\n    comentario: str | None\n    fecha: str\n\n\nclass ResenaRepositorio:\n    def __init__(self, con):\n        self.con = con\n\n    def de_producto(self, producto_id):\n        sql = \"\"\"SELECT id, producto_id, cliente_id, calificacion, comentario, fecha\n                 FROM resenas WHERE producto_id = ? ORDER BY fecha, id\"\"\"\n        return [Resena(*fila) for fila in self.con.execute(sql, (producto_id,))]\n\n    def promedio(self, producto_id):\n        sql = \"SELECT ROUND(AVG(calificacion), 2) FROM resenas WHERE producto_id = ?\"\n        return self.con.execute(sql, (producto_id,)).fetchone()[0]\n\n    def agregar(self, r):\n        if not 1 <= r.calificacion <= 5:\n            raise ValueError(\"La calificación va de 1 a 5\")\n        with self.con:\n            cur = self.con.execute(\n                \"INSERT INTO resenas (producto_id, cliente_id, calificacion, comentario, fecha) VALUES (?, ?, ?, ?, ?)\",\n                (r.producto_id, r.cliente_id, r.calificacion, r.comentario, r.fecha),\n            )\n        r.id = cur.lastrowid\n        return r.id\n\n\nshutil.copy(\"tienda.db\", \"tienda_practica.db\")\ncon = sqlite3.connect(\"tienda_practica.db\")\ncon.execute(\"\"\"INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento)\n               VALUES ('Mamita Yunai', 8, 9500, 5700, 12, '2026-12-11')\"\"\")\ncon.commit()\nrepo = ResenaRepositorio(con)\nlizano = repo.de_producto(7)\nprint(len(lizano), \"reseñas de la Lizano, promedio\", repo.promedio(7))\nprint(\"Más reciente:\", lizano[-1].fecha, lizano[-1].calificacion)\nprint(\"Libro nuevo:\", repo.promedio(43))\nnueva = Resena(None, 43, 11, 5, \"Un clásico de la literatura tica\", \"2026-12-11\")\nprint(\"Reseña guardada con id\", repo.agregar(nueva), \"| promedio:\", repo.promedio(43))\ntry:\n    repo.agregar(Resena(None, 43, 11, 6, None, \"2026-12-11\"))\nexcept ValueError as error:\n    print(error)\ncon.close()",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Patrón repositorio",
+     "definition": "Forma de organizar el código en la que una clase concentra todo el acceso a una tabla y ofrece operaciones que reciben y devuelven objetos."
+    },
+    {
+     "term": "pytest",
+     "definition": "Herramienta que encuentra y ejecuta automáticamente las funciones `test_` de los archivos `test_*.py` e informa cuáles pasaron."
+    },
+    {
+     "term": "Prueba",
+     "definition": "Función pequeña, con nombre que empieza por `test_`, que prepara datos, llama a tu código y comprueba el resultado con `assert`."
+    },
+    {
+     "term": "Fixture",
+     "definition": "Función marcada con `@pytest.fixture` que prepara lo que necesita una prueba (por ejemplo, un repositorio con una base nueva) y lo limpia al terminar."
+    },
+    {
+     "term": ":memory:",
+     "definition": "Nombre especial para `sqlite3.connect` que crea una base temporal en memoria; desaparece al cerrar la conexión."
+    },
+    {
+     "term": "pytest.raises",
+     "definition": "Bloque `with` que hace pasar la prueba solo si el código de adentro lanza la excepción indicada."
+    }
+   ],
+   "resources": [
+    {
+     "title": "pytest: primeros pasos (en inglés)",
+     "url": "https://docs.pytest.org/en/stable/getting-started.html"
+    },
+    {
+     "title": "pytest: cómo usar fixtures (en inglés)",
+     "url": "https://docs.pytest.org/en/stable/how-to/fixtures.html"
+    },
+    {
+     "title": "Documentación de Python: sqlite3 (en español)",
+     "url": "https://docs.python.org/es/3/library/sqlite3.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Por qué `ProductoRepositorio` recibe la conexión en su `__init__` en lugar de abrir `tienda.db` por su cuenta?",
+     "code": "",
+     "options": [
+      "Porque sqlite3 no permite abrir conexiones dentro de una clase",
+      "Para que el programa use tienda.db y las pruebas puedan pasarle una base :memory:",
+      "Para que las consultas se ejecuten más rápido",
+      "Porque así no hace falta usar parámetros ?"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: una clase puede abrir conexiones sin problema; el motivo es de diseño.",
+      "Correcto: quien crea el repositorio decide con qué base trabaja, y eso hace posible probarlo sin tocar los datos reales.",
+      "No: la velocidad es la misma; lo que cambia es la flexibilidad.",
+      "No: los parámetros siguen siendo obligatorios para cualquier dato."
+     ],
+     "explanation": "Recibir la conexión desde afuera permite usar la misma clase con la base real o con una base de prueba en memoria.",
+     "hint": "Piensa en el fixture de las pruebas."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué debería devolver `repo.obtener(999)` si no existe el producto 999?",
+     "code": "",
+     "options": [
+      "Una tupla vacía",
+      "Un Producto con todos los campos en None",
+      "None",
+      "El texto 'no existe'"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el repositorio trabaja con objetos, no con tuplas.",
+      "No: un objeto vacío se confundiría con un producto real y causaría errores más adelante.",
+      "Correcto: `None` dice claramente «no hay» y quien llama lo revisa con `if producto is None`.",
+      "No: mezclar textos con objetos obliga a revisar el tipo en cada llamada."
+     ],
+     "explanation": "Devolver `None` cuando no hay resultado es la convención en Python, igual que hace `fetchone()`.",
+     "hint": "¿Qué devuelve `fetchone()` cuando no encuentra filas?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estas funciones ejecutará pytest como prueba si está en `test_repositorio.py`?",
+     "code": "",
+     "options": [
+      "def probar_obtener(repo):",
+      "def obtener_test(repo):",
+      "def Test_obtener(repo):",
+      "def test_obtener(repo):"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: pytest no reconoce nombres en español; busca el prefijo `test_`.",
+      "No: `test` al final no cuenta; debe ir al principio.",
+      "No: el prefijo distingue mayúsculas; debe ser `test_` en minúscula.",
+      "Correcto: el nombre empieza con `test_`, así que pytest la descubre y la ejecuta."
+     ],
+     "explanation": "pytest descubre las funciones cuyo nombre empieza con `test_` dentro de archivos `test_*.py`.",
+     "hint": "Fíjate en el prefijo exacto."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si dos pruebas usan el mismo fixture con `sqlite3.connect(':memory:')`, lo que inserta la primera prueba aparece en la segunda.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: por defecto el fixture se ejecuta de nuevo para cada prueba y cada `:memory:` es una base distinta.",
+      "Correcto: cada prueba recibe una base nueva, así que las pruebas no se afectan entre sí."
+     ],
+     "explanation": "Cada llamada a `connect(':memory:')` crea una base independiente, y el fixture se ejecuta para cada prueba.",
+     "hint": "¿Cuántas veces se ejecuta el fixture?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "En el patrón repositorio, el menú de la aplicación no debería contener sentencias SQL.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: el menú habla con el repositorio usando objetos; el SQL vive en un solo lugar.",
+      "No: si el menú también escribe SQL, se pierde la ventaja de tener el acceso a datos concentrado."
+     ],
+     "explanation": "Separar responsabilidades permite cambiar una consulta sin tocar el menú y probar el acceso a datos por separado.",
+     "hint": "¿Dónde vive el SQL en este patrón?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "import sqlite3\n\n\nclass ProductoRepositorio:\n    def __init__(self, con):\n        self.con = con\n\n    def nombres_bajo(self, minimo):\n        filas = self.con.execute(\"SELECT nombre FROM productos WHERE stock < ? ORDER BY stock\", (minimo,))\n        return [fila[0] for fila in filas]\n\n\ncon = sqlite3.connect(\":memory:\")\ncon.execute(\"CREATE TABLE productos (nombre TEXT, stock INTEGER)\")\ncon.executemany(\"INSERT INTO productos VALUES (?, ?)\", [(\"Hamaca\", 10), (\"Máscara\", 6), (\"Cajeta\", 180)])\nprint(ProductoRepositorio(con).nombres_bajo(15))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "['Máscara', 'Hamaca']"
+     ],
+     "optionFeedback": [],
+     "explanation": "Solo la máscara (6) y la hamaca (10) tienen menos de 15 unidades, y salen ordenadas por stock de menor a mayor. El método devuelve una lista de nombres.",
+     "hint": "Filtra por stock y luego ordena de menor a mayor."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "import sqlite3\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Producto:\n    id: int | None\n    nombre: str\n    precio: int\n\n\ncon = sqlite3.connect(\":memory:\")\ncon.execute(\"CREATE TABLE productos (id INTEGER PRIMARY KEY, nombre TEXT, precio INTEGER)\")\ncon.execute(\"INSERT INTO productos (nombre, precio) VALUES ('Cajeta de leche', 1200)\")\np = Producto(None, \"Tosteles de coco\", 1500)\ncur = con.execute(\"INSERT INTO productos (nombre, precio) VALUES (?, ?)\", (p.nombre, p.precio))\np.id = cur.lastrowid\nfila = con.execute(\"SELECT id, nombre, precio FROM productos WHERE id = ?\", (p.id,)).fetchone()\nprint(p.id, Producto(*fila) == p)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2 True"
+     ],
+     "optionFeedback": [],
+     "explanation": "La tabla ya tenía una fila, así que el producto nuevo recibe el id 2. El objeto reconstruido desde la fila tiene los mismos campos que `p`, y el `__eq__` de la dataclass los compara uno por uno: `True`.",
+     "hint": "¿Qué id recibe la segunda fila de una tabla con `INTEGER PRIMARY KEY`?"
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la prueba para que pase solo si agregar un producto con precio 0 lanza `sqlite3.IntegrityError`.",
+     "code": "def test_precio_cero_es_rechazado(repo):\n    with pytest.___(sqlite3.IntegrityError):\n        repo.agregar(Producto(None, \"Regalo\", 8, 0, 100))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "raises"
+     ],
+     "optionFeedback": [],
+     "explanation": "`with pytest.raises(Excepcion):` hace que la prueba pase si el bloque lanza esa excepción y falle si no la lanza.",
+     "hint": "En inglés, «lanza»."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-12-12",
+  "kind": "mini-project",
+  "path": "curso-python/semana-09/tienda_app/",
+  "description": "Mini-proyecto de fase: una aplicación de consola para la Tienda Pura Vida que consulta y modifica `tienda.db` con un menú. Junta toda la semana: clases y dataclasses para los datos, un repositorio con consultas parametrizadas, el alta de productos dentro de una transacción y al menos 6 pruebas con pytest sobre una base en memoria.",
+  "criteria": [
+   "El menú funciona en un ciclo hasta elegir «Salir» y ofrece al menos: buscar productos por nombre, productos de una categoría, productos para reponer, los 5 más vendidos, ventas por categoría, agregar un producto y reponer stock.",
+   "Los datos viajan como objetos: hay dataclasses en `modelos.py` (al menos `Producto` y `Cliente`, con validación en `__post_init__`) y el repositorio devuelve objetos o listas de objetos, no tuplas.",
+   "Todo el SQL está en `repositorio.py` y todos los valores usan `?` o parámetros con nombre; buscar `execute(f` en la carpeta da cero resultados.",
+   "Agregar un producto y reponer stock se hacen dentro de `with con:`; un dato inválido (precio 0, categoría inexistente, cantidad negativa) muestra un mensaje en español y el programa sigue funcionando.",
+   "`test_repositorio.py` y `test_modelos.py` suman al menos 6 pruebas que pasan con `python -m pytest -v`, con un fixture sobre `:memory:` y al menos un `pytest.raises`.",
+   "Las tres consultas de reporte (ejercicios de este entregable) están resueltas en el laboratorio y coinciden con lo que muestra la aplicación."
+  ],
+  "steps": [
+   "Crea `curso-python/semana-09/tienda_app/` y copia ahí `tienda.db` (descárgala de nuevo del laboratorio si la modificaste) y tu `modelos.py`. Agrega un `README.txt` de pocas líneas que diga cómo ejecutar la app y las pruebas.",
+   "Resuelve en el laboratorio los tres ejercicios de este entregable: son las consultas de los reportes «Más vendidos», «Ventas por categoría» y «Pedidos por atender». Cuando den el resultado correcto, cópialas al repositorio.",
+   "Escribe `repositorio.py` con `ProductoRepositorio` (obtener, buscar, por_categoria, para_reponer, agregar, reponer) y una segunda clase `ReporteRepositorio` (mas_vendidos, ventas_por_categoria, pedidos_por_atender). Los métodos de reporte pueden devolver dataclasses pequeñas o tuplas con nombre claro, pero nunca SQL hacia afuera.",
+   "Escribe `app.py` con una función `main()` que abra la conexión (con `Path(__file__).parent / 'tienda.db'`, `PRAGMA foreign_keys = ON`), cree los repositorios y muestre el menú en un `while True`. Cada opción es una función corta que pide los datos con `input()`, llama al repositorio e imprime el resultado con formato.",
+   "Para «Agregar producto», pide nombre, categoría (por nombre), precio, costo y stock; convierte y valida con `try`/`except ValueError`, construye un `Producto` y guárdalo con el repositorio dentro de una transacción. Muestra el id que recibió. Usa como fecha de lanzamiento la de hoy (`date.today().isoformat()`).",
+   "Escribe `test_modelos.py` y `test_repositorio.py`. El fixture crea en `:memory:` las tablas que usa el repositorio con sus restricciones y unas pocas filas conocidas. Cubre al menos: obtener existente e inexistente, buscar, para_reponer en orden, agregar asigna id, y un dato inválido rechazado.",
+   "Prueba la app de punta a punta como lo haría un empleado de la tienda: consulta cada reporte, agrega un libro, repón un producto agotado y vuelve a consultar para ver el cambio. Prueba también entradas raras: texto donde va un número, una categoría que no existe y el texto `x' OR '1'='1` en la búsqueda."
+  ],
+  "tips": [
+   "Guarda una copia limpia de `tienda.db` fuera de la carpeta del proyecto. Mientras desarrollas vas a agregar productos de prueba; antes de entregar, reemplaza la base por la copia limpia y agrega solo lo que quieras mostrar.",
+   "Mantén `app.py` delgado: si una función del menú tiene más de 15 líneas o contiene la palabra SELECT, parte de ella debería vivir en el repositorio o en `modelos.py`.",
+   "Escribe primero las pruebas del repositorio y luego el menú. Si el repositorio ya pasa sus pruebas, cualquier error que aparezca en la app está en el menú, y lo encuentras mucho más rápido.",
+   "Formatea los montos con `f\"₡{monto:,.0f}\"` y alinea las columnas con anchos fijos (`{nombre:<38}`): un reporte legible es parte de la calidad del programa."
+  ],
+  "stretch": "Agrega la opción «Registrar una venta»: pide el id del cliente, uno o varios productos con su cantidad y el método de pago; arma un `Pedido` con sus `LineaPedido` en memoria, muestra el total para confirmar y guárdalo con un `PedidoRepositorio.guardar(pedido)` que inserte el pedido, sus líneas y rebaje el stock en una sola transacción. Escribe dos pruebas: una venta válida y una que falla por falta de stock sin dejar rastro en la base.",
+  "checklist": [
+   "`python app.py` arranca desde cualquier carpeta y encuentra `tienda.db` gracias a `Path(__file__).parent`.",
+   "Ninguna opción del menú termina el programa con un error rojo, aunque escribas datos inválidos.",
+   "No hay ningún `execute(f` ni concatenación de datos del usuario en el SQL.",
+   "`python -m pytest -v` muestra al menos 6 pruebas y todas en PASSED.",
+   "Los números de los tres reportes coinciden con los ejercicios resueltos en el laboratorio.",
+   "Cada archivo tiene un docstring al inicio que explica para qué sirve, y el `README.txt` dice cómo ejecutar todo."
+  ],
+  "exercises": [
+   {
+    "id": "s09-1",
+    "title": "Los 5 más vendidos",
+    "prompt": "Reporte «Más vendidos» de la app: muestra el `nombre` de los 5 productos con más unidades vendidas y cuántas unidades se vendieron de cada uno, en ese orden, sin contar los pedidos cancelados. Ordénalos de más a menos unidades.",
+    "hint": "Une `detalle_pedido` con `pedidos` (para excluir los cancelados) y con `productos` (para el nombre). Agrupa por producto, suma `cantidad`, ordena descendente y limita a 5.",
+    "solution": "SELECT pr.nombre, SUM(d.cantidad) AS unidades\nFROM detalle_pedido d\nJOIN pedidos p ON p.id = d.pedido_id\nJOIN productos pr ON pr.id = d.producto_id\nWHERE p.estado <> 'cancelado'\nGROUP BY pr.id, pr.nombre\nORDER BY unidades DESC\nLIMIT 5;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s09-2",
+    "title": "Ventas por categoría",
+    "prompt": "Reporte «Ventas por categoría» de la app: muestra el `nombre` de cada categoría y su total vendido (suma de `cantidad * precio_unitario * (1 - descuento)`) redondeado a colones, en ese orden, sin contar los pedidos cancelados. Ordena de la categoría que más vendió a la que menos. Solo aparecen las categorías con ventas.",
+    "hint": "Necesitas cuatro tablas: `detalle_pedido`, `pedidos`, `productos` y `categorias`. Agrupa por categoría y redondea el `SUM` con `ROUND(...)`.",
+    "solution": "SELECT c.nombre,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS ventas\nFROM detalle_pedido d\nJOIN pedidos p ON p.id = d.pedido_id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado <> 'cancelado'\nGROUP BY c.id, c.nombre\nORDER BY ventas DESC;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s09-3",
+    "title": "Pedidos por atender",
+    "prompt": "Reporte «Pedidos por atender» de la app: muestra el `id` del pedido, la `fecha`, el nombre completo del cliente (nombre y apellido separados por un espacio) y el `estado`, en ese orden, de los pedidos que todavía no se han entregado ni cancelado (estados `pendiente`, `pagado` y `enviado`). Ordénalos por fecha y, si empatan, por id.",
+    "hint": "Une `pedidos` con `clientes`, filtra con `estado IN (...)` y arma el nombre con `c.nombre || ' ' || c.apellido`.",
+    "solution": "SELECT p.id, p.fecha, c.nombre || ' ' || c.apellido AS cliente, p.estado\nFROM pedidos p\nJOIN clientes c ON c.id = p.cliente_id\nWHERE p.estado IN ('pendiente', 'pagado', 'enviado')\nORDER BY p.fecha, p.id;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   }
+  ]
+ }
+}

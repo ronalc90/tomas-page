@@ -1,0 +1,2245 @@
+{
+ "id": "s05",
+ "number": 5,
+ "phaseId": 2,
+ "title": "Crear y modificar datos",
+ "rangeLabel": "9 nov – 14 nov",
+ "days": [
+  {
+   "date": "2026-11-09",
+   "kind": "workshop",
+   "title": "Crear tablas",
+   "summary": "Creas tus primeras tablas con CREATE TABLE, entiendes los tipos de SQLite y aprendes a declarar claves primarias y a borrar tablas sin miedo.",
+   "objectives": [
+    "Escribir un CREATE TABLE con columnas y tipos adecuados para cada dato.",
+    "Explicar qué es la afinidad de tipos de SQLite y comprobarla con typeof().",
+    "Declarar una clave primaria simple con INTEGER PRIMARY KEY y una compuesta.",
+    "Crear tablas de respaldo y resumen con CREATE TABLE ... AS SELECT.",
+    "Usar DROP TABLE IF EXISTS para que un script se pueda ejecutar varias veces."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: CREATE TABLE y los tipos de SQLite",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Claves primarias y DROP TABLE",
+     "minutes": 65
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "CREATE TABLE y los tipos de SQLite",
+     "concept": "Durante cuatro semanas leíste tablas que alguien más diseñó. Esta semana pasas al otro lado: **creas tablas, les metes datos y los cambias**. Todo empieza con `CREATE TABLE nombre (columna tipo, columna tipo, ...)`: el nombre de la tabla, y entre paréntesis cada columna con su tipo, separadas por comas (sin coma después de la última).\n\nSQLite guarda cada valor en una de cinco clases: `INTEGER` (enteros), `REAL` (decimales), `TEXT` (texto), `BLOB` (bytes) y `NULL`. El tipo que declaras en la columna se llama **afinidad**: es una preferencia, no un candado. Si una columna `INTEGER` recibe el texto `'42'`, SQLite lo convierte en el número 42; si una columna `TEXT` recibe 88887777, lo guarda como el texto `'88887777'`. Pero si la columna `INTEGER` recibe `'abc'`, lo guarda como texto. La función `typeof(valor)` te dice qué quedó guardado en realidad.\n\nCopia las convenciones de la Tienda: montos en colones como `INTEGER`, fracciones como `REAL`, fechas como `TEXT` en formato `'AAAA-MM-DD'` y teléfonos como `TEXT` (no se suman y pueden empezar con cero). También puedes crear una tabla a partir de una consulta con `CREATE TABLE nueva AS SELECT ...`: copia columnas y filas de una vez.",
+     "tip": "Antes de escribir un CREATE TABLE, anota en papel cada columna con su tipo y pregúntate: ¿esto se suma, se compara como fecha o solo se muestra? La respuesta te dice el tipo.",
+     "example": "DROP TABLE IF EXISTS proveedores;\nCREATE TABLE proveedores (\n    nombre       TEXT,\n    telefono     TEXT,\n    provincia_id INTEGER,\n    fecha_alta   TEXT\n);\nINSERT INTO proveedores (nombre, telefono, provincia_id, fecha_alta)\nVALUES ('Beneficio La Esperanza', 22345678, '1', '2026-11-09');\nSELECT nombre, telefono, typeof(telefono) AS tipo_telefono,\n       provincia_id, typeof(provincia_id) AS tipo_provincia\nFROM proveedores;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Mira cómo se creó una tabla que ya conoces",
+       "body": "La tabla especial `sqlite_master` guarda el `CREATE TABLE` original de cada tabla. Léelo para `productos`: verás los tipos de cada columna y algunas restricciones (`NOT NULL`, `CHECK`) que estudiarás el miércoles.",
+       "code": "SELECT sql\nFROM sqlite_master\nWHERE type = 'table' AND name = 'productos';",
+       "language": "sql"
+      },
+      {
+       "title": "Lista las columnas con pragma_table_info",
+       "body": "`pragma_table_info('tabla')` se consulta como si fuera una tabla: una fila por columna, con su posición (`cid`), nombre, tipo declarado y si es parte de la clave primaria (`pk`). Es la forma más rápida de revisar una tabla que acabas de crear.",
+       "code": "SELECT cid, name, type, pk\nFROM pragma_table_info('productos');",
+       "language": "sql"
+      },
+      {
+       "title": "Crea tu primera tabla",
+       "body": "Escribe el `CREATE TABLE` de `proveedores` y comprueba sus columnas. La primera línea, `DROP TABLE IF EXISTS`, borra la tabla si ya existía para que puedas ejecutar el bloque las veces que quieras; la estudias en el tema 2.",
+       "code": "DROP TABLE IF EXISTS proveedores;\nCREATE TABLE proveedores (\n    nombre       TEXT,\n    telefono     TEXT,\n    provincia_id INTEGER,\n    fecha_alta   TEXT\n);\nSELECT name, type FROM pragma_table_info('proveedores');",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba la afinidad con typeof()",
+       "body": "Inserta una fila de prueba (mañana verás `INSERT` a fondo) con el teléfono escrito como número y la provincia como texto. `typeof` muestra que SQLite convirtió cada valor al tipo de su columna: el teléfono quedó como `text` y la provincia como `integer`.",
+       "code": "DROP TABLE IF EXISTS proveedores;\nCREATE TABLE proveedores (nombre TEXT, telefono TEXT, provincia_id INTEGER, fecha_alta TEXT);\nINSERT INTO proveedores VALUES ('Cerámica Chorotega', 26812233, '5', '2026-11-09');\nSELECT telefono, typeof(telefono), provincia_id, typeof(provincia_id) FROM proveedores;",
+       "language": "sql"
+      },
+      {
+       "title": "Descubre que la afinidad no es un candado",
+       "body": "Ahora mete un texto que no parece número en la columna `INTEGER`. SQLite no da error: guarda el texto tal cual. Otros motores lo rechazarían; en SQLite la protección contra datos raros llega con las restricciones del miércoles.",
+       "code": "DROP TABLE IF EXISTS proveedores;\nCREATE TABLE proveedores (nombre TEXT, telefono TEXT, provincia_id INTEGER, fecha_alta TEXT);\nINSERT INTO proveedores VALUES ('Textiles Sarchí', '2454-1100', 'Alajuela', '2026-11-09');\nSELECT provincia_id, typeof(provincia_id) FROM proveedores;",
+       "language": "sql"
+      },
+      {
+       "title": "Crea una tabla a partir de una consulta",
+       "body": "`CREATE TABLE ... AS SELECT` guarda el resultado de cualquier consulta como tabla nueva. Es ideal para respaldos y resúmenes. Revisa después los tipos con `pragma_table_info`: las columnas calculadas quedan sin tipo declarado.",
+       "code": "DROP TABLE IF EXISTS respaldo_cafe;\nCREATE TABLE respaldo_cafe AS\nSELECT id, nombre, precio, precio - costo AS margen\nFROM productos\nWHERE categoria_id = 1;\nSELECT name, type FROM pragma_table_info('respaldo_cafe');",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "near \")\": syntax error",
+       "cause": "Dejaste una coma después de la última columna, justo antes del paréntesis de cierre.",
+       "fix": "Las columnas se separan con comas, pero la última no lleva. Revisa el final de la lista."
+      },
+      {
+       "error": "table proveedores already exists",
+       "cause": "Ejecutaste el mismo `CREATE TABLE` dos veces: la tabla ya está creada.",
+       "fix": "Pon `DROP TABLE IF EXISTS proveedores;` antes del `CREATE TABLE` (si quieres empezar de cero) o usa `CREATE TABLE IF NOT EXISTS`."
+      },
+      {
+       "error": "ORDER BY precio pone 9500 después de 12500",
+       "cause": "Declaraste `precio` como `TEXT`, así que los valores se guardan y se ordenan como texto: '9' va después de '1'.",
+       "fix": "Declara las cantidades y montos como `INTEGER` o `REAL`. Comprueba con `typeof(precio)` qué se guardó."
+      }
+     ]
+    },
+    {
+     "title": "Claves primarias y DROP TABLE",
+     "concept": "Toda tabla necesita una forma de señalar cada fila sin ambigüedad: la **clave primaria**. Se declara con `PRIMARY KEY` y garantiza que no haya dos filas con el mismo valor. Todas las tablas de la Tienda usan `id INTEGER PRIMARY KEY`, y no es casualidad: en SQLite esa declaración exacta convierte la columna en el número interno de la fila (`rowid`). Si insertas sin dar el `id`, SQLite pone el siguiente número disponible (el mayor más uno).\n\nOjo con la ortografía: `INT PRIMARY KEY` o `NUMBER PRIMARY KEY` no tienen ese comportamiento, y el `id` queda en `NULL` si no lo das. Cuando lo que identifica una fila es la combinación de dos columnas (un producto en una fecha), se usa una **clave compuesta** al final de la lista: `PRIMARY KEY (producto_id, fecha)`.\n\n`DROP TABLE nombre` borra la tabla con todos sus datos, sin preguntar y sin papelera. `DROP TABLE IF EXISTS` evita el error si la tabla no existe, y por eso los scripts que se ejecutan muchas veces empiezan así. En el laboratorio no hay riesgo: tus ejercicios se califican en una copia limpia y, si borras algo de la base, puedes restaurarla. En un trabajo real, antes de un `DROP` se hace un respaldo.",
+     "tip": "Cuando crees una tabla con `CREATE TABLE ... AS SELECT`, recuerda que no hereda la clave primaria ni las restricciones: sirve para respaldos y resúmenes, no para las tablas principales.",
+     "example": "DROP TABLE IF EXISTS promociones;\nCREATE TABLE promociones (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT,\n    descuento    REAL,\n    fecha_inicio TEXT,\n    fecha_fin    TEXT\n);\nINSERT INTO promociones (nombre, descuento, fecha_inicio, fecha_fin)\nVALUES ('Black Friday', 0.25, '2026-11-27', '2026-11-30');\nINSERT INTO promociones (nombre, descuento, fecha_inicio, fecha_fin)\nVALUES ('Navidad tica', 0.15, '2026-12-15', '2026-12-24');\nSELECT * FROM promociones;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Deja que SQLite numere las filas",
+       "body": "Crea `promociones` con `id INTEGER PRIMARY KEY` e inserta una fila sin mencionar el `id`. SQLite le asigna 1 automáticamente. No necesitas llevar la cuenta tú.",
+       "code": "DROP TABLE IF EXISTS promociones;\nCREATE TABLE promociones (id INTEGER PRIMARY KEY, nombre TEXT, descuento REAL);\nINSERT INTO promociones (nombre, descuento) VALUES ('Día del Padre', 0.10);\nSELECT * FROM promociones;",
+       "language": "sql"
+      },
+      {
+       "title": "Observa cómo sigue la numeración",
+       "body": "Si das un `id` a mano (por ejemplo 10), la siguiente fila sin `id` recibe 11: SQLite toma el mayor que exista y le suma uno. Por eso casi nunca se escribe el `id` al insertar.",
+       "code": "DROP TABLE IF EXISTS promociones;\nCREATE TABLE promociones (id INTEGER PRIMARY KEY, nombre TEXT, descuento REAL);\nINSERT INTO promociones (id, nombre, descuento) VALUES (10, 'Aniversario', 0.20);\nINSERT INTO promociones (nombre, descuento) VALUES ('Regreso a clases', 0.05);\nSELECT * FROM promociones;",
+       "language": "sql"
+      },
+      {
+       "title": "Provoca el error de clave repetida",
+       "body": "Intenta insertar dos filas con el mismo `id`. La segunda falla con `UNIQUE constraint failed: promociones.id` y no se guarda. Este código falla a propósito: léelo y pruébalo para ver el mensaje.",
+       "code": "DROP TABLE IF EXISTS promociones;\nCREATE TABLE promociones (id INTEGER PRIMARY KEY, nombre TEXT, descuento REAL);\nINSERT INTO promociones (id, nombre, descuento) VALUES (1, 'Aniversario', 0.20);\nINSERT INTO promociones (id, nombre, descuento) VALUES (1, 'Repetida', 0.30);",
+       "language": "sql",
+       "noRun": true
+      },
+      {
+       "title": "Declara una clave compuesta",
+       "body": "En un historial de precios, un producto aparece muchas veces y una fecha también; lo que no se repite es la pareja. La clave compuesta va como una línea más al final. En `pragma_table_info`, la columna `pk` muestra 1 y 2: el orden dentro de la clave.",
+       "code": "DROP TABLE IF EXISTS precios_historicos;\nCREATE TABLE precios_historicos (\n    producto_id INTEGER,\n    fecha       TEXT,\n    precio      INTEGER,\n    PRIMARY KEY (producto_id, fecha)\n);\nSELECT name, type, pk FROM pragma_table_info('precios_historicos');",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba que CREATE TABLE AS no copia la clave",
+       "body": "Copia `categorias` con `CREATE TABLE ... AS SELECT *` y compara: en la original `id` tiene `pk = 1` y tipo `INTEGER`; en la copia el tipo es `INT` y `pk = 0`. La copia tiene los datos, pero no las reglas.",
+       "code": "DROP TABLE IF EXISTS copia_categorias;\nCREATE TABLE copia_categorias AS SELECT * FROM categorias;\nSELECT 'original' AS tabla, name, type, pk FROM pragma_table_info('categorias')\nUNION ALL\nSELECT 'copia', name, type, pk FROM pragma_table_info('copia_categorias');",
+       "language": "sql"
+      },
+      {
+       "title": "Borra una tabla y verifica que ya no está",
+       "body": "Crea una tabla temporal, bórrala con `DROP TABLE IF EXISTS` y lista las tablas de la base desde `sqlite_master`. Solo deben quedar las 8 tablas de la Tienda.",
+       "code": "CREATE TABLE borrador AS SELECT * FROM provincias;\nDROP TABLE IF EXISTS borrador;\nSELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "UNIQUE constraint failed: promociones.id",
+       "cause": "Intentaste insertar una fila con un `id` que ya existe en la tabla.",
+       "fix": "No escribas el `id` al insertar: con `INTEGER PRIMARY KEY`, SQLite asigna el siguiente número solo."
+      },
+      {
+       "error": "table precios_historicos has more than one primary key",
+       "cause": "Escribiste `PRIMARY KEY` al lado de dos columnas distintas, como si fueran dos claves.",
+       "fix": "Una clave de varias columnas se declara una sola vez, al final: `PRIMARY KEY (producto_id, fecha)`."
+      },
+      {
+       "error": "El id queda en NULL después de insertar",
+       "cause": "Declaraste `id INT PRIMARY KEY` (o `NUMBER`). Solo la forma exacta `INTEGER PRIMARY KEY` numera sola las filas.",
+       "fix": "Borra la tabla con `DROP TABLE IF EXISTS` y créala de nuevo con `id INTEGER PRIMARY KEY`."
+      },
+      {
+       "error": "no such table: promociones",
+       "cause": "La tabla no existe: la borraste con `DROP TABLE`, escribiste mal el nombre o el `CREATE TABLE` falló antes.",
+       "fix": "Lista las tablas con `SELECT name FROM sqlite_master WHERE type = 'table'` y vuelve a ejecutar el `CREATE TABLE`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-09-1",
+     "title": "Tabla de proveedores",
+     "prompt": "La tienda empezará a registrar a sus proveedores. Crea la tabla `proveedores` con estas columnas, en este orden: `nombre` (TEXT), `telefono` (TEXT), `provincia_id` (INTEGER) y `fecha_alta` (TEXT). Por ahora sin clave primaria.",
+     "hint": "La estructura es `CREATE TABLE proveedores (columna TIPO, ...)`. Revisa que no quede una coma antes del paréntesis de cierre.",
+     "solution": "CREATE TABLE proveedores (\n    nombre       TEXT,\n    telefono     TEXT,\n    provincia_id INTEGER,\n    fecha_alta   TEXT\n);",
+     "check": "SELECT name, upper(type) FROM pragma_table_info('proveedores') ORDER BY cid;",
+     "setup": "",
+     "starter": "CREATE TABLE proveedores (\n\n);",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-09-2",
+     "title": "Respaldo de Tecnología",
+     "prompt": "Antes de revisar los precios de Tecnología, la gerente quiere un respaldo. Crea la tabla `respaldo_tecnologia` a partir de una consulta, con el `id`, el `nombre`, el `precio` y el `stock` (en ese orden) de los productos de la categoría Tecnología (`categoria_id` 7).",
+     "hint": "Usa `CREATE TABLE respaldo_tecnologia AS SELECT ...` con un `WHERE` sobre la categoría.",
+     "solution": "CREATE TABLE respaldo_tecnologia AS\nSELECT id, nombre, precio, stock\nFROM productos\nWHERE categoria_id = 7;",
+     "check": "SELECT * FROM respaldo_tecnologia;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-09-3",
+     "title": "Promociones con número automático",
+     "prompt": "Crea la tabla `promociones` con las columnas `id` (clave primaria que se numere sola), `nombre` (TEXT), `descuento` (REAL), `fecha_inicio` (TEXT) y `fecha_fin` (TEXT), en ese orden. Después inserta, sin escribir el `id`, estas dos promociones en este orden: 'Black Friday', 0.25, del '2026-11-27' al '2026-11-30'; y 'Navidad tica', 0.15, del '2026-12-15' al '2026-12-24'.",
+     "hint": "La clave que se numera sola se declara exactamente como `id INTEGER PRIMARY KEY`. En el `INSERT INTO promociones (nombre, descuento, fecha_inicio, fecha_fin) VALUES (...)` no menciones el `id`.",
+     "solution": "CREATE TABLE promociones (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT,\n    descuento    REAL,\n    fecha_inicio TEXT,\n    fecha_fin    TEXT\n);\nINSERT INTO promociones (nombre, descuento, fecha_inicio, fecha_fin)\nVALUES ('Black Friday', 0.25, '2026-11-27', '2026-11-30');\nINSERT INTO promociones (nombre, descuento, fecha_inicio, fecha_fin)\nVALUES ('Navidad tica', 0.15, '2026-12-15', '2026-12-24');",
+     "check": "SELECT * FROM promociones ORDER BY id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-09-4",
+     "title": "Historial de precios",
+     "prompt": "Para seguir la evolución de los precios, crea la tabla `precios_historicos` con `producto_id` (INTEGER), `fecha` (TEXT) y `precio` (INTEGER), en ese orden. Un mismo producto puede tener muchos precios, pero solo uno por fecha: la clave primaria es la pareja `producto_id` y `fecha`.",
+     "hint": "La clave de dos columnas se declara al final de la lista: `PRIMARY KEY (columna1, columna2)`. El orden dentro del paréntesis importa.",
+     "solution": "CREATE TABLE precios_historicos (\n    producto_id INTEGER,\n    fecha       TEXT,\n    precio      INTEGER,\n    PRIMARY KEY (producto_id, fecha)\n);",
+     "check": "SELECT name, upper(type), pk FROM pragma_table_info('precios_historicos') ORDER BY cid;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-09-5",
+     "title": "Resumen por categoría, versión nueva",
+     "prompt": "En la base existe una tabla `resumen_categorias` vieja y con una estructura que ya no sirve. Bórrala y vuelve a crearla a partir de una consulta con tres columnas, en este orden: el nombre de cada categoría (las 8, incluida la que no tiene productos), cuántos productos tiene y el total de unidades en stock (0 si no tiene productos).",
+     "hint": "Primero `DROP TABLE IF EXISTS resumen_categorias;`. Después `CREATE TABLE ... AS SELECT` con `categorias LEFT JOIN productos`, `COUNT(p.id)` y `COALESCE(SUM(p.stock), 0)`, agrupando por categoría.",
+     "solution": "DROP TABLE IF EXISTS resumen_categorias;\nCREATE TABLE resumen_categorias AS\nSELECT c.nombre AS categoria,\n       COUNT(p.id) AS productos,\n       COALESCE(SUM(p.stock), 0) AS unidades\nFROM categorias c\nLEFT JOIN productos p ON p.categoria_id = c.id\nGROUP BY c.id, c.nombre;",
+     "check": "SELECT * FROM resumen_categorias;",
+     "setup": "CREATE TABLE resumen_categorias (categoria TEXT);\nINSERT INTO resumen_categorias VALUES ('versión vieja');",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-09-6",
+     "title": "Ventas mensuales de 2026",
+     "prompt": "Finanzas quiere una tabla fija con las ventas de cada mes de 2026 para no recalcularlas siempre. Crea la tabla `ventas_mensuales_2026` a partir de una consulta, con el mes como texto 'AAAA-MM', la cantidad de pedidos distintos y el total vendido redondeado a colones enteros, en ese orden. No cuentes los pedidos cancelados.",
+     "hint": "El total de una línea es `cantidad * precio_unitario * (1 - descuento)`. Une `pedidos` con `detalle_pedido`, filtra por fecha y estado, agrupa por `strftime('%Y-%m', fecha)` y usa `COUNT(DISTINCT p.id)`.",
+     "solution": "CREATE TABLE ventas_mensuales_2026 AS\nSELECT strftime('%Y-%m', p.fecha) AS mes,\n       COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.fecha >= '2026-01-01' AND p.estado <> 'cancelado'\nGROUP BY mes;",
+     "check": "SELECT * FROM ventas_mensuales_2026 ORDER BY 1;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "¿Qué tipos pone CREATE TABLE AS?",
+    "description": "Crea con `CREATE TABLE catalogo_publico AS SELECT ...` una tabla con el nombre del producto, el nombre de su categoría, el precio, el precio con IVA del 13 % redondeado y una columna `disponible` que diga 'sí' o 'no' según el stock. Después consulta `pragma_table_info('catalogo_publico')` y explica con tus palabras qué columnas recibieron un tipo declarado y cuáles no, y por qué eso importa si luego quieres ordenar o sumar.",
+    "hint": "Las columnas que vienen directo de una tabla heredan su tipo (abreviado); las que son expresiones (`ROUND`, `CASE`) quedan sin tipo. Usa `typeof()` sobre algunas filas para ver qué se guardó de verdad.",
+    "solution": "DROP TABLE IF EXISTS catalogo_publico;\nCREATE TABLE catalogo_publico AS\nSELECT p.nombre AS producto,\n       c.nombre AS categoria,\n       p.precio,\n       ROUND(p.precio * 1.13) AS precio_con_iva,\n       CASE WHEN p.stock > 0 THEN 'sí' ELSE 'no' END AS disponible\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id;\nSELECT name, type FROM pragma_table_info('catalogo_publico');",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "CREATE TABLE",
+     "definition": "Sentencia que crea una tabla nueva indicando el nombre y el tipo de cada columna."
+    },
+    {
+     "term": "Afinidad",
+     "definition": "Tipo preferido de una columna en SQLite: los valores se convierten a él cuando se puede, pero no es obligatorio."
+    },
+    {
+     "term": "typeof",
+     "definition": "Función que devuelve la clase con la que quedó guardado un valor: integer, real, text, blob o null."
+    },
+    {
+     "term": "INTEGER PRIMARY KEY",
+     "definition": "Declaración que hace de la columna el número interno de la fila; se asigna sola si no se da."
+    },
+    {
+     "term": "Clave compuesta",
+     "definition": "Clave primaria formada por varias columnas cuya combinación no se puede repetir."
+    },
+    {
+     "term": "DROP TABLE",
+     "definition": "Sentencia que borra una tabla completa con todos sus datos."
+    },
+    {
+     "term": "pragma_table_info",
+     "definition": "Función de SQLite que lista las columnas de una tabla con su tipo y su papel en la clave primaria."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: CREATE TABLE",
+     "url": "https://www.sqlite.org/lang_createtable.html"
+    },
+    {
+     "title": "SQLite: tipos de datos y afinidad",
+     "url": "https://www.sqlite.org/datatype3.html"
+    },
+    {
+     "title": "SQLite: DROP TABLE",
+     "url": "https://www.sqlite.org/lang_droptable.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué tipo conviene para la columna `precio` de un producto, en colones enteros como en la Tienda?",
+     "code": "",
+     "options": [
+      "TEXT",
+      "REAL",
+      "INTEGER",
+      "BLOB"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: como texto, '9500' quedaría después de '12500' al ordenar, y sumar sería un problema.",
+      "Funcionaría, pero los colones de la Tienda son enteros; REAL introduce decimales innecesarios.",
+      "Correcto: los montos en colones enteros se guardan como INTEGER, igual que en `productos`.",
+      "No: BLOB es para bytes crudos, como imágenes."
+     ],
+     "explanation": "Los precios en colones enteros se suman, se comparan y se ordenan como números: `INTEGER` es el tipo natural.",
+     "hint": "Piensa qué operaciones harás con esa columna."
+    },
+    {
+     "type": "choice",
+     "prompt": "En SQLite, ¿qué pasa si insertas el texto `'abc'` en una columna declarada `INTEGER` (sin restricciones)?",
+     "code": "",
+     "options": [
+      "Da un error de tipo y no se inserta.",
+      "Se guarda el texto 'abc' tal cual.",
+      "Se guarda 0.",
+      "Se guarda NULL."
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "Eso pasaría en otros motores, pero en SQLite el tipo declarado es solo una afinidad.",
+      "Correcto: SQLite intenta convertirlo a número; como no puede, guarda el texto.",
+      "No: SQLite no inventa un valor; guarda lo que recibió.",
+      "No: el valor no se pierde; se guarda como texto."
+     ],
+     "explanation": "La afinidad es una preferencia. Si la conversión no es posible, SQLite guarda el valor con su clase original; `typeof` devolvería 'text'.",
+     "hint": "Recuerda el paso de hoy en el que la provincia quedó como texto."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estas columnas recibe un número automático cuando insertas una fila sin darle valor?",
+     "code": "",
+     "options": [
+      "id INT PRIMARY KEY",
+      "id NUMBER PRIMARY KEY",
+      "id INTEGER",
+      "id INTEGER PRIMARY KEY"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `INT` no es la forma exacta; el id quedaría en NULL.",
+      "No: `NUMBER` tampoco activa la numeración automática.",
+      "No: sin PRIMARY KEY es una columna común y quedaría en NULL.",
+      "Correcto: solo `INTEGER PRIMARY KEY` convierte la columna en el número interno de la fila."
+     ],
+     "explanation": "En SQLite, `INTEGER PRIMARY KEY` escrito así es un alias del rowid y se numera solo con el mayor existente más uno.",
+     "hint": "La forma exacta importa: busca la que usan todas las tablas de la Tienda."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`CREATE TABLE copia AS SELECT * FROM productos` crea una copia con la misma clave primaria y las mismas restricciones `CHECK`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la copia tiene los datos, pero ni la clave primaria ni las restricciones.",
+      "Correcto: CREATE TABLE AS solo copia nombres de columnas, tipos básicos y filas."
+     ],
+     "explanation": "Las tablas creadas desde una consulta no heredan `PRIMARY KEY`, `NOT NULL`, `CHECK` ni `DEFAULT`. Sirven para respaldos y resúmenes.",
+     "hint": "Recuerda qué mostró `pragma_table_info` en la copia de categorías."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`DROP TABLE IF EXISTS respaldo;` no da error aunque la tabla `respaldo` no exista.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `IF EXISTS` hace que la sentencia no haga nada si la tabla no está.",
+      "No: sin `IF EXISTS` sí habría error, pero con él la sentencia simplemente no hace nada."
+     ],
+     "explanation": "`IF EXISTS` permite escribir scripts que se pueden ejecutar varias veces sin fallar.",
+     "hint": "Piensa para qué se agregan esas dos palabras."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve la última consulta?",
+     "code": "CREATE TABLE t (x INTEGER);\nINSERT INTO t VALUES ('42');\nSELECT typeof(x) FROM t;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "integer"
+     ],
+     "optionFeedback": [],
+     "explanation": "La columna tiene afinidad INTEGER y el texto '42' parece un número, así que SQLite lo convierte y lo guarda como entero.",
+     "hint": "La afinidad intenta convertir el valor al tipo de la columna."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta sobre la base Tienda?",
+     "code": "SELECT COUNT(*) FROM pragma_table_info('productos');",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "8"
+     ],
+     "optionFeedback": [],
+     "explanation": "`pragma_table_info` devuelve una fila por columna; `productos` tiene 8: id, nombre, categoria_id, precio, costo, stock, activo y fecha_lanzamiento.",
+     "hint": "Cuenta las columnas de la tabla productos."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea que hace que la pareja producto y fecha no se pueda repetir.",
+     "code": "CREATE TABLE precios_historicos (\n    producto_id INTEGER,\n    fecha       TEXT,\n    precio      INTEGER,\n    ___ (producto_id, fecha)\n);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "PRIMARY KEY"
+     ],
+     "optionFeedback": [],
+     "explanation": "Una clave primaria compuesta se declara al final: `PRIMARY KEY (producto_id, fecha)`.",
+     "hint": "Son dos palabras, las mismas que usa `id` en las tablas de la Tienda."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-10",
+   "kind": "workshop",
+   "title": "INSERT, UPDATE y DELETE",
+   "summary": "Agregas filas con INSERT, cambias datos con UPDATE y los borras con DELETE, siempre con la regla de oro: primero el SELECT.",
+   "objectives": [
+    "Insertar una o varias filas con INSERT nombrando las columnas.",
+    "Cargar el resultado de una consulta en otra tabla con INSERT ... SELECT.",
+    "Modificar filas con UPDATE usando el valor actual y subconsultas en el WHERE.",
+    "Borrar filas con DELETE en el orden correcto entre tablas relacionadas.",
+    "Aplicar la regla de oro y verificar cada cambio con SELECT y changes()."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: INSERT: agregar filas",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: UPDATE y DELETE con WHERE",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "INSERT: agregar filas",
+     "concept": "`INSERT` agrega filas a una tabla. La forma recomendada nombra las columnas y luego da los valores en el mismo orden: `INSERT INTO categorias (nombre, descripcion) VALUES ('Mascotas', 'Accesorios para perros y gatos.')`. Las columnas que no nombras reciben su valor por defecto (`DEFAULT`) o `NULL`; por eso no se escribe el `id`: SQLite lo asigna solo.\n\nPara varias filas no hace falta repetir la sentencia: después de `VALUES` van varios paréntesis separados por comas. Y cuando los datos ya están en la base, **`INSERT INTO tabla (columnas) SELECT ...` copia el resultado de una consulta**, sea de una fila o de quinientas. Ahí todo lo que sabes de SELECT (WHERE, JOIN, GROUP BY, CTE) se vuelve una forma de cargar datos.\n\nLas tablas de la Tienda tienen reglas: `productos` exige `costo` y un `precio` mayor que cero, y `categorias` no permite nombres repetidos. Si un INSERT las rompe, falla con un mensaje claro y no guarda nada. Recuerda que el laboratorio conserva tus cambios: si llenas la base de pruebas, restáurala y vuelves a la versión original.",
+     "tip": "Escribe siempre la lista de columnas en el INSERT, aunque vayas a llenarlas todas. Si mañana alguien agrega una columna a la tabla, tu INSERT sigue funcionando.",
+     "example": "INSERT INTO categorias (nombre, descripcion)\nVALUES ('Mascotas', 'Accesorios y snacks para perros y gatos.');\nINSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento)\nVALUES ('Collar con bandera de Costa Rica', (SELECT id FROM categorias WHERE nombre = 'Mascotas'), 5500, 2600, 40, '2026-11-10'),\n       ('Galletas para perro 500 g', (SELECT id FROM categorias WHERE nombre = 'Mascotas'), 3200, 1700, 60, '2026-11-10');\nSELECT p.id, p.nombre, c.nombre AS categoria, p.precio, p.activo\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE c.nombre = 'Mascotas';",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Inserta una fila",
+       "body": "Agrega una categoría nombrando sus dos columnas obligatorias. No escribas el `id`: SQLite le da el 9, porque el mayor actual es 8. Comprueba con un SELECT de toda la tabla.",
+       "code": "INSERT INTO categorias (nombre, descripcion)\nVALUES ('Mascotas', 'Accesorios y snacks para perros y gatos.');\nSELECT * FROM categorias;",
+       "language": "sql"
+      },
+      {
+       "title": "Inserta varias filas de una vez",
+       "body": "La categoría Libros no tiene productos. Agrega dos con un solo INSERT: cada paréntesis es una fila. Fíjate en que `activo` vale 1 sin que lo escribas: la tabla tiene `DEFAULT 1`.",
+       "code": "INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento)\nVALUES ('Cuentos de mi tía Panchita', 8, 8500, 5100, 20, '2026-11-10'),\n       ('Mamita Yunai', 8, 9500, 5700, 15, '2026-11-10');\nSELECT id, nombre, precio, stock, activo FROM productos WHERE categoria_id = 8;",
+       "language": "sql"
+      },
+      {
+       "title": "Deja que actúen los valores por defecto",
+       "body": "Inserta un producto sin `stock` ni `activo`. Las dos columnas tienen `DEFAULT` (0 y 1), así que la fila queda completa. Una columna sin `DEFAULT` que omites queda en `NULL`, si la tabla lo permite.",
+       "code": "INSERT INTO productos (nombre, categoria_id, precio, costo, fecha_lanzamiento)\nVALUES ('Agenda 2027 ilustrada', 8, 7500, 4200, '2026-11-10');\nSELECT id, nombre, stock, activo FROM productos WHERE nombre LIKE 'Agenda%';",
+       "language": "sql"
+      },
+      {
+       "title": "Copia datos con INSERT ... SELECT",
+       "body": "Crea una tabla para la campaña de cumpleaños y llénala con una consulta: los clientes que cumplen años en noviembre. No hay `VALUES`: el SELECT entrega las filas, y sus columnas deben coincidir en número y orden con la lista del INSERT.",
+       "code": "DROP TABLE IF EXISTS cumpleaneros;\nCREATE TABLE cumpleaneros (cliente_id INTEGER PRIMARY KEY, nombre TEXT, email TEXT);\nINSERT INTO cumpleaneros (cliente_id, nombre, email)\nSELECT id, nombre || ' ' || apellido, email\nFROM clientes\nWHERE strftime('%m', fecha_nacimiento) = '11';\nSELECT * FROM cumpleaneros;",
+       "language": "sql"
+      },
+      {
+       "title": "Mira cómo responde una regla de la tabla",
+       "body": "Este INSERT falla a propósito: `categorias.nombre` es `UNIQUE` y 'Libros' ya existe. SQLite responde `UNIQUE constraint failed: categorias.nombre` y no guarda la fila. El miércoles verás cómo se declaran estas reglas.",
+       "code": "INSERT INTO categorias (nombre, descripcion)\nVALUES ('Libros', 'Repetida');",
+       "language": "sql",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "table productos has 8 columns but 6 values were supplied",
+       "cause": "Escribiste `INSERT INTO productos VALUES (...)` sin lista de columnas y diste menos valores que columnas tiene la tabla.",
+       "fix": "Escribe la lista de columnas: `INSERT INTO productos (nombre, categoria_id, ...) VALUES (...)`. Las que no nombres toman su valor por defecto."
+      },
+      {
+       "error": "NOT NULL constraint failed: productos.costo",
+       "cause": "Omitiste una columna obligatoria que no tiene valor por defecto.",
+       "fix": "Agrega la columna y su valor al INSERT. Revisa en `sqlite_master` qué columnas son `NOT NULL` sin `DEFAULT`."
+      },
+      {
+       "error": "CHECK constraint failed: precio > 0",
+       "cause": "El valor no cumple una regla de la tabla; por ejemplo, un precio en 0 o negativo.",
+       "fix": "Corrige el dato. La regla está ahí para que no entren valores imposibles."
+      },
+      {
+       "error": "no such column: Mascotas",
+       "cause": "Escribiste el texto entre comillas dobles (\"Mascotas\") y SQLite lo tomó como nombre de columna.",
+       "fix": "Los textos van entre comillas simples: 'Mascotas'."
+      }
+     ]
+    },
+    {
+     "title": "UPDATE y DELETE con WHERE",
+     "concept": "`UPDATE` cambia valores de filas que ya existen: `UPDATE productos SET precio = 9900, stock = stock + 10 WHERE id = 21`. A la derecha del `=` va cualquier expresión, incluso una que use el valor actual (`stock + 10`) o una subconsulta. `DELETE FROM tabla WHERE ...` elimina filas completas.\n\nEl peligro está en el `WHERE`: **sin WHERE, UPDATE cambia todas las filas y DELETE las borra todas**, sin preguntar. Por eso existe la regla de oro: primero escribe un `SELECT` con exactamente el mismo `WHERE`, mira qué filas devuelve y cuántas son, y solo entonces cambia `SELECT ... FROM` por `UPDATE ... SET` o `DELETE FROM`. Después de ejecutar, `SELECT changes()` te dice cuántas filas se modificaron; si el número no es el que esperabas, algo anda mal.\n\nCuando una tabla depende de otra (las líneas de `detalle_pedido` apuntan a `pedidos`), se borran primero las filas que dependen y después las principales; si no, quedan líneas huérfanas que apuntan a pedidos que ya no existen.",
+     "tip": "Antes de cualquier UPDATE o DELETE, escribe el SELECT con el mismo WHERE y anota cuántas filas devuelve. Después compara ese número con `SELECT changes()`.",
+     "example": "SELECT id, nombre, precio FROM productos WHERE categoria_id = 4;\nUPDATE productos\nSET precio = precio + 500\nWHERE categoria_id = 4;\nSELECT changes() AS filas_cambiadas;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Primero, el SELECT",
+       "body": "La gerente quiere poner en 0 el stock de los productos inactivos. Antes de tocar nada, mira cuáles son: deberían ser 5. Ese número es tu control.",
+       "code": "SELECT id, nombre, stock, activo\nFROM productos\nWHERE activo = 0;",
+       "language": "sql"
+      },
+      {
+       "title": "Convierte el SELECT en UPDATE",
+       "body": "Con el mismo `WHERE`, cambia el SELECT por un UPDATE. Luego `changes()` debe decir 5, y el SELECT de antes debe mostrar el stock en 0.",
+       "code": "UPDATE productos\nSET stock = 0\nWHERE activo = 0;\nSELECT changes() AS filas_cambiadas;",
+       "language": "sql"
+      },
+      {
+       "title": "Cambia varias columnas con el valor actual",
+       "body": "Un UPDATE puede cambiar varias columnas separadas por comas y usar el valor que ya tienen. Aquí la sudadera sube 10 % de precio y de costo; `ROUND` deja colones enteros.",
+       "code": "UPDATE productos\nSET precio = ROUND(precio * 1.10),\n    costo  = ROUND(costo * 1.10)\nWHERE id = 23;\nSELECT id, nombre, precio, costo FROM productos WHERE id = 23;",
+       "language": "sql"
+      },
+      {
+       "title": "Borra con un WHERE preciso",
+       "body": "Elimina las reseñas de 1 o 2 estrellas que no tienen comentario: son 3 y no aportan información. Primero cuéntalas con un SELECT; después bórralas y verifica que quedan 227.",
+       "code": "DELETE FROM resenas\nWHERE comentario IS NULL AND calificacion <= 2;\nSELECT COUNT(*) AS resenas_restantes FROM resenas;",
+       "language": "sql"
+      },
+      {
+       "title": "Borra en el orden correcto",
+       "body": "Para eliminar los pedidos cancelados, borra primero sus líneas de detalle (las que dependen) y después los pedidos. La subconsulta con `IN` elige las líneas de esos pedidos.",
+       "code": "DELETE FROM detalle_pedido\nWHERE pedido_id IN (SELECT id FROM pedidos WHERE estado = 'cancelado');\nDELETE FROM pedidos\nWHERE estado = 'cancelado';\nSELECT (SELECT COUNT(*) FROM pedidos) AS pedidos, (SELECT COUNT(*) FROM detalle_pedido) AS lineas;",
+       "language": "sql"
+      },
+      {
+       "title": "Mira lo que hace un UPDATE sin WHERE",
+       "body": "Este bloque pone en 0 el stock de los 42 productos. Ejecútalo una vez para sentir el susto, mira el resultado y restaura la base del laboratorio. En una base real no habría botón de restaurar.",
+       "code": "UPDATE productos SET stock = 0;\nSELECT changes() AS filas_cambiadas, SUM(stock) AS stock_total FROM productos;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Se cambiaron todas las filas en lugar de una",
+       "cause": "Olvidaste el WHERE, o el WHERE quedó en otra línea que no se ejecutó.",
+       "fix": "En el laboratorio, restaura la base. En adelante, escribe primero el SELECT con su WHERE y conviértelo después."
+      },
+      {
+       "error": "CHECK constraint failed: stock >= 0",
+       "cause": "El UPDATE dejaría un stock negativo, por ejemplo al restar más unidades de las que hay.",
+       "fix": "Revisa los valores con un SELECT antes. La regla protege la base: corrige la cantidad o el WHERE."
+      },
+      {
+       "error": "changes() devuelve 0 con WHERE email = NULL",
+       "cause": "Ninguna comparación con `= NULL` es verdadera, así que el WHERE no elige ninguna fila.",
+       "fix": "Usa `WHERE email IS NULL`, igual que en un SELECT."
+      },
+      {
+       "error": "near \"WHERE\": syntax error",
+       "cause": "Escribiste las partes en otro orden, por ejemplo `UPDATE productos WHERE id = 3 SET ...`.",
+       "fix": "El orden es `UPDATE tabla SET columna = valor WHERE condición`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-10-1",
+     "title": "Nueva categoría",
+     "prompt": "La tienda va a vender productos para mascotas. Inserta en `categorias` una fila con el nombre 'Mascotas' y la descripción 'Accesorios y snacks para perros y gatos.'.",
+     "hint": "`INSERT INTO categorias (nombre, descripcion) VALUES (...)`. No escribas el id.",
+     "solution": "INSERT INTO categorias (nombre, descripcion)\nVALUES ('Mascotas', 'Accesorios y snacks para perros y gatos.');",
+     "check": "SELECT id, nombre FROM categorias ORDER BY id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-10-2",
+     "title": "Primeros libros",
+     "prompt": "Llegaron los primeros libros (categoría 8). Inserta, en este orden, tres productos con su `nombre`, `categoria_id`, `precio`, `costo`, `stock` y `fecha_lanzamiento` '2026-11-10': 'Cuentos de mi tía Panchita' (precio 8500, costo 5100, stock 20), 'Mamita Yunai' (9500, 5700, 15) y 'Única mirando al mar' (9000, 5400, 12).",
+     "hint": "Un solo INSERT con la lista de seis columnas y tres paréntesis después de `VALUES`, separados por comas. `activo` toma su valor por defecto.",
+     "solution": "INSERT INTO productos (nombre, categoria_id, precio, costo, stock, fecha_lanzamiento)\nVALUES ('Cuentos de mi tía Panchita', 8, 8500, 5100, 20, '2026-11-10'),\n       ('Mamita Yunai', 8, 9500, 5700, 15, '2026-11-10'),\n       ('Única mirando al mar', 8, 9000, 5400, 12, '2026-11-10');",
+     "check": "SELECT id, nombre, categoria_id, precio, costo, stock, activo, fecha_lanzamiento FROM productos WHERE id > 42 ORDER BY id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-10-3",
+     "title": "Ajuste de precios del café",
+     "prompt": "Los proveedores de café subieron sus precios y la tienda ajusta los suyos. Sube un 5 % el `precio` de todos los productos de la categoría Café y bebidas (`categoria_id` 1), redondeado a colones enteros. No toques los demás productos.",
+     "hint": "Escribe primero el SELECT con `WHERE categoria_id = 1`. Después `UPDATE productos SET precio = ROUND(precio * 1.05) WHERE ...`.",
+     "solution": "UPDATE productos\nSET precio = ROUND(precio * 1.05)\nWHERE categoria_id = 1;",
+     "check": "SELECT id, precio FROM productos ORDER BY id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-10-4",
+     "title": "Pedidos pendientes abandonados",
+     "prompt": "Los pedidos en estado 'pendiente' nunca se pagaron y la gerente decidió eliminarlos. Borra esos pedidos y también sus líneas de `detalle_pedido`, sin dejar líneas huérfanas.",
+     "hint": "Dos DELETE: primero las líneas de detalle cuyo `pedido_id` está en la lista de pedidos pendientes (subconsulta con IN) y después los pedidos.",
+     "solution": "DELETE FROM detalle_pedido\nWHERE pedido_id IN (SELECT id FROM pedidos WHERE estado = 'pendiente');\nDELETE FROM pedidos\nWHERE estado = 'pendiente';",
+     "check": "SELECT (SELECT COUNT(*) FROM pedidos) AS pedidos,\n       (SELECT COUNT(*) FROM detalle_pedido) AS lineas,\n       (SELECT COUNT(*) FROM detalle_pedido WHERE pedido_id NOT IN (SELECT id FROM pedidos)) AS huerfanas;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-10-5",
+     "title": "Lista para la campaña de bienvenida",
+     "prompt": "Mercadeo preparó la tabla `clientes_sin_compras (cliente_id, nombre_completo, email, fecha_registro)` y está vacía. Llénala con los clientes que nunca han hecho un pedido: su id, su nombre y apellido separados por un espacio, su email y su fecha de registro.",
+     "hint": "Usa `INSERT INTO clientes_sin_compras (...) SELECT ...`. Para encontrar a quienes nunca compraron sirve `NOT EXISTS` o un `LEFT JOIN` con `IS NULL`.",
+     "solution": "INSERT INTO clientes_sin_compras (cliente_id, nombre_completo, email, fecha_registro)\nSELECT c.id, c.nombre || ' ' || c.apellido, c.email, c.fecha_registro\nFROM clientes c\nWHERE NOT EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id);",
+     "check": "SELECT * FROM clientes_sin_compras;",
+     "setup": "CREATE TABLE clientes_sin_compras (\n    cliente_id      INTEGER PRIMARY KEY,\n    nombre_completo TEXT,\n    email           TEXT,\n    fecha_registro  TEXT\n);",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-10-6",
+     "title": "Productos sin ventas este año",
+     "prompt": "Los productos activos que no se han vendido en ningún pedido de 2026 (sin contar los cancelados) van a salir del catálogo. Márcalos como inactivos (`activo = 0`). Los que ya estaban inactivos se quedan igual.",
+     "hint": "Construye primero la subconsulta con los `producto_id` vendidos desde '2026-01-01' en pedidos no cancelados. Después `UPDATE productos SET activo = 0 WHERE activo = 1 AND id NOT IN (...)`.",
+     "solution": "UPDATE productos\nSET activo = 0\nWHERE activo = 1\n  AND id NOT IN (\n      SELECT d.producto_id\n      FROM detalle_pedido d\n      JOIN pedidos p ON p.id = d.pedido_id\n      WHERE p.fecha >= '2026-01-01' AND p.estado <> 'cancelado'\n  );",
+     "check": "SELECT id, nombre FROM productos WHERE activo = 0;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Reposición con bitácora",
+    "description": "La bodega recibe 50 unidades de cada producto activo que está agotado. Crea una tabla `reposiciones (id INTEGER PRIMARY KEY, producto_id INTEGER, fecha TEXT, unidades INTEGER)`, registra en ella una fila por cada producto activo con stock 0 (fecha '2026-11-10', 50 unidades) usando INSERT ... SELECT, y después suma esas unidades al stock usando la propia tabla `reposiciones` para saber qué productos actualizar. Termina con un SELECT que muestre nombre, stock nuevo y unidades repuestas. Piensa: ¿por qué importa el orden de los dos pasos?",
+    "hint": "Si haces primero el UPDATE, el stock ya no es 0 y el INSERT ... SELECT no encuentra ningún producto. Para el UPDATE usa `WHERE id IN (SELECT producto_id FROM reposiciones)`.",
+    "solution": "DROP TABLE IF EXISTS reposiciones;\nCREATE TABLE reposiciones (id INTEGER PRIMARY KEY, producto_id INTEGER, fecha TEXT, unidades INTEGER);\nINSERT INTO reposiciones (producto_id, fecha, unidades)\nSELECT id, '2026-11-10', 50\nFROM productos\nWHERE activo = 1 AND stock = 0;\nUPDATE productos\nSET stock = stock + 50\nWHERE id IN (SELECT producto_id FROM reposiciones);\nSELECT p.nombre, p.stock, r.unidades\nFROM reposiciones r\nJOIN productos p ON p.id = r.producto_id\nORDER BY p.nombre;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "INSERT",
+     "definition": "Sentencia que agrega filas nuevas a una tabla."
+    },
+    {
+     "term": "INSERT ... SELECT",
+     "definition": "Forma de INSERT que agrega a una tabla todas las filas que devuelve una consulta."
+    },
+    {
+     "term": "UPDATE",
+     "definition": "Sentencia que cambia valores de filas existentes; el WHERE decide cuáles."
+    },
+    {
+     "term": "DELETE",
+     "definition": "Sentencia que elimina filas de una tabla; sin WHERE las elimina todas."
+    },
+    {
+     "term": "changes()",
+     "definition": "Función de SQLite que devuelve cuántas filas modificó la última sentencia INSERT, UPDATE o DELETE."
+    },
+    {
+     "term": "Fila huérfana",
+     "definition": "Fila que apunta con su clave foránea a una fila que ya no existe en la otra tabla."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: INSERT",
+     "url": "https://www.sqlite.org/lang_insert.html"
+    },
+    {
+     "title": "SQLite: UPDATE",
+     "url": "https://www.sqlite.org/lang_update.html"
+    },
+    {
+     "title": "SQLite: DELETE",
+     "url": "https://www.sqlite.org/lang_delete.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estos INSERT funciona en la tabla `categorias (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL UNIQUE, descripcion TEXT NOT NULL)`?",
+     "code": "",
+     "options": [
+      "INSERT INTO categorias (nombre, descripcion) VALUES (\"Juguetes\", \"Juguetes de madera\");",
+      "INSERT categorias (nombre, descripcion) VALUES ('Juguetes', 'Juguetes de madera');",
+      "INSERT INTO categorias (nombre) VALUES ('Juguetes');",
+      "INSERT INTO categorias (nombre, descripcion) VALUES ('Juguetes', 'Juguetes de madera');"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: con comillas dobles SQLite busca columnas llamadas Juguetes.",
+      "No: falta la palabra INTO.",
+      "No: `descripcion` es NOT NULL y no tiene DEFAULT; el INSERT falla.",
+      "Correcto: lista de columnas, comillas simples y todas las columnas obligatorias con valor."
+     ],
+     "explanation": "El INSERT correcto usa `INSERT INTO`, comillas simples para el texto y da valor a todas las columnas `NOT NULL` sin valor por defecto.",
+     "hint": "Revisa comillas, la palabra INTO y qué columnas son obligatorias."
+    },
+    {
+     "type": "choice",
+     "prompt": "Según la regla de oro, ¿qué haces justo antes de ejecutar un `DELETE FROM pedidos WHERE ...`?",
+     "code": "",
+     "options": [
+      "Ejecutar un SELECT con el mismo WHERE y revisar qué filas devuelve.",
+      "Ejecutar el DELETE sin WHERE para ver cuántas filas hay.",
+      "Hacer `DROP TABLE pedidos` para empezar limpio.",
+      "Nada: si el WHERE está mal, SQLite pide confirmación."
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: el SELECT te muestra exactamente las filas que el DELETE eliminaría.",
+      "No: eso borraría todos los pedidos.",
+      "No: eso elimina la tabla entera con todos sus datos.",
+      "No: SQL nunca pide confirmación; ejecuta lo que escribes."
+     ],
+     "explanation": "Escribir primero el SELECT con el mismo WHERE te deja ver y contar las filas afectadas antes de cambiarlas.",
+     "hint": "¿Qué sentencia te deja mirar sin tocar?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué pasa al ejecutar `UPDATE productos SET precio = precio * 2 WHERE categoria_id = 99;` en la Tienda?",
+     "code": "",
+     "options": [
+      "Da error porque la categoría 99 no existe.",
+      "Duplica el precio de todos los productos.",
+      "No cambia ninguna fila y no da error.",
+      "Crea la categoría 99."
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: un WHERE que no encuentra filas no es un error.",
+      "No: el WHERE limita el cambio a la categoría 99.",
+      "Correcto: ningún producto tiene categoria_id 99, así que `changes()` devolvería 0.",
+      "No: UPDATE nunca crea filas, y menos en otra tabla."
+     ],
+     "explanation": "UPDATE solo afecta las filas que cumplen el WHERE. Si ninguna lo cumple, la sentencia termina bien y modifica 0 filas.",
+     "hint": "Piensa en un SELECT con el mismo WHERE: ¿cuántas filas devolvería?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "`DELETE FROM resenas;` borra todas las filas, pero la tabla `resenas` sigue existiendo, vacía.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: DELETE borra filas; para eliminar la tabla misma se usa DROP TABLE.",
+      "No: DELETE no elimina la estructura; la tabla queda vacía y puedes seguir insertando."
+     ],
+     "explanation": "DELETE sin WHERE vacía la tabla pero conserva sus columnas y reglas. DROP TABLE es el que elimina la tabla.",
+     "hint": "Compara DELETE con DROP TABLE."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Un `INSERT INTO ... SELECT` solo puede insertar una fila por ejecución.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: inserta todas las filas que devuelva el SELECT.",
+      "Correcto: inserta tantas filas como devuelva la consulta, en una sola sentencia."
+     ],
+     "explanation": "INSERT ... SELECT inserta el resultado completo de la consulta; con la campaña de cumpleaños fueron 7 filas de un golpe.",
+     "hint": "Recuerda el paso de los cumpleañeros de noviembre."
+    },
+    {
+     "type": "output",
+     "prompt": "El producto 4 (Café descafeinado) tiene stock 0. ¿Qué devuelve el SELECT final?",
+     "code": "UPDATE productos SET stock = stock + 10 WHERE id = 4;\nUPDATE productos SET stock = stock - 3 WHERE id = 4;\nSELECT stock FROM productos WHERE id = 4;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "7"
+     ],
+     "optionFeedback": [],
+     "explanation": "El stock pasa de 0 a 10 y luego de 10 a 7. Cada UPDATE usa el valor que dejó el anterior.",
+     "hint": "Aplica los dos cambios en orden."
+    },
+    {
+     "type": "output",
+     "prompt": "La Tienda tiene 230 reseñas y 9 de ellas son de 1 estrella. ¿Qué devuelve el SELECT final?",
+     "code": "DELETE FROM resenas WHERE calificacion = 1;\nSELECT COUNT(*) FROM resenas;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "221"
+     ],
+     "optionFeedback": [],
+     "explanation": "Se borran las 9 reseñas de 1 estrella: 230 - 9 = 221.",
+     "hint": "Resta las filas que cumplen el WHERE."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la palabra que falta para cambiar el precio de la gorra.",
+     "code": "UPDATE productos ___ precio = 9000 WHERE id = 21;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "SET"
+     ],
+     "optionFeedback": [],
+     "explanation": "La sintaxis es `UPDATE tabla SET columna = valor WHERE condición`.",
+     "hint": "Es la palabra que introduce los nuevos valores."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-11",
+   "kind": "workshop",
+   "title": "Restricciones",
+   "summary": "Proteges tus tablas con reglas que la base hace cumplir: NOT NULL, UNIQUE, CHECK, DEFAULT y claves foráneas activadas con PRAGMA foreign_keys.",
+   "objectives": [
+    "Declarar columnas obligatorias, únicas y con valor por defecto.",
+    "Escribir reglas CHECK de una columna y entre dos columnas.",
+    "Explicar por qué en SQLite hay que activar las claves foráneas con PRAGMA foreign_keys = ON.",
+    "Elegir entre borrar con error, ON DELETE CASCADE u ON DELETE SET NULL.",
+    "Cargar datos con INSERT OR IGNORE y revisar claves con los pragmas de SQLite."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: NOT NULL, UNIQUE, CHECK y DEFAULT",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: FOREIGN KEY, PRAGMA foreign_keys y ON DELETE",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "NOT NULL, UNIQUE, CHECK y DEFAULT",
+     "concept": "El lunes viste que SQLite acepta casi cualquier valor en cualquier columna. Las **restricciones** son las reglas que la propia base hace cumplir, sin importar quién inserte: tú, un compañero o un programa con errores. Se escriben al lado de la columna en el `CREATE TABLE`.\n\n`NOT NULL` obliga a dar un valor. `UNIQUE` impide repetidos (aunque permite varios `NULL`: en `clientes`, `email` es UNIQUE y hay 2 clientes sin email). `CHECK (condición)` rechaza cualquier fila que no cumpla la condición, como `CHECK (descuento > 0 AND descuento <= 0.5)`; si la regla compara dos columnas, va al final de la tabla, por ejemplo `CHECK (fin >= inicio)`. `DEFAULT valor` llena la columna cuando el INSERT no la menciona.\n\nCuando un INSERT o UPDATE rompe una regla, la sentencia falla completa y no cambia nada. Si cargas muchas filas y quieres que las malas simplemente se salten, existe `INSERT OR IGNORE`: inserta las válidas e ignora las que violan NOT NULL, UNIQUE, CHECK o la clave primaria. **Una regla en la base vale más que mil revisiones a mano**, porque nadie se la puede saltar.",
+     "tip": "Escribe las reglas pensando en el error más tonto posible: un precio en 0, un descuento de 80 en vez de 0.8, una fecha de fin antes del inicio. Cada error que imaginas es un CHECK.",
+     "example": "DROP TABLE IF EXISTS cupones;\nCREATE TABLE cupones (\n    id           INTEGER PRIMARY KEY,\n    codigo       TEXT    NOT NULL UNIQUE,\n    descuento    REAL    NOT NULL CHECK (descuento > 0 AND descuento <= 0.5),\n    usos_maximos INTEGER NOT NULL DEFAULT 1\n);\nINSERT OR IGNORE INTO cupones (codigo, descuento) VALUES ('BIENVENIDA', 0.10);\nINSERT OR IGNORE INTO cupones (codigo, descuento, usos_maximos) VALUES ('PURAVIDA', 0.15, 100);\nINSERT OR IGNORE INTO cupones (codigo, descuento) VALUES ('PURAVIDA', 0.20);\nINSERT OR IGNORE INTO cupones (codigo, descuento) VALUES ('MEGA', 0.80);\nSELECT * FROM cupones;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Crea una tabla con reglas",
+       "body": "Declara `cupones` con sus restricciones y revisa con `sqlite_master` cómo quedó guardada. Cada regla queda escrita en la definición de la tabla para siempre.",
+       "code": "DROP TABLE IF EXISTS cupones;\nCREATE TABLE cupones (\n    id           INTEGER PRIMARY KEY,\n    codigo       TEXT    NOT NULL UNIQUE,\n    descuento    REAL    NOT NULL CHECK (descuento > 0 AND descuento <= 0.5),\n    usos_maximos INTEGER NOT NULL DEFAULT 1\n);\nSELECT sql FROM sqlite_master WHERE name = 'cupones';",
+       "language": "sql"
+      },
+      {
+       "title": "Usa el valor por defecto",
+       "body": "Inserta un cupón sin `usos_maximos`. El `DEFAULT 1` llena la columna; sin él, el `NOT NULL` haría fallar el INSERT.",
+       "code": "DROP TABLE IF EXISTS cupones;\nCREATE TABLE cupones (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL UNIQUE, descuento REAL NOT NULL CHECK (descuento > 0 AND descuento <= 0.5), usos_maximos INTEGER NOT NULL DEFAULT 1);\nINSERT INTO cupones (codigo, descuento) VALUES ('BIENVENIDA', 0.10);\nSELECT * FROM cupones;",
+       "language": "sql"
+      },
+      {
+       "title": "Rompe una regla a propósito",
+       "body": "Este INSERT falla con `CHECK constraint failed: descuento > 0 AND descuento <= 0.5`: alguien escribió 15 queriendo decir 15 %. Pruébalo y lee el mensaje: dice qué regla se rompió.",
+       "code": "DROP TABLE IF EXISTS cupones;\nCREATE TABLE cupones (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL UNIQUE, descuento REAL NOT NULL CHECK (descuento > 0 AND descuento <= 0.5), usos_maximos INTEGER NOT NULL DEFAULT 1);\nINSERT INTO cupones (codigo, descuento) VALUES ('NAVIDAD', 15);",
+       "language": "sql",
+       "noRun": true
+      },
+      {
+       "title": "Salta las filas malas con INSERT OR IGNORE",
+       "body": "Con `OR IGNORE`, cada fila que rompe una regla se descarta sin error y las demás entran. De los cuatro cupones solo quedan dos: uno repite código y otro no tiene descuento.",
+       "code": "DROP TABLE IF EXISTS cupones;\nCREATE TABLE cupones (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL UNIQUE, descuento REAL NOT NULL CHECK (descuento > 0 AND descuento <= 0.5), usos_maximos INTEGER NOT NULL DEFAULT 1);\nINSERT OR IGNORE INTO cupones (codigo, descuento)\nVALUES ('BIENVENIDA', 0.10), ('TICO', 0.05), ('TICO', 0.25), ('VACIO', NULL);\nSELECT * FROM cupones;",
+       "language": "sql"
+      },
+      {
+       "title": "Compara dos columnas con un CHECK de tabla",
+       "body": "Una temporada no puede terminar antes de empezar. Como la regla usa dos columnas, se escribe al final. Las fechas ISO se comparan bien como texto, así que `fin >= inicio` funciona.",
+       "code": "DROP TABLE IF EXISTS temporadas;\nCREATE TABLE temporadas (\n    id     INTEGER PRIMARY KEY,\n    nombre TEXT NOT NULL,\n    inicio TEXT NOT NULL,\n    fin    TEXT NOT NULL,\n    CHECK (fin >= inicio)\n);\nINSERT OR IGNORE INTO temporadas (nombre, inicio, fin)\nVALUES ('Black Friday', '2026-11-27', '2026-11-30'), ('Al revés', '2026-12-24', '2026-12-01');\nSELECT * FROM temporadas;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "NOT NULL constraint failed: cupones.codigo",
+       "cause": "El INSERT no dio valor a una columna obligatoria, o le dio NULL explícitamente.",
+       "fix": "Incluye la columna con un valor, o, si tiene sentido, declárala con `DEFAULT`."
+      },
+      {
+       "error": "UNIQUE constraint failed: cupones.codigo",
+       "cause": "Ya existe una fila con ese mismo código.",
+       "fix": "Usa otro código o, si cargas datos que pueden repetirse, `INSERT OR IGNORE` para saltar los repetidos."
+      },
+      {
+       "error": "CHECK constraint failed: descuento > 0 AND descuento <= 0.5",
+       "cause": "El valor no cumple la condición; típicamente, un porcentaje escrito como 15 en vez de 0.15.",
+       "fix": "Corrige el dato. Si la regla está mal pensada, borra la tabla y créala con la condición correcta."
+      },
+      {
+       "error": "Se insertó una fila con descuento 'diez'",
+       "cause": "La columna no tiene CHECK y la afinidad REAL guarda el texto tal cual.",
+       "fix": "Agrega un CHECK que valide el rango: un texto no cumple `descuento > 0 AND descuento <= 0.5`, así que sería rechazado."
+      }
+     ]
+    },
+    {
+     "title": "FOREIGN KEY, PRAGMA foreign_keys y ON DELETE",
+     "concept": "Una **clave foránea** declara que una columna apunta a la clave de otra tabla: `cliente_id INTEGER REFERENCES clientes(id)`. Es la relación que usaste en cada JOIN, pero escrita como regla: no se puede insertar un pedido de un cliente que no existe, ni borrar un cliente que tiene pedidos.\n\nAquí viene la sorpresa de SQLite: **las claves foráneas no se aplican salvo que ejecutes `PRAGMA foreign_keys = ON;`**. Todas las tablas de la Tienda las declaran, pero con el valor por defecto (apagado) SQLite acepta una reseña del producto 999. El PRAGMA vale para la conexión abierta: ejecútalo al inicio de cada bloque en el laboratorio y en cada programa que abra la base. Además, no tiene efecto dentro de una transacción, así que va antes de cualquier cambio.\n\nCon las claves activas, la cláusula `ON DELETE` decide qué pasa con los hijos cuando se borra el padre. Sin cláusula, el borrado falla mientras existan hijos. `ON DELETE CASCADE` borra también los hijos (los artículos de una lista de deseos que se elimina). `ON DELETE SET NULL` deja los hijos, pero con la columna en NULL. `pragma_foreign_key_list('tabla')` muestra las claves declaradas.",
+     "tip": "Haz de `PRAGMA foreign_keys = ON;` la primera línea de todo script que cree tablas relacionadas o borre datos. Es una línea que evita filas huérfanas silenciosas.",
+     "example": "PRAGMA foreign_keys = ON;\nDROP TABLE IF EXISTS lista_items;\nDROP TABLE IF EXISTS listas;\nCREATE TABLE listas (\n    id         INTEGER PRIMARY KEY,\n    cliente_id INTEGER NOT NULL REFERENCES clientes(id),\n    nombre     TEXT    NOT NULL\n);\nCREATE TABLE lista_items (\n    lista_id    INTEGER NOT NULL REFERENCES listas(id) ON DELETE CASCADE,\n    producto_id INTEGER NOT NULL REFERENCES productos(id),\n    PRIMARY KEY (lista_id, producto_id)\n);\nINSERT INTO listas (cliente_id, nombre) VALUES (12, 'Regalos de Navidad'), (12, 'Para la casa');\nINSERT INTO lista_items (lista_id, producto_id) VALUES (1, 16), (1, 20), (2, 25), (2, 27);\nDELETE FROM listas WHERE id = 1;\nSELECT * FROM lista_items;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Mira las claves foráneas de la Tienda",
+       "body": "`pragma_foreign_key_list` muestra, para cada clave, la columna local (`from`), la tabla a la que apunta (`table`) y la columna de destino (`to`). `pedidos` tiene dos: hacia `clientes` y hacia `empleados`.",
+       "code": "SELECT \"from\", \"table\", \"to\", on_delete\nFROM pragma_foreign_key_list('pedidos');",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba que están apagadas",
+       "body": "Con el valor por defecto, `PRAGMA foreign_keys` devuelve 0 y SQLite acepta una reseña de un producto que no existe. Esa fila es una huérfana.",
+       "code": "INSERT INTO resenas (producto_id, cliente_id, calificacion, fecha)\nVALUES (999, 1, 5, '2026-11-11');\nSELECT id, producto_id, cliente_id FROM resenas WHERE producto_id = 999;",
+       "language": "sql"
+      },
+      {
+       "title": "Enciéndelas y repite",
+       "body": "Con el PRAGMA en ON, el mismo INSERT falla con `FOREIGN KEY constraint failed`. Este bloque falla a propósito. El PRAGMA va primero, antes de cualquier cambio.",
+       "code": "PRAGMA foreign_keys = ON;\nINSERT INTO resenas (producto_id, cliente_id, calificacion, fecha)\nVALUES (999, 1, 5, '2026-11-11');",
+       "language": "sql",
+       "noRun": true
+      },
+      {
+       "title": "Intenta borrar un padre con hijos",
+       "body": "La cliente 3 tiene pedidos. Con las claves activas y sin `ON DELETE`, borrarla falla: la base no deja pedidos apuntando a nadie. También falla a propósito.",
+       "code": "PRAGMA foreign_keys = ON;\nDELETE FROM clientes WHERE id = 3;",
+       "language": "sql",
+       "noRun": true
+      },
+      {
+       "title": "Borra en cascada",
+       "body": "Ejecuta el ejemplo del tema: al borrar la lista 1, sus artículos desaparecen solos gracias a `ON DELETE CASCADE`. Si lo repites sin la primera línea en una conexión nueva (por ejemplo, después de restaurar la base), los artículos de la lista 1 se quedan huérfanos.",
+       "code": "PRAGMA foreign_keys = ON;\nDROP TABLE IF EXISTS lista_items;\nDROP TABLE IF EXISTS listas;\nCREATE TABLE listas (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL REFERENCES clientes(id), nombre TEXT NOT NULL);\nCREATE TABLE lista_items (lista_id INTEGER NOT NULL REFERENCES listas(id) ON DELETE CASCADE, producto_id INTEGER NOT NULL REFERENCES productos(id), PRIMARY KEY (lista_id, producto_id));\nINSERT INTO listas (cliente_id, nombre) VALUES (12, 'Regalos de Navidad'), (12, 'Para la casa');\nINSERT INTO lista_items (lista_id, producto_id) VALUES (1, 16), (1, 20), (2, 25);\nDELETE FROM listas WHERE id = 1;\nSELECT * FROM lista_items;",
+       "language": "sql"
+      },
+      {
+       "title": "Busca huérfanas que ya existen",
+       "body": "`pragma_foreign_key_check('tabla')` lista las filas que rompen sus claves foráneas, aunque estén apagadas. Úsalo antes de encender el PRAGMA en una base vieja.",
+       "code": "INSERT INTO resenas (producto_id, cliente_id, calificacion, fecha)\nVALUES (999, 1, 5, '2026-11-11');\nSELECT * FROM pragma_foreign_key_check('resenas');",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "FOREIGN KEY constraint failed",
+       "cause": "Con las claves activas, insertaste un valor que no existe en la tabla padre o borraste un padre que todavía tiene hijos.",
+       "fix": "Inserta primero el padre, o borra primero los hijos. Si los hijos deben irse con el padre, declara `ON DELETE CASCADE`."
+      },
+      {
+       "error": "Inserté un id que no existe y no hubo error",
+       "cause": "Las claves foráneas están apagadas, que es el valor por defecto de SQLite.",
+       "fix": "Ejecuta `PRAGMA foreign_keys = ON;` al inicio del bloque y comprueba con `PRAGMA foreign_keys;` que devuelve 1."
+      },
+      {
+       "error": "PRAGMA foreign_keys = ON no hace nada",
+       "cause": "Lo ejecutaste dentro de una transacción abierta (después de un `BEGIN`), donde el PRAGMA se ignora.",
+       "fix": "Ponlo como primera línea, antes de `BEGIN` y de cualquier INSERT, UPDATE o DELETE."
+      },
+      {
+       "error": "foreign key mismatch - \"lista_items\" referencing \"listas\"",
+       "cause": "La columna a la que apunta la clave foránea no es clave primaria ni UNIQUE en la tabla padre.",
+       "fix": "Apunta a la clave primaria del padre, normalmente `REFERENCES listas(id)`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-11-1",
+     "title": "Cupones con valores por defecto",
+     "prompt": "Crea la tabla `cupones` (vacía) con estas columnas: `id` (clave primaria que se numere sola), `codigo` (texto obligatorio), `descuento` (REAL obligatorio), `usos_maximos` (entero obligatorio, 1 si no se indica) y `activo` (entero obligatorio, 1 si no se indica). La revisión insertará cupones con y sin esos datos para comprobar tus reglas.",
+     "hint": "Obligatorio se escribe `NOT NULL`; el valor por defecto, `DEFAULT 1`. Una columna puede tener las dos cosas: `usos_maximos INTEGER NOT NULL DEFAULT 1`.",
+     "solution": "CREATE TABLE cupones (\n    id           INTEGER PRIMARY KEY,\n    codigo       TEXT    NOT NULL,\n    descuento    REAL    NOT NULL,\n    usos_maximos INTEGER NOT NULL DEFAULT 1,\n    activo       INTEGER NOT NULL DEFAULT 1\n);",
+     "check": "INSERT OR IGNORE INTO cupones (codigo, descuento) VALUES ('BIENVENIDA', 0.10);\nINSERT OR IGNORE INTO cupones (codigo, descuento, usos_maximos) VALUES ('VIP', 0.20, 5);\nINSERT OR IGNORE INTO cupones (codigo, descuento) VALUES (NULL, 0.15);\nINSERT OR IGNORE INTO cupones (codigo, descuento) VALUES ('SINDESCUENTO', NULL);\nSELECT codigo, descuento, usos_maximos, activo FROM cupones ORDER BY codigo;",
+     "setup": "",
+     "starter": "CREATE TABLE cupones (\n\n);",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-11-2",
+     "title": "Temporadas que tienen sentido",
+     "prompt": "Crea la tabla `temporadas` (vacía) con `id` (clave primaria que se numere sola), `nombre` (texto obligatorio y sin repetirse), `inicio` y `fin` (texto obligatorio) y `descuento` (REAL obligatorio, entre 0.05 y 0.5 inclusive). Además, ninguna temporada puede terminar antes de empezar. La revisión intentará insertar temporadas válidas e inválidas.",
+     "hint": "`UNIQUE` evita nombres repetidos; `CHECK (descuento BETWEEN 0.05 AND 0.5)` controla el rango, y la regla entre dos columnas va al final: `CHECK (fin >= inicio)`.",
+     "solution": "CREATE TABLE temporadas (\n    id        INTEGER PRIMARY KEY,\n    nombre    TEXT NOT NULL UNIQUE,\n    inicio    TEXT NOT NULL,\n    fin       TEXT NOT NULL,\n    descuento REAL NOT NULL CHECK (descuento BETWEEN 0.05 AND 0.5),\n    CHECK (fin >= inicio)\n);",
+     "check": "INSERT OR IGNORE INTO temporadas (nombre, inicio, fin, descuento) VALUES ('Black Friday', '2026-11-27', '2026-11-30', 0.25);\nINSERT OR IGNORE INTO temporadas (nombre, inicio, fin, descuento) VALUES ('Black Friday', '2026-11-28', '2026-11-29', 0.10);\nINSERT OR IGNORE INTO temporadas (nombre, inicio, fin, descuento) VALUES ('Al revés', '2026-12-24', '2026-12-01', 0.10);\nINSERT OR IGNORE INTO temporadas (nombre, inicio, fin, descuento) VALUES ('Remate total', '2026-12-26', '2026-12-31', 0.80);\nINSERT OR IGNORE INTO temporadas (nombre, inicio, fin, descuento) VALUES ('Casi nada', '2026-10-01', '2026-10-02', 0.01);\nINSERT OR IGNORE INTO temporadas (nombre, inicio, fin, descuento) VALUES ('Navidad tica', '2026-12-15', '2026-12-24', 0.15);\nINSERT OR IGNORE INTO temporadas (nombre, inicio, fin, descuento) VALUES (NULL, '2026-12-15', '2026-12-24', 0.15);\nSELECT nombre, inicio, fin, descuento FROM temporadas ORDER BY nombre;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-11-3",
+     "title": "Tabla de devoluciones",
+     "prompt": "Servicio al cliente necesita registrar devoluciones. Crea la tabla `devoluciones` con `id` (clave primaria que se numere sola), `pedido_id` (entero obligatorio, clave foránea hacia `pedidos(id)`), `producto_id` (entero obligatorio, clave foránea hacia `productos(id)`), `fecha` (texto obligatorio) y `motivo` (texto).",
+     "hint": "Cada clave foránea se escribe al lado de su columna: `pedido_id INTEGER NOT NULL REFERENCES pedidos(id)`. Nombra la columna de destino entre paréntesis.",
+     "solution": "CREATE TABLE devoluciones (\n    id          INTEGER PRIMARY KEY,\n    pedido_id   INTEGER NOT NULL REFERENCES pedidos(id),\n    producto_id INTEGER NOT NULL REFERENCES productos(id),\n    fecha       TEXT    NOT NULL,\n    motivo      TEXT\n);",
+     "check": "SELECT \"from\", \"table\", \"to\" FROM pragma_foreign_key_list('devoluciones') ORDER BY \"from\";",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-11-4",
+     "title": "Listas de deseos que se limpian solas",
+     "prompt": "Activa las claves foráneas y crea dos tablas: `listas (id, cliente_id, nombre)`, con `cliente_id` apuntando a `clientes(id)`, y `lista_items (lista_id, producto_id)`, con `lista_id` apuntando a `listas(id)` de forma que al borrar una lista se borren sus artículos, y `producto_id` apuntando a `productos(id)`. La cliente 25 crea dos listas, en este orden: 'Cumpleaños de mamá' (productos 9, 27 y 31) y 'Viaje a Guanacaste' (productos 32 y 33). Luego decide borrar la lista 'Cumpleaños de mamá' (la lista 1): bórrala solo de `listas`.",
+     "hint": "La primera línea es `PRAGMA foreign_keys = ON;`. La clave de `lista_id` lleva `ON DELETE CASCADE`. El último paso es un único `DELETE FROM listas WHERE id = 1;`: si las claves están activas, los artículos se van solos.",
+     "solution": "PRAGMA foreign_keys = ON;\nCREATE TABLE listas (\n    id         INTEGER PRIMARY KEY,\n    cliente_id INTEGER NOT NULL REFERENCES clientes(id),\n    nombre     TEXT    NOT NULL\n);\nCREATE TABLE lista_items (\n    lista_id    INTEGER NOT NULL REFERENCES listas(id) ON DELETE CASCADE,\n    producto_id INTEGER NOT NULL REFERENCES productos(id),\n    PRIMARY KEY (lista_id, producto_id)\n);\nINSERT INTO listas (cliente_id, nombre)\nVALUES (25, 'Cumpleaños de mamá'), (25, 'Viaje a Guanacaste');\nINSERT INTO lista_items (lista_id, producto_id)\nVALUES (1, 9), (1, 27), (1, 31), (2, 32), (2, 33);\nDELETE FROM listas WHERE id = 1;",
+     "check": "SELECT l.nombre, i.producto_id FROM lista_items i LEFT JOIN listas l ON l.id = i.lista_id ORDER BY i.lista_id, i.producto_id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-11-5",
+     "title": "Calificación de cada producto",
+     "prompt": "Crea la tabla `calificaciones` con `producto_id` (clave primaria y clave foránea hacia `productos(id)`), `promedio` (REAL obligatorio, entre 1 y 5) y `resenas` (entero obligatorio y mayor que 0). Llénala con una fila por cada producto que tenga reseñas: su promedio de calificación redondeado a 2 decimales y su número de reseñas.",
+     "hint": "Primero el `CREATE TABLE` con `CHECK (promedio BETWEEN 1 AND 5)` y `CHECK (resenas > 0)`. Después `INSERT INTO calificaciones (...) SELECT producto_id, ROUND(AVG(calificacion), 2), COUNT(*) FROM resenas GROUP BY producto_id`.",
+     "solution": "CREATE TABLE calificaciones (\n    producto_id INTEGER PRIMARY KEY REFERENCES productos(id),\n    promedio    REAL    NOT NULL CHECK (promedio BETWEEN 1 AND 5),\n    resenas     INTEGER NOT NULL CHECK (resenas > 0)\n);\nINSERT INTO calificaciones (producto_id, promedio, resenas)\nSELECT producto_id, ROUND(AVG(calificacion), 2), COUNT(*)\nFROM resenas\nGROUP BY producto_id;",
+     "check": "INSERT OR IGNORE INTO calificaciones (producto_id, promedio, resenas) VALUES (42, 6, 1);\nINSERT OR IGNORE INTO calificaciones (producto_id, promedio, resenas) VALUES (34, 4, 0);\nSELECT producto_id, promedio, resenas FROM calificaciones ORDER BY producto_id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-11-6",
+     "title": "Metas de noviembre para vendedores",
+     "prompt": "Crea la tabla `metas` con `empleado_id` (entero obligatorio, clave foránea hacia `empleados(id)`), `mes` (texto obligatorio), `meta` (entero obligatorio y mayor que 0) y una clave primaria formada por `empleado_id` y `mes`. Llénala con la meta de '2026-11' de cada vendedor y vendedora (puesto 'Vendedor' o 'Vendedora'): su venta mensual promedio de enero a septiembre de 2026 (total vendido en ese periodo, sin pedidos cancelados, dividido entre 9), aumentada un 10 % y redondeada a miles de colones.",
+     "hint": "Redondear a miles es `ROUND(x / 1000) * 1000`. Une `pedidos`, `detalle_pedido` y `empleados`, filtra por fecha, estado y puesto, agrupa por empleado y calcula `SUM(...) / 9 * 1.1`. El INSERT ... SELECT pone el mes como el texto fijo '2026-11'.",
+     "solution": "CREATE TABLE metas (\n    empleado_id INTEGER NOT NULL REFERENCES empleados(id),\n    mes         TEXT    NOT NULL,\n    meta        INTEGER NOT NULL CHECK (meta > 0),\n    PRIMARY KEY (empleado_id, mes)\n);\nINSERT INTO metas (empleado_id, mes, meta)\nSELECT e.id, '2026-11',\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) / 9 * 1.1 / 1000) * 1000\nFROM empleados e\nJOIN pedidos p ON p.empleado_id = e.id\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE e.puesto IN ('Vendedor', 'Vendedora')\n  AND p.fecha BETWEEN '2026-01-01' AND '2026-09-30'\n  AND p.estado <> 'cancelado'\nGROUP BY e.id;",
+     "check": "INSERT OR IGNORE INTO metas (empleado_id, mes, meta) VALUES (5, '2026-11', 1);\nINSERT OR IGNORE INTO metas (empleado_id, mes, meta) VALUES (5, '2026-12', 0);\nSELECT empleado_id, mes, meta FROM metas ORDER BY empleado_id, mes;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Proveedores con reglas completas",
+    "description": "Rediseña la tabla `proveedores` del lunes con todas las reglas que aprendiste: `id` automático, `nombre` obligatorio y único, `telefono` obligatorio de exactamente 8 caracteres, `provincia_id` obligatorio que apunte a `provincias(id)`, `email` opcional pero que, si existe, contenga una arroba, y `fecha_alta` con valor por defecto '2026-11-11'. Activa las claves foráneas, crea la tabla y prueba con INSERT OR IGNORE al menos una fila válida y una que rompa cada regla. Termina mostrando las filas que quedaron.",
+    "hint": "Para la longitud usa `CHECK (length(telefono) = 8)`; para el email, `CHECK (email IS NULL OR email LIKE '%@%')`. Recuerda que la violación de una clave foránea no la salta `OR IGNORE`: esa prueba hazla aparte y observa el error.",
+    "solution": "PRAGMA foreign_keys = ON;\nDROP TABLE IF EXISTS proveedores;\nCREATE TABLE proveedores (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT    NOT NULL UNIQUE,\n    telefono     TEXT    NOT NULL CHECK (length(telefono) = 8),\n    provincia_id INTEGER NOT NULL REFERENCES provincias(id),\n    email        TEXT    CHECK (email IS NULL OR email LIKE '%@%'),\n    fecha_alta   TEXT    NOT NULL DEFAULT '2026-11-11'\n);\nINSERT OR IGNORE INTO proveedores (nombre, telefono, provincia_id, email)\nVALUES ('Beneficio La Esperanza', '22345678', 1, 'ventas@esperanza.cr'),\n       ('Beneficio La Esperanza', '22345679', 1, NULL),\n       ('Cerámica Chorotega', '2681223', 5, NULL),\n       ('Textiles Sarchí', '24541100', 2, 'textiles.sarchi.cr'),\n       ('Hamacas del Pacífico', '26601234', 6, NULL);\nSELECT * FROM proveedores;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Restricción",
+     "definition": "Regla declarada en una tabla que la base de datos hace cumplir en cada INSERT y UPDATE."
+    },
+    {
+     "term": "NOT NULL",
+     "definition": "Restricción que obliga a que la columna tenga un valor."
+    },
+    {
+     "term": "UNIQUE",
+     "definition": "Restricción que impide que dos filas tengan el mismo valor en la columna; permite varios NULL."
+    },
+    {
+     "term": "CHECK",
+     "definition": "Restricción con una condición que toda fila debe cumplir para poder guardarse."
+    },
+    {
+     "term": "DEFAULT",
+     "definition": "Valor que toma una columna cuando el INSERT no la menciona."
+    },
+    {
+     "term": "PRAGMA foreign_keys",
+     "definition": "Interruptor de SQLite que activa la revisión de claves foráneas en la conexión; viene apagado."
+    },
+    {
+     "term": "ON DELETE CASCADE",
+     "definition": "Opción de una clave foránea que borra las filas hijas cuando se borra la fila padre."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: CREATE TABLE (restricciones)",
+     "url": "https://www.sqlite.org/lang_createtable.html"
+    },
+    {
+     "title": "SQLite: soporte de claves foráneas",
+     "url": "https://www.sqlite.org/foreignkeys.html"
+    },
+    {
+     "title": "SQLite: ON CONFLICT y OR IGNORE",
+     "url": "https://www.sqlite.org/lang_conflict.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Quieres que el `descuento` de un cupón esté entre 1 % y 50 %, guardado como fracción. ¿Qué restricción usas?",
+     "code": "",
+     "options": [
+      "CHECK (descuento BETWEEN 1 AND 50)",
+      "UNIQUE (descuento)",
+      "CHECK (descuento BETWEEN 0.01 AND 0.5)",
+      "DEFAULT 0.5"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: con fracciones, 0.10 quedaría rechazado y 15 sería aceptado.",
+      "No: UNIQUE impide repetir el valor, no controla el rango.",
+      "Correcto: compara la fracción contra sus límites, incluidos ambos extremos.",
+      "No: DEFAULT da un valor cuando falta, pero no impide valores fuera del rango."
+     ],
+     "explanation": "CHECK rechaza cualquier fila cuya condición sea falsa; BETWEEN incluye los dos extremos.",
+     "hint": "Piensa en cómo se guarda el 15 % en la Tienda: como 0.15."
+    },
+    {
+     "type": "choice",
+     "prompt": "Las claves foráneas están apagadas (el valor por defecto) y ejecutas `INSERT INTO pedidos (cliente_id, fecha, estado, metodo_pago) VALUES (999, '2026-11-11', 'pagado', 'sinpe');`. ¿Qué pasa?",
+     "code": "",
+     "options": [
+      "Falla con FOREIGN KEY constraint failed.",
+      "Se inserta el pedido, aunque el cliente 999 no existe.",
+      "Se crea automáticamente el cliente 999.",
+      "Falla porque falta empleado_id."
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "Solo fallaría con `PRAGMA foreign_keys = ON`.",
+      "Correcto: con las claves apagadas, SQLite no revisa la referencia y queda un pedido huérfano.",
+      "No: SQLite nunca crea filas en otra tabla por su cuenta.",
+      "No: empleado_id acepta NULL (pedido en línea)."
+     ],
+     "explanation": "En SQLite las claves foráneas se declaran pero no se aplican hasta ejecutar `PRAGMA foreign_keys = ON` en la conexión.",
+     "hint": "Recuerda el paso de la reseña del producto 999."
+    },
+    {
+     "type": "choice",
+     "prompt": "En `lista_items`, la clave `lista_id REFERENCES listas(id) ON DELETE CASCADE` está activa. ¿Qué pasa al borrar una lista que tiene 3 artículos?",
+     "code": "",
+     "options": [
+      "El borrado falla porque la lista tiene artículos.",
+      "Se borra la lista y sus artículos quedan con lista_id en NULL.",
+      "Se borra la lista y los artículos quedan apuntando a una lista que no existe.",
+      "Se borra la lista y también sus 3 artículos."
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "Eso pasaría sin cláusula ON DELETE.",
+      "Eso hace ON DELETE SET NULL.",
+      "Eso pasaría con las claves apagadas.",
+      "Correcto: CASCADE propaga el borrado a las filas hijas."
+     ],
+     "explanation": "ON DELETE CASCADE indica que, al borrar el padre, se borren también todas las filas que lo referencian.",
+     "hint": "CASCADE significa cascada: el borrado sigue bajando."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Una columna `UNIQUE` puede tener varias filas con NULL.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: en SQLite, NULL no se considera igual a otro NULL, así que no cuenta como repetido.",
+      "No: en `clientes`, `email` es UNIQUE y hay 2 clientes sin email."
+     ],
+     "explanation": "UNIQUE impide valores repetidos, pero dos NULL no se consideran iguales. Si además quieres que no falte, agrega NOT NULL.",
+     "hint": "Revisa la columna email de clientes."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`PRAGMA foreign_keys = ON;` funciona igual si lo ejecutas después de `BEGIN`, dentro de una transacción.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: dentro de una transacción el PRAGMA no tiene efecto.",
+      "Correcto: hay que ejecutarlo antes de abrir la transacción y antes de cualquier cambio."
+     ],
+     "explanation": "SQLite ignora el cambio de `foreign_keys` dentro de una transacción. Por eso va como primera línea del script.",
+     "hint": "¿Dónde dijimos que se escribe el PRAGMA?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Cuántas filas quedan en la tabla? (La respuesta es lo que devuelve el SELECT.)",
+     "code": "CREATE TABLE t (codigo TEXT NOT NULL UNIQUE, pct REAL CHECK (pct <= 0.5));\nINSERT OR IGNORE INTO t VALUES ('A', 0.1), ('A', 0.2), ('B', 0.9), (NULL, 0.1), ('C', NULL);\nSELECT COUNT(*) FROM t;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2"
+     ],
+     "optionFeedback": [],
+     "explanation": "Entran ('A', 0.1) y ('C', NULL). Se ignoran: la segunda 'A' (UNIQUE), 'B' (CHECK) y la fila sin código (NOT NULL). Con pct NULL, el CHECK no es falso, así que 'C' pasa.",
+     "hint": "Revisa fila por fila qué regla rompe cada una. Ojo con el CHECK y el NULL."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta sobre la base Tienda?",
+     "code": "SELECT COUNT(*) FROM pragma_foreign_key_list('detalle_pedido');",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2"
+     ],
+     "optionFeedback": [],
+     "explanation": "`detalle_pedido` tiene dos claves foráneas: `pedido_id` hacia pedidos y `producto_id` hacia productos.",
+     "hint": "Piensa a qué tablas apunta cada línea de pedido."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa para que, al borrar un cliente, sus listas se borren también.",
+     "code": "CREATE TABLE listas (\n    id         INTEGER PRIMARY KEY,\n    cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE ___,\n    nombre     TEXT NOT NULL\n);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "CASCADE"
+     ],
+     "optionFeedback": [],
+     "explanation": "`ON DELETE CASCADE` propaga el borrado del cliente a sus listas (si las claves foráneas están activas).",
+     "hint": "Es la opción que hace que el borrado caiga en cascada."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-12",
+   "kind": "workshop",
+   "title": "Transacciones y cambios de estructura",
+   "summary": "Agrupas cambios en transacciones que se aplican todos o ninguno, modificas tablas con ALTER TABLE y actualizas o insertas en un solo paso con UPSERT.",
+   "objectives": [
+    "Usar BEGIN, COMMIT y ROLLBACK para aplicar varios cambios como una sola unidad.",
+    "Probar un cambio dentro de una transacción y deshacerlo si no es el esperado.",
+    "Agregar y renombrar columnas y tablas con ALTER TABLE, conociendo sus límites en SQLite.",
+    "Escribir un UPSERT con ON CONFLICT DO UPDATE y DO NOTHING usando excluded."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: BEGIN, COMMIT y ROLLBACK",
+     "minutes": 60
+    },
+    {
+     "label": "Tema 2: ALTER TABLE y UPSERT",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "BEGIN, COMMIT y ROLLBACK",
+     "concept": "Una venta en la tienda no es un solo cambio: es un pedido nuevo, sus líneas de detalle y el stock que baja. Si la luz se va después de crear el pedido pero antes de rebajar el stock, la base queda a medias. Una **transacción** agrupa varios cambios para que se apliquen **todos o ninguno**.\n\nSe abre con `BEGIN`. A partir de ahí, tus cambios se ven dentro de la transacción, pero todavía no son definitivos. `COMMIT` los confirma todos juntos; `ROLLBACK` los deshace todos y la base vuelve a como estaba antes del `BEGIN`. Sin `BEGIN`, SQLite confirma cada sentencia por separado en cuanto termina (modo autocommit), que es lo que hiciste hasta ahora.\n\nLas transacciones también sirven como red de seguridad: `BEGIN`, el UPDATE dudoso, un SELECT para revisar y, según lo que veas, `COMMIT` o `ROLLBACK`. Ojo con un detalle: si una sentencia falla dentro de la transacción (por ejemplo, un CHECK), SQLite deshace solo esa sentencia y la transacción sigue abierta con los cambios anteriores. Decides tú: casi siempre, `ROLLBACK`.",
+     "tip": "Cuando pruebes un cambio grande, escribe `BEGIN;` arriba y `ROLLBACK;` abajo. Ejecuta, revisa el SELECT y, solo cuando el resultado sea el correcto, cambia `ROLLBACK` por `COMMIT`.",
+     "example": "BEGIN;\nINSERT INTO pedidos (id, cliente_id, empleado_id, fecha, estado, metodo_pago, costo_envio)\nVALUES (421, 12, 6, '2026-11-12', 'entregado', 'sinpe', 0);\nINSERT INTO detalle_pedido (pedido_id, producto_id, cantidad, precio_unitario, descuento)\nVALUES (421, 1, 2, 6500, 0);\nUPDATE productos SET stock = stock - 2 WHERE id = 1;\nCOMMIT;\nSELECT p.id, p.fecha, d.producto_id, d.cantidad, pr.stock\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nWHERE p.id = 421;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Deshaz un desastre con ROLLBACK",
+       "body": "Abre una transacción y borra todas las reseñas. Si ejecutas las tres primeras líneas solas, el conteo da 0. Con el `ROLLBACK`, todo vuelve: el SELECT final muestra las 230.",
+       "code": "BEGIN;\nDELETE FROM resenas;\nSELECT COUNT(*) FROM resenas;\nROLLBACK;\nSELECT COUNT(*) AS resenas FROM resenas;",
+       "language": "sql"
+      },
+      {
+       "title": "Prueba un cambio antes de confirmarlo",
+       "body": "La gerente pregunta cómo quedarían los precios de Artesanía con 20 % de rebaja. Aplícalo dentro de una transacción, mira el resultado y deshazlo. Así respondes sin tocar los precios reales.",
+       "code": "BEGIN;\nUPDATE productos SET precio = ROUND(precio * 0.8) WHERE categoria_id = 3;\nSELECT id, nombre, precio FROM productos WHERE categoria_id = 3;\nROLLBACK;",
+       "language": "sql"
+      },
+      {
+       "title": "Registra una venta completa",
+       "body": "Ejecuta el ejemplo del tema: el pedido, su línea y la rebaja de stock quedan confirmados juntos con `COMMIT`. El café molido pasa de 120 a 118 unidades.",
+       "code": "BEGIN;\nINSERT INTO pedidos (id, cliente_id, empleado_id, fecha, estado, metodo_pago, costo_envio)\nVALUES (421, 12, 6, '2026-11-12', 'entregado', 'sinpe', 0);\nINSERT INTO detalle_pedido (pedido_id, producto_id, cantidad, precio_unitario, descuento)\nVALUES (421, 1, 2, 6500, 0);\nUPDATE productos SET stock = stock - 2 WHERE id = 1;\nCOMMIT;\nSELECT id, nombre, stock FROM productos WHERE id = 1;",
+       "language": "sql"
+      },
+      {
+       "title": "Mira qué pasa cuando algo falla a mitad",
+       "body": "La máscara boruca tiene 6 unidades y el UPDATE intenta restar 10: el CHECK de `stock` lo rechaza. El pedido 422 ya se insertó y sigue pendiente dentro de la transacción. Este bloque se detiene en el error; ejecuta después `ROLLBACK;` para que el pedido incompleto no quede.",
+       "code": "BEGIN;\nINSERT INTO pedidos (id, cliente_id, fecha, estado, metodo_pago)\nVALUES (422, 30, '2026-11-12', 'pagado', 'tarjeta');\nUPDATE productos SET stock = stock - 10 WHERE id = 16;",
+       "language": "sql",
+       "noRun": true
+      },
+      {
+       "title": "Confirma que el ROLLBACK no deja rastro",
+       "body": "Después de un `ROLLBACK`, el pedido que insertaste no existe: el conteo da 0. Es la garantía de todo o nada.",
+       "code": "BEGIN;\nINSERT INTO pedidos (id, cliente_id, fecha, estado, metodo_pago)\nVALUES (422, 30, '2026-11-12', 'pagado', 'tarjeta');\nROLLBACK;\nSELECT COUNT(*) AS pedidos_422 FROM pedidos WHERE id = 422;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "cannot start a transaction within a transaction",
+       "cause": "Escribiste `BEGIN` cuando ya había una transacción abierta, por ejemplo porque un bloque anterior no terminó con COMMIT ni ROLLBACK.",
+       "fix": "Termina la transacción abierta con `COMMIT;` o `ROLLBACK;` y vuelve a empezar."
+      },
+      {
+       "error": "cannot commit - no transaction is active",
+       "cause": "Ejecutaste `COMMIT` (o `ROLLBACK`) sin un `BEGIN` antes, o la transacción ya se había cerrado.",
+       "fix": "Revisa que el bloque empiece con `BEGIN;`. Sin transacción, cada sentencia ya se confirmó sola."
+      },
+      {
+       "error": "Después de un error, los cambios anteriores siguen ahí",
+       "cause": "Un error dentro de la transacción deshace solo la sentencia que falló; las anteriores quedan pendientes.",
+       "fix": "Ejecuta `ROLLBACK;` para deshacer todo, corrige el problema y repite la transacción completa."
+      }
+     ]
+    },
+    {
+     "title": "ALTER TABLE y UPSERT",
+     "concept": "`ALTER TABLE` modifica una tabla sin perder sus datos, aunque en SQLite solo permite cuatro cosas: `RENAME TO nuevo_nombre`, `RENAME COLUMN vieja TO nueva`, `ADD COLUMN definición` y `DROP COLUMN columna`. Una columna nueva con `NOT NULL` necesita un `DEFAULT`, porque las filas existentes deben recibir algún valor. Para otros cambios, como agregar un CHECK a una columna existente, se crea una tabla nueva, se copian los datos y se renombra.\n\nEl segundo problema es clásico: llega mercadería y no sabes si el producto ya está en la tabla de existencias. Si está, hay que sumar; si no, insertar. Eso es un **UPSERT**: `INSERT ... ON CONFLICT (columna) DO UPDATE SET ...`. Si la fila nueva choca con una clave primaria o UNIQUE, en vez de fallar se actualiza la existente. Dentro del `DO UPDATE`, **`excluded` es la fila que intentaba entrar**: `SET unidades = unidades + excluded.unidades` suma lo que llegó a lo que había. `ON CONFLICT DO NOTHING` simplemente salta los repetidos.\n\nCon `INSERT ... SELECT` también funciona, con una trampa de sintaxis: SQLite puede confundir el `ON` del conflicto con el de un JOIN. Si el SELECT no tiene WHERE, agrega `WHERE true` antes del `ON CONFLICT`.",
+     "tip": "Un UPSERT necesita una clave primaria o un UNIQUE en la columna del `ON CONFLICT`. Antes de escribirlo, confirma con `pragma_table_info` o `sqlite_master` que esa regla existe.",
+     "example": "DROP TABLE IF EXISTS existencias;\nCREATE TABLE existencias (\n    producto_id INTEGER PRIMARY KEY,\n    unidades    INTEGER NOT NULL\n);\nINSERT INTO existencias (producto_id, unidades) VALUES (1, 120), (2, 60);\nINSERT INTO existencias (producto_id, unidades)\nVALUES (2, 15), (3, 40)\nON CONFLICT (producto_id) DO UPDATE SET unidades = unidades + excluded.unidades;\nSELECT * FROM existencias;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Agrega una columna",
+       "body": "Mercadeo necesita saber qué clientes aceptan promociones. `ADD COLUMN` agrega la columna a las 80 filas de golpe, todas con el valor por defecto.",
+       "code": "ALTER TABLE clientes ADD COLUMN acepta_promos INTEGER NOT NULL DEFAULT 1;\nSELECT acepta_promos, COUNT(*) AS clientes FROM clientes GROUP BY acepta_promos;",
+       "language": "sql"
+      },
+      {
+       "title": "Renombra columnas y tablas",
+       "body": "Trabaja sobre una copia para no tocar la Tienda: crea `respaldo` desde una consulta, cambia el nombre de una columna y después el de la tabla. Los datos siguen intactos.",
+       "code": "DROP TABLE IF EXISTS respaldo;\nDROP TABLE IF EXISTS respaldo_precios;\nCREATE TABLE respaldo AS SELECT id, nombre, precio FROM productos;\nALTER TABLE respaldo RENAME COLUMN precio TO precio_colones;\nALTER TABLE respaldo RENAME TO respaldo_precios;\nSELECT name FROM pragma_table_info('respaldo_precios');",
+       "language": "sql"
+      },
+      {
+       "title": "Choca con la regla de NOT NULL",
+       "body": "Agregar una columna obligatoria sin valor por defecto falla con `Cannot add a NOT NULL column with default value NULL`: las 80 filas existentes quedarían vacías. Este bloque falla a propósito.",
+       "code": "ALTER TABLE clientes ADD COLUMN segmento TEXT NOT NULL;",
+       "language": "sql",
+       "noRun": true
+      },
+      {
+       "title": "Suma o inserta con DO UPDATE",
+       "body": "Ejecuta el ejemplo del tema. El producto 2 ya existía con 60 unidades, así que suma las 15 que llegaron (75); el 3 no existía y se inserta con 40.",
+       "code": "DROP TABLE IF EXISTS existencias;\nCREATE TABLE existencias (producto_id INTEGER PRIMARY KEY, unidades INTEGER NOT NULL);\nINSERT INTO existencias (producto_id, unidades) VALUES (1, 120), (2, 60);\nINSERT INTO existencias (producto_id, unidades)\nVALUES (2, 15), (3, 40)\nON CONFLICT (producto_id) DO UPDATE SET unidades = unidades + excluded.unidades;\nSELECT * FROM existencias;",
+       "language": "sql"
+      },
+      {
+       "title": "Salta los repetidos con DO NOTHING",
+       "body": "Quieres asegurar que existan las categorías 'Libros' y 'Mascotas' sin duplicar ninguna. Como `nombre` es UNIQUE, 'Libros' choca y se salta; 'Mascotas' entra.",
+       "code": "INSERT INTO categorias (nombre, descripcion)\nVALUES ('Libros', 'Libros de autores costarricenses.'),\n       ('Mascotas', 'Accesorios y snacks para perros y gatos.')\nON CONFLICT (nombre) DO NOTHING;\nSELECT id, nombre FROM categorias ORDER BY id;",
+       "language": "sql"
+      },
+      {
+       "title": "UPSERT desde una consulta",
+       "body": "Carga a `existencias` el stock de todos los productos de Café y bebidas. Fíjate en el `WHERE` del SELECT: sin él, SQLite daría `near \"DO\": syntax error`. Los que ya existían se reemplazan por el valor de la tabla `productos`.",
+       "code": "DROP TABLE IF EXISTS existencias;\nCREATE TABLE existencias (producto_id INTEGER PRIMARY KEY, unidades INTEGER NOT NULL);\nINSERT INTO existencias (producto_id, unidades) VALUES (1, 999);\nINSERT INTO existencias (producto_id, unidades)\nSELECT id, stock FROM productos WHERE categoria_id = 1\nON CONFLICT (producto_id) DO UPDATE SET unidades = excluded.unidades;\nSELECT * FROM existencias;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Cannot add a NOT NULL column with default value NULL",
+       "cause": "Agregaste con ALTER TABLE una columna `NOT NULL` sin `DEFAULT`; las filas existentes no tendrían valor.",
+       "fix": "Dale un valor por defecto: `ADD COLUMN segmento TEXT NOT NULL DEFAULT 'general'`."
+      },
+      {
+       "error": "duplicate column name: acepta_promos",
+       "cause": "Ejecutaste el mismo `ADD COLUMN` dos veces; la columna ya existe.",
+       "fix": "Revisa las columnas con `pragma_table_info('clientes')`. En el laboratorio, restaura la base si quieres repetir desde cero."
+      },
+      {
+       "error": "ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint",
+       "cause": "La columna del `ON CONFLICT` no es clave primaria ni UNIQUE, así que nunca podría haber conflicto.",
+       "fix": "Usa la columna que de verdad es única o agrega esa regla al crear la tabla."
+      },
+      {
+       "error": "near \"DO\": syntax error",
+       "cause": "Usaste `INSERT ... SELECT ... FROM tabla ON CONFLICT` sin WHERE: SQLite leyó el ON como parte de un JOIN.",
+       "fix": "Agrega un WHERE al SELECT antes del ON CONFLICT; si no necesitas filtro, `WHERE true`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-12-1",
+     "title": "Venta en mostrador",
+     "prompt": "Priscilla (empleada 6) vendió en la tienda física 2 carretas de Sarchí en miniatura (producto 15, a 7500 cada una, sin descuento) a la clienta 12, pagadas en efectivo. Regístralo en una sola transacción: el pedido 421 (fecha '2026-11-12', estado 'entregado', costo de envío 0), su línea de detalle y la rebaja de stock del producto. Confirma al final.",
+     "hint": "Empieza con `BEGIN;`, después un INSERT en `pedidos`, otro en `detalle_pedido` y un UPDATE en `productos`, y termina con `COMMIT;`.",
+     "solution": "BEGIN;\nINSERT INTO pedidos (id, cliente_id, empleado_id, fecha, estado, metodo_pago, costo_envio)\nVALUES (421, 12, 6, '2026-11-12', 'entregado', 'efectivo', 0);\nINSERT INTO detalle_pedido (pedido_id, producto_id, cantidad, precio_unitario, descuento)\nVALUES (421, 15, 2, 7500, 0);\nUPDATE productos SET stock = stock - 2 WHERE id = 15;\nCOMMIT;",
+     "check": "SELECT p.id, p.cliente_id, p.empleado_id, p.fecha, p.estado, p.metodo_pago, d.producto_id, d.cantidad, d.precio_unitario, pr.stock\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nJOIN productos pr ON pr.id = d.producto_id\nWHERE p.id = 421;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-12-2",
+     "title": "Probar antes de confirmar",
+     "prompt": "La gerente quiere ver primero cómo quedarían los precios de Artesanía (`categoria_id` 3) con un 50 % de rebaja: hazlo en una transacción y deshazlo con ROLLBACK. Al verlo, decide una rebaja del 10 %: aplícala en otra transacción, redondeada a colones enteros, y confírmala.",
+     "hint": "Dos transacciones seguidas: `BEGIN; UPDATE ...; ROLLBACK;` y después `BEGIN; UPDATE ...; COMMIT;`. Al final solo debe quedar la rebaja del 10 %.",
+     "solution": "BEGIN;\nUPDATE productos SET precio = ROUND(precio * 0.5) WHERE categoria_id = 3;\nROLLBACK;\nBEGIN;\nUPDATE productos SET precio = ROUND(precio * 0.9) WHERE categoria_id = 3;\nCOMMIT;",
+     "check": "SELECT id, precio FROM productos WHERE categoria_id = 3 ORDER BY id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-12-3",
+     "title": "¿Acepta promociones?",
+     "prompt": "Agrega a `clientes` la columna `acepta_promos` (entero obligatorio, 1 por defecto). Después ponla en 0 para los clientes a los que no se les puede escribir o llamar: los que no tienen email o no tienen teléfono.",
+     "hint": "`ALTER TABLE clientes ADD COLUMN acepta_promos INTEGER NOT NULL DEFAULT 1;` y luego un UPDATE con `WHERE email IS NULL OR telefono IS NULL`.",
+     "solution": "ALTER TABLE clientes ADD COLUMN acepta_promos INTEGER NOT NULL DEFAULT 1;\nUPDATE clientes\nSET acepta_promos = 0\nWHERE email IS NULL OR telefono IS NULL;",
+     "check": "SELECT id, acepta_promos FROM clientes ORDER BY id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-12-4",
+     "title": "Llegada de mercadería",
+     "prompt": "La tabla `existencias (producto_id, unidades)` tiene las unidades de los productos de Hogar y cocina. Llegó este envío: producto 25, 10 unidades; producto 28, 8; producto 30, 12; producto 31, 30; y producto 32, 24. Con una sola sentencia, suma las unidades a los productos que ya están en la tabla e inserta los que no están.",
+     "hint": "`INSERT INTO existencias (producto_id, unidades) VALUES (...), (...) ON CONFLICT (producto_id) DO UPDATE SET unidades = unidades + excluded.unidades;`",
+     "solution": "INSERT INTO existencias (producto_id, unidades)\nVALUES (25, 10), (28, 8), (30, 12), (31, 30), (32, 24)\nON CONFLICT (producto_id) DO UPDATE SET unidades = unidades + excluded.unidades;",
+     "check": "SELECT producto_id, unidades FROM existencias ORDER BY producto_id;",
+     "setup": "CREATE TABLE existencias (\n    producto_id INTEGER PRIMARY KEY,\n    unidades    INTEGER NOT NULL\n);\nINSERT INTO existencias (producto_id, unidades)\nSELECT id, stock FROM productos WHERE categoria_id = 5;",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-12-5",
+     "title": "Unidades vendidas en el catálogo",
+     "prompt": "Para no recalcular siempre, agrega a `productos` la columna `unidades_vendidas` (entero obligatorio, 0 por defecto) y llénala con el total de unidades vendidas de cada producto en pedidos no cancelados. Los productos que nunca se vendieron quedan en 0.",
+     "hint": "Después del `ALTER TABLE`, usa un UPDATE con una subconsulta correlacionada: `SET unidades_vendidas = (SELECT COALESCE(SUM(d.cantidad), 0) FROM detalle_pedido d JOIN pedidos p ... WHERE d.producto_id = productos.id AND ...)`.",
+     "solution": "ALTER TABLE productos ADD COLUMN unidades_vendidas INTEGER NOT NULL DEFAULT 0;\nUPDATE productos\nSET unidades_vendidas = (\n    SELECT COALESCE(SUM(d.cantidad), 0)\n    FROM detalle_pedido d\n    JOIN pedidos p ON p.id = d.pedido_id\n    WHERE d.producto_id = productos.id AND p.estado <> 'cancelado'\n);",
+     "check": "SELECT id, unidades_vendidas FROM productos ORDER BY id;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-12-6",
+     "title": "Resumen de clientes al día",
+     "prompt": "La tabla `resumen_clientes (cliente_id, pedidos, total, actualizado)` se calculó el '2026-06-30' y está desactualizada. Actualízala con un UPSERT desde una consulta: para cada cliente con pedidos no cancelados, su cantidad de pedidos, el total comprado (suma de las líneas, redondeada a colones enteros, sin costo de envío) y la fecha '2026-09-30'. Los clientes que ya estaban se actualizan y los nuevos se insertan.",
+     "hint": "Arma primero el SELECT con `GROUP BY p.cliente_id`. Luego `INSERT INTO resumen_clientes (...) SELECT ... ON CONFLICT (cliente_id) DO UPDATE SET pedidos = excluded.pedidos, total = excluded.total, actualizado = excluded.actualizado`. Si SQLite se queja cerca de DO, recuerda la trampa del WHERE.",
+     "solution": "INSERT INTO resumen_clientes (cliente_id, pedidos, total, actualizado)\nSELECT p.cliente_id,\n       COUNT(DISTINCT p.id),\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))),\n       '2026-09-30'\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY p.cliente_id\nON CONFLICT (cliente_id) DO UPDATE SET\n    pedidos     = excluded.pedidos,\n    total       = excluded.total,\n    actualizado = excluded.actualizado;",
+     "check": "SELECT actualizado, COUNT(*) AS clientes, SUM(pedidos) AS pedidos, SUM(total) AS total\nFROM resumen_clientes\nGROUP BY actualizado;",
+     "setup": "CREATE TABLE resumen_clientes (\n    cliente_id  INTEGER PRIMARY KEY,\n    pedidos     INTEGER NOT NULL,\n    total       INTEGER NOT NULL,\n    actualizado TEXT    NOT NULL\n);\nINSERT INTO resumen_clientes (cliente_id, pedidos, total, actualizado)\nSELECT p.cliente_id, COUNT(DISTINCT p.id), ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))), '2026-06-30'\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado' AND p.fecha <= '2026-06-30'\nGROUP BY p.cliente_id;",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Agregar una regla a una tabla que ya existe",
+    "description": "SQLite no permite agregar un CHECK a una columna existente con ALTER TABLE. Crea primero una tabla `proveedores` sin reglas, a partir de una consulta con tres proveedores (uno de ellos con el teléfono mal escrito, de 7 dígitos). Después, en una sola transacción, crea `proveedores_nueva` con `id INTEGER PRIMARY KEY`, `nombre TEXT NOT NULL UNIQUE` y `telefono TEXT NOT NULL CHECK (length(telefono) = 8)`, copia los proveedores válidos, borra la tabla vieja y renombra la nueva. Termina mostrando la tabla final.",
+    "hint": "Para crear la tabla vieja sin INSERT puedes usar `CREATE TABLE proveedores AS SELECT 'Nombre' AS nombre, '22345678' AS telefono UNION ALL SELECT ...`. Dentro de la transacción, `INSERT OR IGNORE INTO proveedores_nueva (nombre, telefono) SELECT nombre, telefono FROM proveedores` salta el teléfono malo.",
+    "solution": "DROP TABLE IF EXISTS proveedores;\nDROP TABLE IF EXISTS proveedores_nueva;\nCREATE TABLE proveedores AS\nSELECT 'Beneficio La Esperanza' AS nombre, '22345678' AS telefono\nUNION ALL SELECT 'Cerámica Chorotega', '2681223'\nUNION ALL SELECT 'Textiles Sarchí', '24541100';\nBEGIN;\nCREATE TABLE proveedores_nueva (\n    id       INTEGER PRIMARY KEY,\n    nombre   TEXT NOT NULL UNIQUE,\n    telefono TEXT NOT NULL CHECK (length(telefono) = 8)\n);\nINSERT OR IGNORE INTO proveedores_nueva (nombre, telefono)\nSELECT nombre, telefono FROM proveedores ORDER BY nombre;\nDROP TABLE proveedores;\nALTER TABLE proveedores_nueva RENAME TO proveedores;\nCOMMIT;\nSELECT * FROM proveedores;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Transacción",
+     "definition": "Grupo de cambios que se aplican todos juntos con COMMIT o se descartan todos con ROLLBACK."
+    },
+    {
+     "term": "COMMIT",
+     "definition": "Confirma de forma definitiva todos los cambios de la transacción abierta."
+    },
+    {
+     "term": "ROLLBACK",
+     "definition": "Deshace todos los cambios hechos desde el BEGIN."
+    },
+    {
+     "term": "Autocommit",
+     "definition": "Modo por defecto de SQLite: sin BEGIN, cada sentencia se confirma sola al terminar."
+    },
+    {
+     "term": "ALTER TABLE",
+     "definition": "Sentencia que modifica una tabla existente: renombrarla o agregar, renombrar y eliminar columnas."
+    },
+    {
+     "term": "UPSERT",
+     "definition": "INSERT con ON CONFLICT: si la fila choca con una clave, actualiza la existente o la salta."
+    },
+    {
+     "term": "excluded",
+     "definition": "Nombre especial que, dentro de ON CONFLICT DO UPDATE, se refiere a la fila que intentaba insertarse."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: transacciones",
+     "url": "https://www.sqlite.org/lang_transaction.html"
+    },
+    {
+     "title": "SQLite: ALTER TABLE",
+     "url": "https://www.sqlite.org/lang_altertable.html"
+    },
+    {
+     "title": "SQLite: UPSERT",
+     "url": "https://www.sqlite.org/lang_upsert.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Dentro de una transacción ejecutaste un UPDATE y un DELETE. ¿Qué hace `ROLLBACK`?",
+     "code": "",
+     "options": [
+      "Deshace solo el DELETE, que fue lo último.",
+      "Confirma el UPDATE y deshace el DELETE.",
+      "Deshace el UPDATE y el DELETE: la base vuelve a como estaba antes del BEGIN.",
+      "Borra la tabla."
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ROLLBACK no va paso a paso; deshace toda la transacción.",
+      "No: o se confirma todo con COMMIT o se deshace todo con ROLLBACK.",
+      "Correcto: todos los cambios desde el BEGIN se descartan juntos.",
+      "No: ROLLBACK no borra nada; deshace cambios."
+     ],
+     "explanation": "Una transacción es todo o nada: ROLLBACK descarta cada cambio hecho desde el BEGIN.",
+     "hint": "Piensa en la idea de todo o nada."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estos cambios NO se puede hacer con ALTER TABLE en SQLite?",
+     "code": "",
+     "options": [
+      "Agregar una columna.",
+      "Cambiar el tipo de la columna precio de INTEGER a REAL.",
+      "Renombrar una columna.",
+      "Renombrar la tabla."
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "Sí se puede: `ADD COLUMN`.",
+      "Correcto: SQLite no permite cambiar el tipo de una columna; hay que crear una tabla nueva y copiar los datos.",
+      "Sí se puede: `RENAME COLUMN vieja TO nueva`.",
+      "Sí se puede: `RENAME TO nuevo_nombre`."
+     ],
+     "explanation": "ALTER TABLE en SQLite solo renombra la tabla, renombra columnas, agrega columnas y elimina columnas. Lo demás requiere recrear la tabla.",
+     "hint": "Recuerda las cuatro operaciones permitidas."
+    },
+    {
+     "type": "choice",
+     "prompt": "En `ON CONFLICT (producto_id) DO UPDATE SET unidades = unidades + excluded.unidades`, ¿qué es `excluded.unidades`?",
+     "code": "",
+     "options": [
+      "Las unidades que ya estaban guardadas en la tabla.",
+      "Las unidades de la fila que intentaba insertarse.",
+      "Un error: excluded no existe en SQLite.",
+      "La suma de todas las unidades de la tabla."
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el valor guardado es `unidades` a secas.",
+      "Correcto: `excluded` representa la fila nueva que chocó con la existente.",
+      "No: es una palabra especial válida dentro de DO UPDATE.",
+      "No: se refiere a una sola fila, la que causó el conflicto."
+     ],
+     "explanation": "En un UPSERT, la columna sin prefijo es el valor actual de la fila existente y `excluded.columna` es el valor que se quería insertar.",
+     "hint": "Piensa en qué fila quedó excluida del INSERT."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si no escribes `BEGIN`, SQLite confirma cada INSERT, UPDATE o DELETE en cuanto termina.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: es el modo autocommit; cada sentencia es su propia transacción.",
+      "No: sin BEGIN no hay nada pendiente; cada sentencia se confirma sola."
+     ],
+     "explanation": "Sin una transacción explícita, cada sentencia se ejecuta y se confirma de inmediato.",
+     "hint": "¿Hiciste COMMIT alguna vez el martes?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si una sentencia falla dentro de una transacción por un CHECK, SQLite deshace automáticamente toda la transacción.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: solo se deshace la sentencia que falló; la transacción sigue abierta.",
+      "Correcto: los cambios anteriores siguen pendientes y tú decides entre COMMIT y ROLLBACK."
+     ],
+     "explanation": "Con el comportamiento por defecto, un error de restricción deshace solo esa sentencia. Por eso, tras un error, lo normal es ejecutar ROLLBACK.",
+     "hint": "Recuerda el paso del pedido 422 y la máscara boruca."
+    },
+    {
+     "type": "output",
+     "prompt": "El producto 1 tiene 120 unidades. ¿Qué devuelve el SELECT final?",
+     "code": "BEGIN;\nUPDATE productos SET stock = 0 WHERE id = 1;\nROLLBACK;\nSELECT stock FROM productos WHERE id = 1;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "120"
+     ],
+     "optionFeedback": [],
+     "explanation": "El ROLLBACK deshace el UPDATE, así que el stock vuelve a 120.",
+     "hint": "¿Qué queda después de deshacer?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve el SELECT final?",
+     "code": "CREATE TABLE existencias (producto_id INTEGER PRIMARY KEY, unidades INTEGER NOT NULL);\nINSERT INTO existencias VALUES (2, 60);\nINSERT INTO existencias VALUES (2, 15)\nON CONFLICT (producto_id) DO UPDATE SET unidades = unidades + excluded.unidades;\nSELECT unidades FROM existencias WHERE producto_id = 2;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "75"
+     ],
+     "optionFeedback": [],
+     "explanation": "El producto 2 ya existía con 60; el UPSERT suma las 15 que intentaban entrar: 75.",
+     "hint": "Hay conflicto en producto_id 2: suma lo que había y lo que llegó."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la palabra que falta para agregar la columna.",
+     "code": "ALTER TABLE clientes ___ COLUMN acepta_promos INTEGER NOT NULL DEFAULT 1;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "ADD"
+     ],
+     "optionFeedback": [],
+     "explanation": "`ALTER TABLE tabla ADD COLUMN definición` agrega una columna a todas las filas, con su valor por defecto.",
+     "hint": "Es lo contrario de DROP."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-13",
+   "kind": "workshop",
+   "title": "Vistas e índices",
+   "summary": "Guardas consultas con nombre en vistas que siempre están al día y aceleras las búsquedas con índices que compruebas con EXPLAIN QUERY PLAN.",
+   "objectives": [
+    "Crear vistas que resuman reglas de negocio y consultarlas como tablas.",
+    "Reemplazar una vista con DROP VIEW IF EXISTS y CREATE VIEW.",
+    "Crear índices simples, compuestos y únicos sobre las columnas adecuadas.",
+    "Leer EXPLAIN QUERY PLAN para distinguir SCAN de SEARCH y comprobar si un índice se usa."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: CREATE VIEW: consultas con nombre",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: Índices y EXPLAIN QUERY PLAN",
+     "minutes": 65
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 80
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "CREATE VIEW: consultas con nombre",
+     "concept": "Cada vez que calculas ventas repites lo mismo: unir pedidos, detalle, productos y categorías, quitar los cancelados y calcular `cantidad * precio_unitario * (1 - descuento)`. Una **vista** guarda esa consulta con un nombre: `CREATE VIEW v_ventas AS SELECT ...`. Después la usas como si fuera una tabla: `SELECT categoria, SUM(total_linea) FROM v_ventas GROUP BY categoria`.\n\nUna vista **no guarda datos, guarda la consulta**. Cada vez que la consultas, SQLite ejecuta el SELECT de nuevo, así que siempre muestra los datos actuales: si mañana se cancela un pedido, la vista ya no lo cuenta. Sirve para esconder la complejidad, para que todos calculen las ventas con la misma definición y para mostrar solo ciertas columnas.\n\nTres detalles de SQLite: las vistas son de solo lectura (no se puede hacer INSERT ni UPDATE sobre ellas); no existe `CREATE OR REPLACE VIEW`, así que para cambiar una vista se hace `DROP VIEW IF EXISTS` y luego `CREATE VIEW`; y los nombres de las columnas de la vista son los alias del SELECT, así que elígelos bien. El prefijo `v_` es una convención para distinguir vistas de tablas.",
+     "tip": "Antes de crear una vista, prueba su SELECT solo y revisa el resultado. Una vista con un error de lógica lo repite en cada reporte que la use.",
+     "example": "CREATE VIEW v_ventas AS\nSELECT d.id AS linea_id,\n       p.id AS pedido_id,\n       p.fecha,\n       c.nombre AS categoria,\n       pr.nombre AS producto,\n       d.cantidad,\n       ROUND(d.cantidad * d.precio_unitario * (1 - d.descuento), 2) AS total_linea\nFROM detalle_pedido d\nJOIN pedidos p ON p.id = d.pedido_id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado <> 'cancelado';\nSELECT categoria, COUNT(*) AS lineas, ROUND(SUM(total_linea)) AS ventas\nFROM v_ventas\nGROUP BY categoria\nORDER BY ventas DESC;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Crea la vista de ventas",
+       "body": "Ejecuta el `CREATE VIEW` y consulta las primeras filas. La vista tiene las columnas que nombraste con alias: `linea_id`, `pedido_id`, `fecha`, `categoria`, `producto`, `cantidad` y `total_linea`.",
+       "code": "DROP VIEW IF EXISTS v_ventas;\nCREATE VIEW v_ventas AS\nSELECT d.id AS linea_id,\n       p.id AS pedido_id,\n       p.fecha,\n       c.nombre AS categoria,\n       pr.nombre AS producto,\n       d.cantidad,\n       ROUND(d.cantidad * d.precio_unitario * (1 - d.descuento), 2) AS total_linea\nFROM detalle_pedido d\nJOIN pedidos p ON p.id = d.pedido_id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado <> 'cancelado';\nSELECT * FROM v_ventas ORDER BY linea_id LIMIT 5;",
+       "language": "sql"
+      },
+      {
+       "title": "Úsala como una tabla",
+       "body": "Sobre la vista funcionan WHERE, GROUP BY, JOIN y todo lo que ya sabes. El reporte de ventas por año queda en tres líneas.",
+       "code": "DROP VIEW IF EXISTS v_ventas;\nCREATE VIEW v_ventas AS\nSELECT d.id AS linea_id,\n       p.id AS pedido_id,\n       p.fecha,\n       c.nombre AS categoria,\n       pr.nombre AS producto,\n       d.cantidad,\n       ROUND(d.cantidad * d.precio_unitario * (1 - d.descuento), 2) AS total_linea\nFROM detalle_pedido d\nJOIN pedidos p ON p.id = d.pedido_id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado <> 'cancelado';\nSELECT strftime('%Y', fecha) AS anio, ROUND(SUM(total_linea)) AS ventas\nFROM v_ventas\nGROUP BY anio;",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba que siempre está al día",
+       "body": "Cancela el pedido 420 y vuelve a consultar la vista: sus líneas desaparecen sin que toques la vista, porque su SELECT se ejecuta de nuevo en cada consulta.",
+       "code": "DROP VIEW IF EXISTS v_ventas;\nCREATE VIEW v_ventas AS\nSELECT d.id AS linea_id,\n       p.id AS pedido_id,\n       p.fecha,\n       c.nombre AS categoria,\n       pr.nombre AS producto,\n       d.cantidad,\n       ROUND(d.cantidad * d.precio_unitario * (1 - d.descuento), 2) AS total_linea\nFROM detalle_pedido d\nJOIN pedidos p ON p.id = d.pedido_id\nJOIN productos pr ON pr.id = d.producto_id\nJOIN categorias c ON c.id = pr.categoria_id\nWHERE p.estado <> 'cancelado';\nUPDATE pedidos SET estado = 'cancelado' WHERE id = 420;\nSELECT COUNT(*) AS lineas_del_420 FROM v_ventas WHERE pedido_id = 420;",
+       "language": "sql"
+      },
+      {
+       "title": "Lista y reemplaza vistas",
+       "body": "Las vistas aparecen en `sqlite_master` con `type = 'view'`. Para cambiar una, se borra y se crea de nuevo; con `IF EXISTS` el bloque se puede repetir sin errores.",
+       "code": "DROP VIEW IF EXISTS v_agotados;\nCREATE VIEW v_agotados AS SELECT id, nombre FROM productos WHERE stock = 0;\nDROP VIEW IF EXISTS v_agotados;\nCREATE VIEW v_agotados AS SELECT id, nombre, activo FROM productos WHERE stock = 0;\nSELECT name, sql FROM sqlite_master WHERE type = 'view';",
+       "language": "sql"
+      },
+      {
+       "title": "Intenta escribir en una vista",
+       "body": "Este INSERT falla a propósito con `cannot modify v_agotados because it is a view`. Para cambiar datos, se modifica la tabla de origen.",
+       "code": "DROP VIEW IF EXISTS v_agotados;\nCREATE VIEW v_agotados AS SELECT id, nombre FROM productos WHERE stock = 0;\nINSERT INTO v_agotados (nombre) VALUES ('Producto nuevo');",
+       "language": "sql",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "view v_ventas already exists",
+       "cause": "Ejecutaste `CREATE VIEW` con un nombre que ya está en uso.",
+       "fix": "Antepón `DROP VIEW IF EXISTS v_ventas;`. SQLite no tiene `CREATE OR REPLACE VIEW`."
+      },
+      {
+       "error": "near \"REPLACE\": syntax error",
+       "cause": "Escribiste `CREATE OR REPLACE VIEW`, que existe en otros motores pero no en SQLite.",
+       "fix": "Usa dos sentencias: `DROP VIEW IF EXISTS nombre;` y `CREATE VIEW nombre AS ...`."
+      },
+      {
+       "error": "cannot modify v_agotados because it is a view",
+       "cause": "Intentaste INSERT, UPDATE o DELETE sobre una vista.",
+       "fix": "Modifica la tabla de origen (`productos`); la vista mostrará el cambio sola."
+      },
+      {
+       "error": "no such column: total",
+       "cause": "Usaste un nombre de columna que la vista no tiene: dentro de la vista se llama como su alias (`total_linea`).",
+       "fix": "Revisa las columnas con `SELECT * FROM vista LIMIT 1` o `pragma_table_info('vista')`."
+      }
+     ]
+    },
+    {
+     "title": "Índices y EXPLAIN QUERY PLAN",
+     "concept": "Para encontrar los pedidos del 29 de setiembre, SQLite lee los 420 pedidos uno por uno: un **SCAN**. Con 420 filas no se nota; con dos millones, sí. Un **índice** es una copia ordenada de una o varias columnas con un puntero a cada fila, como el índice de un libro: `CREATE INDEX idx_pedidos_fecha ON pedidos (fecha)`. Con él, SQLite salta directo a las filas que busca: un **SEARCH**.\n\n`EXPLAIN QUERY PLAN` antes de un SELECT muestra cómo piensa ejecutarlo, sin ejecutarlo: `SCAN pedidos` o `SEARCH pedidos USING INDEX idx_pedidos_fecha (fecha=?)`. Así compruebas si tu índice se usa. Un índice compuesto, como `(producto_id, pedido_id)`, sirve para buscar por la primera columna o por las dos, pero no por la segunda sola. `CREATE UNIQUE INDEX` además impide valores repetidos.\n\nLos índices no son gratis: ocupan espacio y hacen un poco más lentos los INSERT y UPDATE, porque cada cambio también actualiza el índice. **Indexa las columnas que usas a menudo en WHERE, JOIN y ORDER BY**, no todas. Y cuida cómo escribes el filtro: `WHERE strftime('%Y', fecha) = '2026'` no puede usar el índice de `fecha`; `WHERE fecha >= '2026-01-01'` sí.",
+     "tip": "Para revisar un índice, ejecuta `EXPLAIN QUERY PLAN` antes y después de crearlo. Si sigue diciendo SCAN, el índice no está ayudando a esa consulta.",
+     "example": "DROP INDEX IF EXISTS idx_pedidos_fecha;\nCREATE INDEX idx_pedidos_fecha ON pedidos (fecha);\nEXPLAIN QUERY PLAN\nSELECT id, cliente_id, estado\nFROM pedidos\nWHERE fecha = '2026-09-29';",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Mira el plan sin índice",
+       "body": "`EXPLAIN QUERY PLAN` no devuelve pedidos, sino el plan. La columna `detail` dice `SCAN pedidos`: SQLite recorrería la tabla completa.",
+       "code": "EXPLAIN QUERY PLAN\nSELECT * FROM pedidos WHERE fecha = '2026-09-29';",
+       "language": "sql"
+      },
+      {
+       "title": "Crea el índice y compara",
+       "body": "Después de `CREATE INDEX`, el mismo plan dice `SEARCH pedidos USING INDEX idx_pedidos_fecha (fecha=?)`. La consulta devuelve lo mismo, pero ahora llega directo a las filas.",
+       "code": "DROP INDEX IF EXISTS idx_pedidos_fecha;\nCREATE INDEX idx_pedidos_fecha ON pedidos (fecha);\nEXPLAIN QUERY PLAN\nSELECT * FROM pedidos WHERE fecha = '2026-09-29';",
+       "language": "sql"
+      },
+      {
+       "title": "Descubre cómo romper un índice",
+       "body": "Si envuelves la columna en una función, SQLite ya no puede usar el orden del índice y vuelve a `SCAN`. El filtro por rango equivalente sí lo aprovecha.",
+       "code": "DROP INDEX IF EXISTS idx_pedidos_fecha;\nCREATE INDEX idx_pedidos_fecha ON pedidos (fecha);\nEXPLAIN QUERY PLAN\nSELECT * FROM pedidos WHERE strftime('%Y', fecha) = '2026';",
+       "language": "sql"
+      },
+      {
+       "title": "Prueba un índice compuesto",
+       "body": "El índice `(producto_id, pedido_id)` está ordenado primero por producto. Buscar por `producto_id` usa el índice; buscar solo por `pedido_id` no puede, y el plan dice SCAN. Cambia el WHERE y compara.",
+       "code": "DROP INDEX IF EXISTS idx_detalle_producto;\nCREATE INDEX idx_detalle_producto ON detalle_pedido (producto_id, pedido_id);\nEXPLAIN QUERY PLAN\nSELECT * FROM detalle_pedido WHERE producto_id = 7;",
+       "language": "sql"
+      },
+      {
+       "title": "Revisa los índices de una tabla",
+       "body": "`pragma_index_list` muestra los índices de una tabla: `origin` vale `c` si lo creaste tú con CREATE INDEX y `u` o `pk` si nació de un UNIQUE o de la clave primaria. `clientes` ya tiene uno por su email UNIQUE.",
+       "code": "SELECT name, \"unique\", origin\nFROM pragma_index_list('clientes');",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "index idx_pedidos_fecha already exists",
+       "cause": "Ejecutaste el mismo `CREATE INDEX` dos veces.",
+       "fix": "Usa `CREATE INDEX IF NOT EXISTS` o antepón `DROP INDEX IF EXISTS idx_pedidos_fecha;`."
+      },
+      {
+       "error": "UNIQUE constraint failed: clientes.nombre, clientes.apellido",
+       "cause": "Intentaste crear un `UNIQUE INDEX` sobre columnas que ya tienen valores repetidos (en la Tienda hay tres parejas de nombre y apellido repetidas).",
+       "fix": "Revisa los repetidos con GROUP BY y HAVING COUNT(*) > 1. Si son personas distintas, ese UNIQUE no tiene sentido."
+      },
+      {
+       "error": "El plan sigue diciendo SCAN después de crear el índice",
+       "cause": "El filtro usa una función sobre la columna, busca por la segunda columna de un índice compuesto o usa `LIKE '%texto'`.",
+       "fix": "Escribe el filtro sobre la columna tal cual (por ejemplo, un rango de fechas) o crea el índice con la columna buscada en primer lugar."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-13-1",
+     "title": "Catálogo para la página web",
+     "prompt": "El equipo web solo debe ver los productos activos, sin costos. Crea la vista `v_catalogo` con el `id`, el `nombre` del producto, el nombre de su categoría, el `precio` y el `stock`, en ese orden, solo de los productos activos.",
+     "hint": "`CREATE VIEW v_catalogo AS SELECT ...` con un JOIN entre `productos` y `categorias` y `WHERE p.activo = 1`.",
+     "solution": "CREATE VIEW v_catalogo AS\nSELECT p.id, p.nombre, c.nombre AS categoria, p.precio, p.stock\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE p.activo = 1;",
+     "check": "SELECT * FROM v_catalogo;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-13-2",
+     "title": "Líneas vendidas",
+     "prompt": "Crea la vista `v_lineas_venta` con una fila por cada línea de pedidos no cancelados y estas columnas, en este orden: `pedido_id`, `fecha` del pedido, `producto_id`, `cantidad` y `total_linea` (cantidad por precio unitario con el descuento aplicado). La revisión usará tu vista para calcular las ventas de cada año.",
+     "hint": "Une `detalle_pedido` con `pedidos` para tener la fecha y el estado. Pon alias exactos a las columnas calculadas: `... AS total_linea`.",
+     "solution": "CREATE VIEW v_lineas_venta AS\nSELECT d.pedido_id,\n       p.fecha,\n       d.producto_id,\n       d.cantidad,\n       d.cantidad * d.precio_unitario * (1 - d.descuento) AS total_linea\nFROM detalle_pedido d\nJOIN pedidos p ON p.id = d.pedido_id\nWHERE p.estado <> 'cancelado';",
+     "check": "SELECT strftime('%Y', fecha) AS anio, COUNT(*) AS lineas, SUM(cantidad) AS unidades, ROUND(SUM(total_linea)) AS ventas\nFROM v_lineas_venta\nGROUP BY anio\nORDER BY anio;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-13-3",
+     "title": "Pedidos por fecha, más rápido",
+     "prompt": "Los reportes filtran casi siempre `pedidos` por fecha. Crea un índice sobre la columna `fecha` de `pedidos` (el nombre del índice lo eliges tú; se recomienda `idx_pedidos_fecha`).",
+     "hint": "`CREATE INDEX nombre_del_indice ON tabla (columna);`. Comprueba después con `EXPLAIN QUERY PLAN` que una búsqueda por fecha dice SEARCH.",
+     "solution": "CREATE INDEX idx_pedidos_fecha ON pedidos (fecha);",
+     "check": "SELECT m.tbl_name, ii.seqno, ii.name\nFROM sqlite_master m, pragma_index_info(m.name) ii\nWHERE m.type = 'index' AND m.sql IS NOT NULL\nORDER BY m.tbl_name, m.name, ii.seqno;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-13-4",
+     "title": "Una reseña por cliente y producto",
+     "prompt": "La tienda decidió que cada cliente puede reseñar un producto una sola vez. Crea un índice único sobre `resenas` con las columnas `producto_id` y `cliente_id`, en ese orden. (Los datos actuales ya cumplen la regla, así que el índice se crea sin problema.)",
+     "hint": "`CREATE UNIQUE INDEX nombre ON resenas (producto_id, cliente_id);`. El orden de las columnas dentro del paréntesis importa.",
+     "solution": "CREATE UNIQUE INDEX ux_resenas_producto_cliente ON resenas (producto_id, cliente_id);",
+     "check": "SELECT il.\"unique\", ii.seqno, ii.name\nFROM pragma_index_list('resenas') il, pragma_index_info(il.name) ii\nWHERE il.origin = 'c'\nORDER BY il.name, ii.seqno;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-13-5",
+     "title": "Vista de ventas mensuales",
+     "prompt": "Crea la vista `v_ventas_mes` con tres columnas, en este orden: `mes` (texto 'AAAA-MM'), `pedidos` (cantidad de pedidos distintos) y `total` (ventas del mes redondeadas a colones enteros), considerando solo pedidos no cancelados de todo el historial. La gerencia la usará después con LAG para ver el crecimiento.",
+     "hint": "Une `pedidos` con `detalle_pedido`, filtra los cancelados y agrupa por `strftime('%Y-%m', p.fecha)`. Usa `COUNT(DISTINCT p.id)` y `ROUND(SUM(...))` con los alias pedidos.",
+     "solution": "CREATE VIEW v_ventas_mes AS\nSELECT strftime('%Y-%m', p.fecha) AS mes,\n       COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY mes;",
+     "check": "SELECT mes, pedidos, total, total - LAG(total) OVER (ORDER BY mes) AS cambio\nFROM v_ventas_mes\nORDER BY mes;",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-13-6",
+     "title": "Los dos más vendidos de cada categoría",
+     "prompt": "Ya existe una vista `v_top_vendidos` que alguien hizo mal (ordena por precio). Reemplázala por una con estas columnas, en este orden: `categoria`, `producto`, `unidades` (unidades vendidas en pedidos no cancelados) y `puesto` (1 o 2). Debe tener los dos productos más vendidos de cada categoría; si empatan en unidades, va primero el de nombre alfabéticamente menor.",
+     "hint": "SQLite no tiene CREATE OR REPLACE VIEW: empieza con `DROP VIEW IF EXISTS v_top_vendidos;`. Dentro de la vista puedes usar un WITH con la suma de unidades por producto y `ROW_NUMBER() OVER (PARTITION BY categoria ORDER BY unidades DESC, producto)`.",
+     "solution": "DROP VIEW IF EXISTS v_top_vendidos;\nCREATE VIEW v_top_vendidos AS\nWITH unidades AS (\n    SELECT c.nombre AS categoria,\n           pr.nombre AS producto,\n           SUM(d.cantidad) AS unidades\n    FROM detalle_pedido d\n    JOIN pedidos p ON p.id = d.pedido_id\n    JOIN productos pr ON pr.id = d.producto_id\n    JOIN categorias c ON c.id = pr.categoria_id\n    WHERE p.estado <> 'cancelado'\n    GROUP BY pr.id\n),\nranking AS (\n    SELECT categoria, producto, unidades,\n           ROW_NUMBER() OVER (PARTITION BY categoria ORDER BY unidades DESC, producto) AS puesto\n    FROM unidades\n)\nSELECT categoria, producto, unidades, puesto\nFROM ranking\nWHERE puesto <= 2;",
+     "check": "SELECT * FROM v_top_vendidos ORDER BY categoria, puesto;",
+     "setup": "CREATE VIEW v_top_vendidos AS\nSELECT c.nombre AS categoria, p.nombre AS producto, p.precio AS unidades, 1 AS puesto\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE p.precio > 20000;",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Pedidos de 2026: vista e índice que se lleven bien",
+    "description": "Crea un índice sobre `pedidos(fecha)` y una vista `v_pedidos_2026` con el id, la fecha, el estado y el método de pago de los pedidos de 2026. Escríbela de forma que el índice se pueda usar. Demuéstralo con `EXPLAIN QUERY PLAN SELECT * FROM v_pedidos_2026;` y compara con una versión de la vista que filtre con `strftime('%Y', fecha) = '2026'`. Explica con tus palabras la diferencia entre los dos planes.",
+    "hint": "Filtra por rango sobre la columna sin funciones: `fecha >= '2026-01-01' AND fecha < '2027-01-01'`. EXPLAIN QUERY PLAN funciona también sobre una vista.",
+    "solution": "DROP INDEX IF EXISTS idx_pedidos_fecha;\nCREATE INDEX idx_pedidos_fecha ON pedidos (fecha);\nDROP VIEW IF EXISTS v_pedidos_2026;\nCREATE VIEW v_pedidos_2026 AS\nSELECT id, fecha, estado, metodo_pago\nFROM pedidos\nWHERE fecha >= '2026-01-01' AND fecha < '2027-01-01';\nEXPLAIN QUERY PLAN SELECT * FROM v_pedidos_2026;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Vista",
+     "definition": "Consulta guardada con un nombre que se usa como una tabla; no guarda datos y siempre muestra los actuales."
+    },
+    {
+     "term": "DROP VIEW",
+     "definition": "Sentencia que borra una vista sin tocar las tablas de las que lee."
+    },
+    {
+     "term": "Índice",
+     "definition": "Estructura ordenada sobre una o varias columnas que permite encontrar filas sin recorrer toda la tabla."
+    },
+    {
+     "term": "Índice compuesto",
+     "definition": "Índice sobre varias columnas; sirve para buscar por la primera columna o por las primeras juntas."
+    },
+    {
+     "term": "EXPLAIN QUERY PLAN",
+     "definition": "Prefijo que muestra cómo ejecutaría SQLite una consulta, sin ejecutarla."
+    },
+    {
+     "term": "SCAN",
+     "definition": "Paso de un plan en el que SQLite recorre todas las filas de una tabla."
+    },
+    {
+     "term": "SEARCH",
+     "definition": "Paso de un plan en el que SQLite usa un índice o la clave para ir directo a las filas."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: CREATE VIEW",
+     "url": "https://www.sqlite.org/lang_createview.html"
+    },
+    {
+     "title": "SQLite: CREATE INDEX",
+     "url": "https://www.sqlite.org/lang_createindex.html"
+    },
+    {
+     "title": "SQLite: EXPLAIN QUERY PLAN",
+     "url": "https://www.sqlite.org/eqp.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué guarda SQLite cuando ejecutas `CREATE VIEW v_ventas AS SELECT ...`?",
+     "code": "",
+     "options": [
+      "Una copia de las filas que devolvía el SELECT en ese momento.",
+      "Solo la consulta; las filas se calculan cada vez que usas la vista.",
+      "Un índice sobre las columnas del SELECT.",
+      "Una tabla nueva que se actualiza cada noche."
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso hace `CREATE TABLE ... AS SELECT`, que congela los datos.",
+      "Correcto: la vista es una consulta con nombre y siempre muestra los datos actuales.",
+      "No: las vistas y los índices son cosas distintas.",
+      "No: SQLite no tiene tareas automáticas; la vista se calcula al consultarla."
+     ],
+     "explanation": "Una vista guarda la definición del SELECT. Cada consulta a la vista ejecuta ese SELECT sobre los datos actuales.",
+     "hint": "Compárala con CREATE TABLE ... AS SELECT del lunes."
+    },
+    {
+     "type": "choice",
+     "prompt": "Necesitas cambiar la definición de la vista `v_catalogo` en SQLite. ¿Qué haces?",
+     "code": "",
+     "options": [
+      "CREATE OR REPLACE VIEW v_catalogo AS ...",
+      "ALTER VIEW v_catalogo AS ...",
+      "UPDATE v_catalogo SET ...",
+      "DROP VIEW IF EXISTS v_catalogo; y después CREATE VIEW v_catalogo AS ..."
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: SQLite no admite OR REPLACE en vistas; da error de sintaxis.",
+      "No: SQLite no tiene ALTER VIEW.",
+      "No: UPDATE cambia datos, y además las vistas son de solo lectura.",
+      "Correcto: se borra la vista vieja y se crea la nueva."
+     ],
+     "explanation": "En SQLite una vista se reemplaza borrándola y creándola de nuevo. Como no guarda datos, no se pierde nada.",
+     "hint": "SQLite es más limitado que otros motores con las vistas."
+    },
+    {
+     "type": "choice",
+     "prompt": "Existe un índice sobre `pedidos(fecha)`. ¿Cuál de estos filtros lo puede aprovechar?",
+     "code": "",
+     "options": [
+      "WHERE strftime('%m', fecha) = '09'",
+      "WHERE fecha BETWEEN '2026-09-01' AND '2026-09-30'",
+      "WHERE fecha LIKE '%-09-%'",
+      "WHERE substr(fecha, 1, 4) = '2026'"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la función sobre la columna impide usar el orden del índice.",
+      "Correcto: un rango sobre la columna sin funciones se resuelve con SEARCH usando el índice.",
+      "No: un LIKE que empieza con % no puede usar el índice.",
+      "No: igual que strftime, substr sobre la columna obliga a revisar todas las filas."
+     ],
+     "explanation": "Un índice está ordenado por el valor de la columna. Los filtros por igualdad o rango sobre la columna tal cual pueden saltar directo a las filas.",
+     "hint": "Piensa en buscar en un libro ordenado alfabéticamente."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Los índices aceleran las búsquedas, pero ocupan espacio y hacen un poco más lentos los INSERT y UPDATE.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: cada cambio en la tabla también debe actualizar sus índices.",
+      "No: los índices tienen un costo; por eso no se indexan todas las columnas."
+     ],
+     "explanation": "Un índice es una estructura extra que hay que mantener al día. Conviene en columnas que se buscan a menudo.",
+     "hint": "¿Qué pasa con el índice cuando insertas un pedido?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si actualizas el stock de un producto, una vista creada antes sobre `productos` sigue mostrando el stock viejo hasta que la vuelvas a crear.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la vista no guarda datos; muestra el stock nuevo de inmediato.",
+      "Correcto: la vista ejecuta su SELECT cada vez, así que siempre refleja los datos actuales."
+     ],
+     "explanation": "Las vistas no guardan filas: cada consulta a la vista lee las tablas en ese momento.",
+     "hint": "Recuerda el paso del pedido 420 cancelado."
+    },
+    {
+     "type": "output",
+     "prompt": "En la Tienda hay 6 productos con stock 0. ¿Qué devuelve el SELECT final?",
+     "code": "CREATE VIEW v_agotados AS SELECT id FROM productos WHERE stock = 0;\nUPDATE productos SET stock = 5 WHERE id = 4;\nSELECT COUNT(*) FROM v_agotados;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "5"
+     ],
+     "optionFeedback": [],
+     "explanation": "El producto 4 deja de estar agotado y la vista lo refleja de inmediato: quedan 5.",
+     "hint": "La vista se calcula al consultarla, después del UPDATE."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta sobre la base Tienda?",
+     "code": "SELECT COUNT(*) FROM pragma_index_list('clientes');",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "1"
+     ],
+     "optionFeedback": [],
+     "explanation": "`clientes` tiene un índice automático creado por la restricción UNIQUE de `email`. La clave primaria `INTEGER PRIMARY KEY` no necesita índice aparte.",
+     "hint": "¿Qué columna de clientes es UNIQUE?"
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la palabra que falta para crear el índice.",
+     "code": "CREATE ___ idx_pedidos_fecha ON pedidos (fecha);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "INDEX"
+     ],
+     "optionFeedback": [],
+     "explanation": "La sintaxis es `CREATE INDEX nombre ON tabla (columnas)`; con `CREATE UNIQUE INDEX` además impide repetidos.",
+     "hint": "Es la misma palabra que en el nombre idx."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-11-14",
+  "kind": "weekly",
+  "path": "Laboratorio SQL",
+  "description": "Construyes el módulo de inventario de la Tienda Pura Vida: las tablas de bodegas y movimientos con sus restricciones, la carga inicial, un traslado en una transacción, el stock mínimo, un UPSERT de conteos, la vista de existencias y el índice del kardex. Los 9 ejercicios se califican solos; además escribes una conclusión con lo que aprendiste al diseñarlo.",
+  "criteria": [
+   "Los 9 ejercicios del módulo pasan la revisión automática del laboratorio.",
+   "Las tablas usan claves primarias, NOT NULL, UNIQUE, CHECK, DEFAULT y claves foráneas donde corresponde, y las reglas rechazan los datos inválidos de la revisión.",
+   "Los cambios de varias sentencias que deben ir juntos (el traslado) están dentro de una transacción con BEGIN y COMMIT.",
+   "La vista calcula las existencias con entradas menos salidas y el índice tiene las columnas en el orden correcto.",
+   "La conclusión escrita (8 a 12 líneas) explica qué protege cada restricción, por qué el stock se calcula en una vista y qué productos hay que reponer según el ejercicio 9."
+  ],
+  "steps": [
+   "Lee los 9 ejercicios completos antes de empezar y dibuja en papel las tablas `bodegas` y `movimientos` con sus columnas y relaciones.",
+   "Resuelve los ejercicios 1 y 2 (las tablas). Prueba tus reglas en el laboratorio con INSERT OR IGNORE de filas válidas e inválidas antes de enviar.",
+   "Resuelve el 3 (carga inicial): escribe primero el SELECT, revisa cuántas filas devuelve y después conviértelo en INSERT ... SELECT.",
+   "Resuelve el 4 (traslado) con BEGIN y COMMIT; pruébalo antes con ROLLBACK y comprueba que no queda nada.",
+   "Resuelve el 5 y el 6 (ALTER TABLE y UPSERT), revisando el resultado con un SELECT después de cada cambio.",
+   "Resuelve el 7 y el 8 (vista e índice) y comprueba el índice con EXPLAIN QUERY PLAN sobre una búsqueda por producto.",
+   "Resuelve el 9 usando la vista y anota qué productos aparecen y cuántas unidades faltan.",
+   "Escribe la conclusión y revisa la lista de control antes de enviar."
+  ],
+  "tips": [
+   "Cada ejercicio se califica en una copia limpia de la base con las tablas que dice el enunciado: tu solución debe incluir todo lo que pide, aunque lo hayas creado en otro ejercicio.",
+   "Si el laboratorio se llena de tablas de prueba, restaura la base y empieza de nuevo; nada de lo que hagas ahí es irreversible.",
+   "Escribe `DROP TABLE IF EXISTS` o `DROP VIEW IF EXISTS` al probar en el laboratorio para poder repetir tus bloques sin errores.",
+   "Para que tus pruebas respeten las claves foráneas, empieza el bloque con `PRAGMA foreign_keys = ON;`."
+  ],
+  "stretch": "Agrega a la vista una columna con el valor del inventario en colones (unidades por costo del producto) y crea una segunda vista `v_kardex` que muestre, para cada movimiento, el saldo acumulado del producto en su bodega con `SUM(...) OVER (PARTITION BY producto_id, bodega_id ORDER BY fecha, id)`.",
+  "checklist": [
+   "Los nombres de tablas, columnas y vistas son exactamente los del enunciado.",
+   "Las columnas están en el orden pedido.",
+   "Ninguna solución deja datos de prueba que el enunciado no pide (por ejemplo, filas insertadas para probar las reglas).",
+   "El traslado del ejercicio 4 empieza con BEGIN y termina con COMMIT.",
+   "En el ejercicio 9 el orden es de más a menos faltantes y, si empatan, por nombre.",
+   "La conclusión menciona al menos tres restricciones y lo que evita cada una."
+  ],
+  "exercises": [
+   {
+    "id": "s05-1",
+    "title": "Las bodegas",
+    "prompt": "La Tienda tendrá tres bodegas. Crea la tabla `bodegas` con `id` (clave primaria que se numere sola), `nombre` (texto obligatorio y sin repetirse) y `provincia_id` (entero obligatorio, clave foránea hacia `provincias(id)`). Después inserta, en este orden: 'Central' en San José (provincia 1), 'Pacífico Norte' en Guanacaste (5) y 'Caribe' en Limón (7).",
+    "hint": "Un `CREATE TABLE` con `NOT NULL UNIQUE` en el nombre y `REFERENCES provincias(id)` en la provincia, y un INSERT con tres filas. La revisión intentará además meter una bodega repetida y otra sin provincia.",
+    "solution": "CREATE TABLE bodegas (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT    NOT NULL UNIQUE,\n    provincia_id INTEGER NOT NULL REFERENCES provincias(id)\n);\nINSERT INTO bodegas (nombre, provincia_id)\nVALUES ('Central', 1), ('Pacífico Norte', 5), ('Caribe', 7);",
+    "check": "INSERT OR IGNORE INTO bodegas (nombre, provincia_id) VALUES ('Central', 2);\nINSERT OR IGNORE INTO bodegas (nombre, provincia_id) VALUES ('Sin provincia', NULL);\nSELECT b.id, b.nombre, p.nombre AS provincia, (SELECT COUNT(*) FROM pragma_foreign_key_list('bodegas')) AS claves_foraneas\nFROM bodegas b\nJOIN provincias p ON p.id = b.provincia_id\nORDER BY b.id;",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s05-2",
+    "title": "La tabla de movimientos",
+    "prompt": "Crea la tabla `movimientos` (vacía), el corazón del módulo, con estas columnas en este orden: `id` (clave primaria que se numere sola); `producto_id` (entero obligatorio, clave foránea hacia `productos(id)`); `bodega_id` (entero obligatorio, clave foránea hacia `bodegas(id)`); `fecha` (texto obligatorio); `tipo` (texto obligatorio que solo puede ser 'entrada' o 'salida'); `cantidad` (entero obligatorio y mayor que 0); y `nota` (texto obligatorio, '' si no se indica). La revisión insertará movimientos válidos e inválidos.",
+    "hint": "Para `tipo` usa `CHECK (tipo IN ('entrada', 'salida'))`; para `nota`, `NOT NULL DEFAULT ''`. La tabla `bodegas` ya existe en la base de este ejercicio.",
+    "solution": "CREATE TABLE movimientos (\n    id          INTEGER PRIMARY KEY,\n    producto_id INTEGER NOT NULL REFERENCES productos(id),\n    bodega_id   INTEGER NOT NULL REFERENCES bodegas(id),\n    fecha       TEXT    NOT NULL,\n    tipo        TEXT    NOT NULL CHECK (tipo IN ('entrada', 'salida')),\n    cantidad    INTEGER NOT NULL CHECK (cantidad > 0),\n    nota        TEXT    NOT NULL DEFAULT ''\n);",
+    "check": "INSERT OR IGNORE INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad, nota) VALUES (7, 1, '2026-11-02', 'entrada', 50, 'Compra a proveedor');\nINSERT OR IGNORE INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad) VALUES (7, 1, '2026-11-03', 'salida', 5);\nINSERT OR IGNORE INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad) VALUES (7, 1, '2026-11-03', 'devolucion', 2);\nINSERT OR IGNORE INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad) VALUES (7, 1, '2026-11-03', 'salida', 0);\nINSERT OR IGNORE INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad) VALUES (7, 1, NULL, 'salida', 3);\nINSERT OR IGNORE INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad) VALUES (NULL, 1, '2026-11-03', 'salida', 3);\nSELECT id, producto_id, bodega_id, fecha, tipo, cantidad, nota,\n       (SELECT COUNT(*) FROM pragma_foreign_key_list('movimientos')) AS claves_foraneas\nFROM movimientos\nORDER BY id;",
+    "setup": "CREATE TABLE bodegas (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT    NOT NULL UNIQUE,\n    provincia_id INTEGER NOT NULL REFERENCES provincias(id)\n);\nINSERT INTO bodegas (id, nombre, provincia_id) VALUES (1, 'Central', 1), (2, 'Pacífico Norte', 5), (3, 'Caribe', 7);",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s05-3",
+    "title": "Inventario inicial",
+    "prompt": "Las tablas `bodegas` y `movimientos (id, producto_id, bodega_id, fecha, tipo, cantidad, nota)` ya existen y están vacías. Carga el inventario inicial con una sola sentencia: un movimiento de tipo 'entrada' por cada producto activo con stock mayor que 0, en la bodega 1, con fecha '2026-11-01', la cantidad igual a su stock actual y la nota 'Inventario inicial'.",
+    "hint": "Es un `INSERT INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad, nota) SELECT id, 1, '2026-11-01', 'entrada', stock, 'Inventario inicial' FROM productos WHERE ...`.",
+    "solution": "INSERT INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad, nota)\nSELECT id, 1, '2026-11-01', 'entrada', stock, 'Inventario inicial'\nFROM productos\nWHERE activo = 1 AND stock > 0;",
+    "check": "SELECT producto_id, bodega_id, fecha, tipo, cantidad, nota FROM movimientos ORDER BY producto_id;",
+    "setup": "CREATE TABLE bodegas (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT    NOT NULL UNIQUE,\n    provincia_id INTEGER NOT NULL REFERENCES provincias(id)\n);\nCREATE TABLE movimientos (\n    id          INTEGER PRIMARY KEY,\n    producto_id INTEGER NOT NULL REFERENCES productos(id),\n    bodega_id   INTEGER NOT NULL REFERENCES bodegas(id),\n    fecha       TEXT    NOT NULL,\n    tipo        TEXT    NOT NULL CHECK (tipo IN ('entrada', 'salida')),\n    cantidad    INTEGER NOT NULL CHECK (cantidad > 0),\n    nota        TEXT    NOT NULL DEFAULT ''\n);",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s05-4",
+    "title": "Traslado al Caribe",
+    "prompt": "La bodega Caribe (3) necesita Salsa Lizano. Registra el traslado de 20 unidades del producto 7 desde la bodega Central (1) el '2026-11-14' como dos movimientos en una sola transacción: una 'salida' de la bodega 1 con la nota 'Traslado a Caribe' y una 'entrada' a la bodega 3 con la nota 'Traslado desde Central'. Confirma al final. La tabla `movimientos (id, producto_id, bodega_id, fecha, tipo, cantidad, nota)` ya existe vacía. (El stock total en `productos` no cambia: las unidades solo se mueven de bodega.)",
+    "hint": "`BEGIN;`, dos INSERT en `movimientos` (sin escribir el id) y `COMMIT;`. Si uno de los dos fallara, el ROLLBACK evitaría un traslado a medias.",
+    "solution": "BEGIN;\nINSERT INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad, nota)\nVALUES (7, 1, '2026-11-14', 'salida', 20, 'Traslado a Caribe');\nINSERT INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad, nota)\nVALUES (7, 3, '2026-11-14', 'entrada', 20, 'Traslado desde Central');\nCOMMIT;",
+    "check": "SELECT producto_id, bodega_id, fecha, tipo, cantidad, nota,\n       (SELECT stock FROM productos WHERE id = 7) AS stock_total\nFROM movimientos\nORDER BY bodega_id;",
+    "setup": "CREATE TABLE bodegas (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT    NOT NULL UNIQUE,\n    provincia_id INTEGER NOT NULL REFERENCES provincias(id)\n);\nCREATE TABLE movimientos (\n    id          INTEGER PRIMARY KEY,\n    producto_id INTEGER NOT NULL REFERENCES productos(id),\n    bodega_id   INTEGER NOT NULL REFERENCES bodegas(id),\n    fecha       TEXT    NOT NULL,\n    tipo        TEXT    NOT NULL CHECK (tipo IN ('entrada', 'salida')),\n    cantidad    INTEGER NOT NULL CHECK (cantidad > 0),\n    nota        TEXT    NOT NULL DEFAULT ''\n);",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s05-5",
+    "title": "Stock mínimo por producto",
+    "prompt": "Agrega a `productos` la columna `stock_minimo` (entero obligatorio, 10 por defecto). Después ajusta la regla: los productos de Café y bebidas (`categoria_id` 1) tienen un mínimo de 30 y los de Artesanía (`categoria_id` 3), por ser piezas caras, de 5.",
+    "hint": "Un `ALTER TABLE productos ADD COLUMN ... NOT NULL DEFAULT 10` y dos UPDATE, cada uno con su WHERE. Escribe primero el SELECT de cada grupo.",
+    "solution": "ALTER TABLE productos ADD COLUMN stock_minimo INTEGER NOT NULL DEFAULT 10;\nUPDATE productos SET stock_minimo = 30 WHERE categoria_id = 1;\nUPDATE productos SET stock_minimo = 5 WHERE categoria_id = 3;",
+    "check": "SELECT id, stock_minimo FROM productos ORDER BY id;",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s05-6",
+    "title": "Conteo físico",
+    "prompt": "La tabla `conteos (producto_id, bodega_id, unidades, fecha)` guarda el último conteo físico de cada producto en cada bodega; su clave primaria es la pareja `producto_id` y `bodega_id`. Llegaron los conteos del '2026-11-14' en la bodega 1: producto 1, 98 unidades; producto 7, 270; producto 16, 5; y producto 25, 28. Con una sola sentencia, reemplaza las unidades y la fecha de los que ya tenían conteo e inserta los que no.",
+    "hint": "`INSERT INTO conteos (...) VALUES (...) ON CONFLICT (producto_id, bodega_id) DO UPDATE SET unidades = excluded.unidades, fecha = excluded.fecha;`",
+    "solution": "INSERT INTO conteos (producto_id, bodega_id, unidades, fecha)\nVALUES (1, 1, 98, '2026-11-14'), (7, 1, 270, '2026-11-14'), (16, 1, 5, '2026-11-14'), (25, 1, 28, '2026-11-14')\nON CONFLICT (producto_id, bodega_id) DO UPDATE SET\n    unidades = excluded.unidades,\n    fecha    = excluded.fecha;",
+    "check": "SELECT producto_id, bodega_id, unidades, fecha FROM conteos ORDER BY producto_id, bodega_id;",
+    "setup": "CREATE TABLE conteos (\n    producto_id INTEGER NOT NULL,\n    bodega_id   INTEGER NOT NULL,\n    unidades    INTEGER NOT NULL CHECK (unidades >= 0),\n    fecha       TEXT    NOT NULL,\n    PRIMARY KEY (producto_id, bodega_id)\n);\nINSERT INTO conteos (producto_id, bodega_id, unidades, fecha)\nVALUES (1, 1, 100, '2026-11-01'), (1, 2, 30, '2026-11-01'), (7, 1, 280, '2026-11-01'), (20, 2, 50, '2026-11-01');",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s05-7",
+    "title": "Vista de existencias",
+    "prompt": "Con las tablas `bodegas` y `movimientos (id, producto_id, bodega_id, fecha, tipo, cantidad, nota)` ya cargadas, crea la vista `v_existencias` con tres columnas, en este orden: `producto_id`, `bodega_id` y `unidades` (las entradas menos las salidas de ese producto en esa bodega). Debe tener una fila por cada pareja de producto y bodega que tenga movimientos.",
+    "hint": "Suma con signo: `SUM(CASE WHEN tipo = 'entrada' THEN cantidad ELSE -cantidad END)`, agrupando por `producto_id, bodega_id`.",
+    "solution": "CREATE VIEW v_existencias AS\nSELECT producto_id,\n       bodega_id,\n       SUM(CASE WHEN tipo = 'entrada' THEN cantidad ELSE -cantidad END) AS unidades\nFROM movimientos\nGROUP BY producto_id, bodega_id;",
+    "check": "SELECT producto_id, bodega_id, unidades FROM v_existencias ORDER BY producto_id, bodega_id;",
+    "setup": "CREATE TABLE bodegas (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT    NOT NULL UNIQUE,\n    provincia_id INTEGER NOT NULL REFERENCES provincias(id)\n);\nINSERT INTO bodegas (id, nombre, provincia_id) VALUES (1, 'Central', 1), (2, 'Pacífico Norte', 5), (3, 'Caribe', 7);\nCREATE TABLE movimientos (\n    id          INTEGER PRIMARY KEY,\n    producto_id INTEGER NOT NULL REFERENCES productos(id),\n    bodega_id   INTEGER NOT NULL REFERENCES bodegas(id),\n    fecha       TEXT    NOT NULL,\n    tipo        TEXT    NOT NULL CHECK (tipo IN ('entrada', 'salida')),\n    cantidad    INTEGER NOT NULL CHECK (cantidad > 0),\n    nota        TEXT    NOT NULL DEFAULT ''\n);\nINSERT INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad) VALUES\n(1, 1, '2026-11-01', 'entrada', 120), (1, 2, '2026-11-01', 'entrada', 30),\n(1, 1, '2026-11-05', 'salida', 18), (1, 2, '2026-11-06', 'salida', 4),\n(7, 1, '2026-11-01', 'entrada', 300), (7, 1, '2026-11-03', 'salida', 20),\n(7, 3, '2026-11-03', 'entrada', 20), (7, 3, '2026-11-10', 'salida', 6),\n(16, 1, '2026-11-01', 'entrada', 6), (16, 1, '2026-11-08', 'salida', 2),\n(20, 2, '2026-11-01', 'entrada', 50), (20, 2, '2026-11-09', 'salida', 12);",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s05-8",
+    "title": "Índice para el kardex",
+    "prompt": "El kardex (historial de un producto) se consulta siempre así: los movimientos de un producto, ordenados por fecha. Crea en `movimientos (id, producto_id, bodega_id, fecha, tipo, cantidad, nota)` un índice compuesto que sirva para esa búsqueda: primero `producto_id` y después `fecha`. El nombre lo eliges tú (se recomienda `idx_movimientos_producto_fecha`).",
+    "hint": "`CREATE INDEX nombre ON movimientos (producto_id, fecha);`. El orden de las columnas importa: la primera debe ser la que se usa en el WHERE.",
+    "solution": "CREATE INDEX idx_movimientos_producto_fecha ON movimientos (producto_id, fecha);",
+    "check": "SELECT il.\"unique\", ii.seqno, ii.name\nFROM pragma_index_list('movimientos') il, pragma_index_info(il.name) ii\nWHERE il.origin = 'c'\nORDER BY il.name, ii.seqno;",
+    "setup": "CREATE TABLE bodegas (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT    NOT NULL UNIQUE,\n    provincia_id INTEGER NOT NULL REFERENCES provincias(id)\n);\nCREATE TABLE movimientos (\n    id          INTEGER PRIMARY KEY,\n    producto_id INTEGER NOT NULL REFERENCES productos(id),\n    bodega_id   INTEGER NOT NULL REFERENCES bodegas(id),\n    fecha       TEXT    NOT NULL,\n    tipo        TEXT    NOT NULL CHECK (tipo IN ('entrada', 'salida')),\n    cantidad    INTEGER NOT NULL CHECK (cantidad > 0),\n    nota        TEXT    NOT NULL DEFAULT ''\n);",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s05-9",
+    "title": "Productos por reponer",
+    "prompt": "El módulo ya está completo: `productos` tiene la columna `stock_minimo` y existe la vista `v_existencias (producto_id, bodega_id, unidades)`. Para los productos que aparecen en la vista, muestra los que tienen menos unidades (sumando todas las bodegas) que su stock mínimo: `id`, `nombre`, unidades totales, `stock_minimo` y cuántas faltan para llegar al mínimo, en ese orden. Ordénalos de más a menos faltantes y, si empatan, por nombre.",
+    "hint": "Agrupa `v_existencias` por producto en una CTE con `SUM(unidades)`, únela con `productos` y filtra con `WHERE unidades < stock_minimo`. Lo que falta es `stock_minimo - unidades`.",
+    "solution": "WITH totales AS (\n    SELECT producto_id, SUM(unidades) AS unidades\n    FROM v_existencias\n    GROUP BY producto_id\n)\nSELECT p.id, p.nombre, t.unidades, p.stock_minimo, p.stock_minimo - t.unidades AS faltante\nFROM totales t\nJOIN productos p ON p.id = t.producto_id\nWHERE t.unidades < p.stock_minimo\nORDER BY faltante DESC, p.nombre;",
+    "check": "",
+    "setup": "ALTER TABLE productos ADD COLUMN stock_minimo INTEGER NOT NULL DEFAULT 10;\nUPDATE productos SET stock_minimo = 30 WHERE categoria_id = 1;\nUPDATE productos SET stock_minimo = 5 WHERE categoria_id = 3;\nCREATE TABLE bodegas (\n    id           INTEGER PRIMARY KEY,\n    nombre       TEXT    NOT NULL UNIQUE,\n    provincia_id INTEGER NOT NULL REFERENCES provincias(id)\n);\nINSERT INTO bodegas (id, nombre, provincia_id) VALUES (1, 'Central', 1), (2, 'Pacífico Norte', 5), (3, 'Caribe', 7);\nCREATE TABLE movimientos (\n    id          INTEGER PRIMARY KEY,\n    producto_id INTEGER NOT NULL REFERENCES productos(id),\n    bodega_id   INTEGER NOT NULL REFERENCES bodegas(id),\n    fecha       TEXT    NOT NULL,\n    tipo        TEXT    NOT NULL CHECK (tipo IN ('entrada', 'salida')),\n    cantidad    INTEGER NOT NULL CHECK (cantidad > 0),\n    nota        TEXT    NOT NULL DEFAULT ''\n);\nINSERT INTO movimientos (producto_id, bodega_id, fecha, tipo, cantidad) VALUES\n(1, 1, '2026-11-01', 'entrada', 40), (1, 1, '2026-11-07', 'salida', 15),\n(3, 1, '2026-11-01', 'entrada', 95), (3, 1, '2026-11-09', 'salida', 20),\n(7, 1, '2026-11-01', 'entrada', 12), (7, 1, '2026-11-04', 'salida', 5),\n(9, 1, '2026-11-01', 'entrada', 8),\n(14, 1, '2026-11-01', 'entrada', 6), (14, 1, '2026-11-10', 'salida', 2),\n(16, 1, '2026-11-01', 'entrada', 6),\n(20, 2, '2026-11-01', 'entrada', 50), (20, 2, '2026-11-12', 'salida', 45),\n(36, 1, '2026-11-01', 'entrada', 25);\nCREATE VIEW v_existencias AS\nSELECT producto_id,\n       bodega_id,\n       SUM(CASE WHEN tipo = 'entrada' THEN cantidad ELSE -cantidad END) AS unidades\nFROM movimientos\nGROUP BY producto_id, bodega_id;",
+    "starter": "",
+    "orderMatters": true
+   }
+  ]
+ }
+}

@@ -1,0 +1,1978 @@
+{
+ "id": "s07",
+ "number": 7,
+ "phaseId": 3,
+ "title": "Fundamentos de Python",
+ "rangeLabel": "23 nov – 28 nov",
+ "days": [
+  {
+   "date": "2026-11-23",
+   "kind": "workshop",
+   "title": "Instalar Python y primer programa",
+   "summary": "Instalar Python 3 y VS Code, crear la carpeta del curso y escribir tus primeros programas con print, variables y los tipos básicos.",
+   "objectives": [
+    "Instalar Python 3 y VS Code y comprobar desde la terminal que `python --version` responde con una versión 3.10 o mayor.",
+    "Moverte entre carpetas con `cd`, `mkdir`, `ls` y `pwd`, y correr un archivo `.py` desde la terminal.",
+    "Guardar los datos de un producto en variables, calcular con ellas y mostrarlas con `print`.",
+    "Distinguir `int`, `float`, `str`, `bool` y `None` y relacionarlos con los tipos de columna de SQLite."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Python, VS Code y la terminal",
+     "minutes": 80
+    },
+    {
+     "label": "Tema 2: print, variables y tipos",
+     "minutes": 60
+    },
+    {
+     "label": "Práctica: tareas en tu computador",
+     "minutes": 50
+    },
+    {
+     "label": "Repaso SQL (2 ejercicios)",
+     "minutes": 20
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Python, VS Code y la terminal",
+     "concept": "Hasta ahora escribiste SQL en el laboratorio: le describías a SQLite **qué** datos querías y él decidía cómo buscarlos. Python funciona distinto: un programa es una lista de instrucciones que el computador ejecuta **en orden, de arriba hacia abajo**, y tú decides cada paso. Para eso necesitas dos cosas: el intérprete de Python, que lee tus archivos `.py` y los ejecuta, y un editor cómodo; en el curso usamos Visual Studio Code (VS Code).\n\nPython se descarga solo desde python.org y VS Code desde code.visualstudio.com. En Windows, en la primera pantalla del instalador marca la casilla `Add python.exe to PATH`: sin ella la terminal no reconoce el comando `python`. En Mac y Linux el comando se llama `python3`. La guía «Instalar Python y VS Code» de la sección Guías tiene el paso a paso.\n\nLa terminal es una ventana donde das órdenes escribiendo. Siempre está «parada» en una carpeta: `pwd` te dice cuál, `ls` (o `dir`) lista lo que hay, `cd` entra a otra y `mkdir` crea una nueva. Un programa se corre con `python hola.py`, y solo funciona si la terminal está en la carpeta del archivo.",
+     "tip": "Después de instalar, cierra todas las terminales y abre una nueva antes de probar `python --version`: una terminal abierta antes de la instalación no conoce el comando nuevo y parece que algo falló cuando en realidad todo está bien.",
+     "example": "python --version\ncd Documents\nmkdir curso-python\ncd curso-python\nmkdir semana-07\ncd semana-07\npwd",
+     "language": "bash",
+     "exampleOutput": "Python 3.13.1\n\nPath\n----\nC:\\Users\\Tomas\\Documents\\curso-python\\semana-07",
+     "steps": [
+      {
+       "title": "Instala Python",
+       "body": "Entra a python.org, sección Downloads, y descarga el instalador que te propone el botón grande. En Windows marca `Add python.exe to PATH` antes de presionar `Install Now`; en Mac abre el `.pkg` y sigue los pasos. Luego abre una terminal nueva y escribe el comando: debe responder `Python 3.` seguido de la versión (3.10 o mayor).",
+       "code": "python --version",
+       "language": "bash"
+      },
+      {
+       "title": "Instala VS Code y la extensión de Python",
+       "body": "Descarga VS Code de code.visualstudio.com e instálalo con las opciones por defecto. Ábrelo, entra a Extensiones (Ctrl+Shift+X), busca «Python» e instala la que publica Microsoft. Esa extensión colorea el código, marca errores y permite elegir el intérprete con Ctrl+Shift+P y `Python: Select Interpreter`.",
+       "code": "code --version",
+       "language": "bash"
+      },
+      {
+       "title": "Crea la carpeta del curso",
+       "body": "Desde la terminal entra a Documentos y crea `curso-python` con una subcarpeta por semana. Esta semana trabajas en `semana-07`. Después de cada `mkdir`, escribe `ls` (o `dir`) para ver que la carpeta apareció; `pwd` te confirma la ruta completa donde quedaste.",
+       "code": "cd Documents\nmkdir curso-python\ncd curso-python\nmkdir semana-07\ncd semana-07\npwd",
+       "language": "bash"
+      },
+      {
+       "title": "Crea hola.py",
+       "body": "En VS Code usa Archivo, Abrir carpeta y elige `curso-python`. En el explorador de la izquierda haz clic derecho sobre `semana-07`, Nuevo archivo, y llámalo `hola.py`. Escribe estas líneas y guarda con Ctrl+S: si la pestaña muestra un punto blanco, hay cambios sin guardar.",
+       "code": "print(\"Hola, soy Tomás Sandí\")\nprint(\"Hoy empiezo Python\")\nprint(\"Ya sé SQL: ahora toca programar\")",
+       "language": "python"
+      },
+      {
+       "title": "Corre el programa desde la terminal",
+       "body": "Abre la terminal integrada con el menú Terminal, Nueva terminal. Entra a `semana-07`, lista los archivos y corre el programa. Si responde `can't open file`, la terminal está en otra carpeta: revisa con `pwd` y `ls` antes de tocar el código.",
+       "code": "cd semana-07\nls\npython hola.py",
+       "language": "bash"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "'python' no se reconoce como un comando interno o externo",
+       "cause": "En Windows no se marcó `Add python.exe to PATH`, así que la terminal no sabe dónde está Python.",
+       "fix": "Vuelve a correr el instalador, elige Modify y marca la opción del PATH; luego abre una terminal nueva. Mientras tanto, en Windows suele funcionar `py --version`."
+      },
+      {
+       "error": "Al escribir python se abre la Microsoft Store",
+       "cause": "Windows trae un alias que abre la tienda cuando no encuentra Python en el PATH.",
+       "fix": "Instala Python desde python.org con la casilla del PATH marcada. Si sigue igual, en Configuración, Aplicaciones, Alias de ejecución de aplicaciones, desactiva python.exe y python3.exe."
+      },
+      {
+       "error": "python: can't open file 'hola.py': [Errno 2] No such file or directory",
+       "cause": "La terminal está en otra carpeta, o el archivo quedó con otro nombre (`Hola.py`, `hola.py.txt`).",
+       "fix": "Escribe `pwd` y `ls`, entra con `cd` a `semana-07` o corre `python semana-07/hola.py` desde `curso-python`."
+      }
+     ]
+    },
+    {
+     "title": "print, variables y tipos",
+     "concept": "Una variable es un nombre que guarda un valor: `precio = 6500` guarda 6500 bajo el nombre `precio`. En SQL el `=` del `WHERE` comparaba; en Python **el `=` asigna**: calcula lo que está a la derecha y lo guarda en el nombre de la izquierda. Por eso `stock = stock - 2` es válido: toma el valor actual, le resta 2 y lo guarda otra vez.\n\nCada valor tiene un tipo, igual que cada columna de la Tienda. `int` es un entero, como `stock` (INTEGER); `float` lleva decimales, como `descuento` (REAL), y siempre se escribe con punto: `0.15`; `str` es texto entre comillas, como `nombre` (TEXT); `bool` es `True` o `False`, lo que la columna `activo` guardaba como 1 y 0; y `None` es la ausencia de valor, el NULL de Python. `type(valor)` te dice el tipo.\n\n`print()` muestra en la terminal lo que le pases; con varios valores separados por coma, los une con un espacio. Ojo con las comillas: `\"6500\"` es texto aunque parezca número. Los nombres van en minúscula con guion bajo, como las columnas: `precio_unitario`.",
+     "tip": "Usa nombres que digan qué guardan: `precio_con_iva` se entiende solo; `x2` obliga a leer todo el programa. Es la misma regla que seguiste al ponerle alias a las columnas en SQL.",
+     "example": "nombre = \"Café molido Tarrazú 500 g\"\nprecio = 6500\ndescuento = 0.1\nactivo = True\nemail_proveedor = None\n\nprint(nombre)\nprint(\"Precio:\", precio, \"colones\")\nprint(type(precio), type(descuento), type(nombre))\nprint(type(activo), type(email_proveedor))\n\nstock = 120\nstock = stock - 2\nprint(\"Quedan\", stock, \"unidades\")",
+     "language": "python",
+     "exampleOutput": "Café molido Tarrazú 500 g\nPrecio: 6500 colones\n<class 'int'> <class 'float'> <class 'str'>\n<class 'bool'> <class 'NoneType'>\nQuedan 118 unidades",
+     "steps": [
+      {
+       "title": "Guarda un producto en variables",
+       "body": "Crea `producto.py` en `semana-07` con los datos del chorreador de la Tienda (es el producto 25 del laboratorio). Cada línea crea una variable; todavía no se muestra nada porque no hay ningún `print`.",
+       "code": "nombre = \"Chorreador de café de madera\"\nprecio = 14500\ncosto = 8400\nstock = 30\nactivo = True",
+       "language": "python"
+      },
+      {
+       "title": "Muéstralos con print",
+       "body": "Agrega `print` para ver los valores. Fíjate en que el texto entre comillas sale tal cual y las variables salen con su valor; la coma entre ellos se convierte en un espacio.",
+       "code": "nombre = \"Chorreador de café de madera\"\nprecio = 14500\nprint(nombre)\nprint(\"Precio:\", precio)",
+       "language": "python"
+      },
+      {
+       "title": "Pregúntale el tipo a cada valor",
+       "body": "Usa `type()` con cada variable. Compara mentalmente con el `CREATE TABLE productos` que viste en la semana 5: precio INTEGER es `int`, nombre TEXT es `str`, activo (0 o 1) es `bool`.",
+       "code": "precio = 14500\nnombre = \"Chorreador de café de madera\"\nactivo = True\nprint(type(precio))\nprint(type(nombre))\nprint(type(activo))",
+       "language": "python"
+      },
+      {
+       "title": "Calcula con variables",
+       "body": "Las variables se combinan como columnas en un `SELECT precio - costo AS margen`. Aquí el resultado queda guardado en una variable nueva que puedes reutilizar en las líneas siguientes.",
+       "code": "precio = 14500\ncosto = 8400\nmargen = precio - costo\nprint(\"Margen por unidad:\", margen)\nprint(\"Margen de 30 unidades:\", margen * 30)",
+       "language": "python"
+      },
+      {
+       "title": "Provoca un error a propósito",
+       "body": "Suma un texto y un número para ver qué responde Python. Lee la última línea del mensaje: dice el tipo de error y por qué pasó. Es la misma costumbre que en el laboratorio: el mensaje casi siempre dice qué arreglar.",
+       "code": "precio = \"14500\"\nprint(precio + 500)",
+       "language": "python",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "TypeError: can only concatenate str (not \"int\") to str",
+       "cause": "Intentaste sumar un texto y un número, por ejemplo `\"14500\" + 500`. Para Python son tipos distintos y no adivina qué quieres.",
+       "fix": "Guarda el número sin comillas (`precio = 14500`) o, si lo quieres mostrar, sepáralo con coma: `print(\"Precio:\", precio)`."
+      },
+      {
+       "error": "NameError: name 'Precio' is not defined",
+       "cause": "Python distingue mayúsculas: `Precio` y `precio` son nombres distintos. También pasa si usas una variable antes de crearla.",
+       "fix": "Escribe el nombre exactamente igual que en la asignación y crea cada variable antes de usarla (más arriba en el archivo)."
+      },
+      {
+       "error": "Escribí descuento = 0,1 y print muestra (0, 1)",
+       "cause": "En Python el separador decimal es el punto. Con coma, Python entiende dos valores separados y crea otra cosa (una tupla).",
+       "fix": "Escribe `descuento = 0.1`. Lo mismo para precios: `14500`, sin espacios ni puntos de miles."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-23-1",
+     "title": "Repaso SQL: Productos agotados",
+     "prompt": "Bodega quiere saber qué productos **activos** no tienen ninguna unidad en inventario (`stock` igual a 0). Muestra el `nombre` y el `precio`, ordenados del más caro al más barato y, si empatan, por nombre.",
+     "hint": "Combina dos condiciones con `AND` en el `WHERE` y ordena con `ORDER BY precio DESC, nombre`.",
+     "solution": "SELECT nombre, precio\nFROM productos\nWHERE activo = 1 AND stock = 0\nORDER BY precio DESC, nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-23-2",
+     "title": "Repaso SQL: Pedidos por método de pago",
+     "prompt": "Sin contar los pedidos cancelados, ¿cuántos pedidos se pagaron con cada método? Muestra el `metodo_pago` y la cantidad de pedidos, en ese orden.",
+     "hint": "Filtra con `WHERE estado <> 'cancelado'` antes de agrupar por `metodo_pago` y cuenta con `COUNT(*)`.",
+     "solution": "SELECT metodo_pago, COUNT(*) AS pedidos\nFROM pedidos\nWHERE estado <> 'cancelado'\nGROUP BY metodo_pago;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Instala Python 3 desde python.org (en Windows marca `Add python.exe to PATH`). Abre una terminal nueva, comprueba que `python --version` o `python3 --version` responde con una versión 3.10 o mayor y anota el número exacto.",
+    "Instala VS Code y la extensión Python de Microsoft. Abre la terminal integrada (menú Terminal, Nueva terminal) y comprueba que ahí también responde `python --version`.",
+    "Usando solo la terminal (`cd`, `mkdir`, `ls` o `dir`, `pwd`), crea dentro de Documentos la carpeta `curso-python` y adentro `semana-07`. Copia la ruta completa que te muestra `pwd`.",
+    "En `semana-07` crea `hola.py` con tres `print`: tu nombre completo, la fecha de hoy (23 de noviembre de 2026) y la frase «Empiezo Python». Córrelo con `python hola.py`. Después borra la comilla final de una línea, corre de nuevo, lee el error completo y arréglalo.",
+    "Crea `producto.py` con seis variables de un producto que elijas del laboratorio (nombre, categoría, precio, costo, stock y activo). Muestra cada valor con su tipo usando `type()`, calcula el margen (`precio - costo`) y el valor del inventario (`precio * stock`), y compara el margen con lo que devuelve `SELECT precio - costo FROM productos WHERE id = ...` en el laboratorio."
+   ],
+   "taskHints": [
+    "Si al escribir `python` se abre la Microsoft Store o dice que no se reconoce, Python no quedó en el PATH: repite el instalador con la casilla marcada y abre una terminal nueva. En Mac usa `python3`.",
+    "La extensión correcta se llama «Python» y su autor es Microsoft. Si la terminal integrada no reconoce `python` pero la del sistema sí, cierra VS Code por completo y vuelve a abrirlo.",
+    "Desde tu carpeta personal, `cd Documents` (o `cd Documentos`). Escribe un comando por línea y presiona Enter. Si te equivocas de carpeta, `cd ..` sube un nivel.",
+    "Cada línea es `print(\"...\")`. El error que vas a ver es `SyntaxError: unterminated string literal` con el número de línea: ese número te dice dónde mirar.",
+    "Copia los datos del producto desde el laboratorio con `SELECT * FROM productos WHERE id = 25;` (cambia el id). `activo` vale 1 o 0 en SQL; en Python escríbelo como `True` o `False`."
+   ],
+   "challenge": {
+    "title": "Ficha de producto con marco",
+    "description": "Escribe `ficha.py` para el producto 25 (Chorreador de café de madera, categoría Hogar y cocina, precio 14500, costo 8400, stock 30, activo). Muestra una ficha enmarcada con una línea de 36 signos igual arriba y abajo, y adentro: nombre, categoría, precio, margen por unidad, margen en porcentaje del precio redondeado a 1 decimal, valor del inventario y si está activo. No cuentes los 36 signos a mano.",
+    "hint": "`\"=\" * 36` repite el signo 36 veces. Para el porcentaje, `round(margen / precio * 100, 1)` funciona como `ROUND(..., 1)` en SQL.",
+    "solution": "nombre = \"Chorreador de café de madera\"\ncategoria = \"Hogar y cocina\"\nprecio = 14500\ncosto = 8400\nstock = 30\nactivo = True\n\nmargen = precio - costo\n\nprint(\"=\" * 36)\nprint(\"Producto:\", nombre)\nprint(\"Categoría:\", categoria)\nprint(\"Precio:\", precio, \"colones\")\nprint(\"Margen por unidad:\", margen, \"colones\")\nprint(\"Margen %:\", round(margen / precio * 100, 1))\nprint(\"Valor del inventario:\", precio * stock, \"colones\")\nprint(\"Activo:\", activo)\nprint(\"=\" * 36)",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Intérprete",
+     "definition": "El programa Python que lee un archivo `.py` y ejecuta sus instrucciones una por una, de arriba hacia abajo."
+    },
+    {
+     "term": "Terminal",
+     "definition": "Ventana donde se escriben comandos para el sistema. En VS Code se abre desde el menú Terminal."
+    },
+    {
+     "term": "PATH",
+     "definition": "Lista de carpetas donde el sistema busca los programas que escribes en la terminal. Si Python no está ahí, `python` no se reconoce."
+    },
+    {
+     "term": "Variable",
+     "definition": "Nombre que guarda un valor para usarlo después. Se crea o se cambia con `=`."
+    },
+    {
+     "term": "Tipo de dato",
+     "definition": "La clase de valor que guarda una variable: `int`, `float`, `str`, `bool` o `None`. Se consulta con `type()`."
+    },
+    {
+     "term": "None",
+     "definition": "Valor especial de Python que significa «sin valor». Es el equivalente de NULL en SQL."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Descargar Python (sitio oficial)",
+     "url": "https://www.python.org/downloads/"
+    },
+    {
+     "title": "Primeros pasos con Python en VS Code",
+     "url": "https://code.visualstudio.com/docs/python/python-tutorial"
+    },
+    {
+     "title": "Tutorial de Python: una introducción informal",
+     "url": "https://docs.python.org/es/3/tutorial/introduction.html"
+    },
+    {
+     "title": "Usar Python en Windows",
+     "url": "https://docs.python.org/es/3/using/windows.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué comando escribes en la terminal para comprobar qué versión de Python quedó instalada?",
+     "code": "",
+     "options": [
+      "print(python)",
+      "python --version",
+      "python -install",
+      "version python"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `print(...)` es una instrucción que va dentro de un archivo `.py`, no un comando de la terminal.",
+      "Correcto: `python --version` (o `python3 --version` en Mac y Linux) responde con el número de versión.",
+      "No: esa opción no existe; Python se instala con el instalador de python.org.",
+      "No: un comando empieza por el nombre del programa (`python`) y luego sus opciones."
+     ],
+     "explanation": "La terminal ejecuta programas por su nombre; `python --version` le pide al intérprete que diga su versión.",
+     "hint": "Es el nombre del programa seguido de una opción con dos guiones."
+    },
+    {
+     "type": "choice",
+     "prompt": "En la tabla `detalle_pedido`, la columna `descuento` es REAL y guarda valores como 0.15. ¿Qué tipo de Python le corresponde?",
+     "code": "",
+     "options": [
+      "int",
+      "str",
+      "bool",
+      "float"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `int` es para enteros, como `cantidad` o `stock`; 0.15 tiene decimales.",
+      "No: sería texto solo si estuviera entre comillas, `\"0.15\"`, y entonces no podrías calcular con él.",
+      "No: `bool` solo tiene `True` y `False`, como la columna `activo`.",
+      "Correcto: los números con decimales son `float`, el equivalente de REAL en SQLite."
+     ],
+     "explanation": "INTEGER ↔ `int`, REAL ↔ `float`, TEXT ↔ `str`, NULL ↔ `None`. Los valores 0/1 como `activo` se representan mejor con `bool`.",
+     "hint": "Piensa en si el número tiene decimales."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué hace la línea `stock = stock - 2`?",
+     "code": "",
+     "options": [
+      "Compara si `stock` es igual a `stock - 2` y da False",
+      "Da error porque `stock` aparece a los dos lados",
+      "Toma el valor actual de `stock`, le resta 2 y guarda el resultado en `stock`",
+      "Crea una segunda variable llamada `stock - 2`"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: en Python `=` asigna; la comparación se escribe `==`. En el `WHERE` de SQL el `=` sí comparaba.",
+      "No: es válido y muy común; primero se calcula la derecha con el valor viejo y después se guarda.",
+      "Correcto: Python evalúa la expresión de la derecha y guarda el resultado en el nombre de la izquierda.",
+      "No: los nombres de variable no pueden tener espacios ni el signo menos."
+     ],
+     "explanation": "La asignación se lee de derecha a izquierda: calcular y luego guardar. Es como un `UPDATE productos SET stock = stock - 2`.",
+     "hint": "Recuerda un `UPDATE ... SET stock = stock - 2` de la semana 5."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Para Python, `\"6500\"` y `6500` son el mismo valor.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el primero es un `str` (texto) y el segundo un `int`. `\"6500\" + 1` da error y `6500 + 1` da 6501.",
+      "Correcto: las comillas convierten el valor en texto aunque tenga solo dígitos."
+     ],
+     "explanation": "Las comillas definen el tipo: con comillas es `str`, sin comillas es número. `type()` lo confirma.",
+     "hint": "Prueba `type(\"6500\")` y `type(6500)`."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Para que `python hola.py` funcione, la terminal debe estar en la carpeta donde está `hola.py`, o bien hay que escribir la ruta (por ejemplo `python semana-07/hola.py`).",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: Python busca el archivo a partir de la carpeta de trabajo de la terminal.",
+      "No: si la terminal está en otra carpeta, Python responde `No such file or directory`."
+     ],
+     "explanation": "El nombre del archivo se busca desde la carpeta donde está parada la terminal; por eso `pwd` y `ls` son lo primero que revisas.",
+     "hint": "Piensa en el error `can't open file`."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "precio = 3800\ncantidad = 2\nprint(\"Total:\", precio * cantidad)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Total: 7600"
+     ],
+     "optionFeedback": [],
+     "explanation": "`print` une sus dos valores con un espacio: el texto `Total:` y el resultado de 3800 * 2.",
+     "hint": "Calcula primero `precio * cantidad`; la coma en `print` pone un espacio."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "stock = 60\nstock = stock - 15\nstock = stock + 5\nprint(stock)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "50"
+     ],
+     "optionFeedback": [],
+     "explanation": "Cada asignación usa el valor que tenía `stock` en ese momento: 60 - 15 = 45 y 45 + 5 = 50.",
+     "hint": "Sigue las líneas en orden, de arriba hacia abajo."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea para mostrar el tipo de la variable `activo`.",
+     "code": "activo = True\nprint(___(activo))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "type"
+     ],
+     "optionFeedback": [],
+     "explanation": "`type(valor)` devuelve el tipo; aquí muestra `<class 'bool'>`.",
+     "hint": "Es la función que usaste para preguntarle el tipo a cada variable."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-24",
+   "kind": "workshop",
+   "title": "Números, texto y entrada",
+   "summary": "Calcular con los operadores de Python, pedir datos con input() y convertirlos, mostrar montos con f-strings y limpiar texto con sus métodos.",
+   "objectives": [
+    "Usar `+`, `-`, `*`, `/`, `//`, `%` y `**` y explicar en qué se diferencia la división de Python de la de SQLite.",
+    "Pedir datos con `input()` y convertirlos con `int()` y `float()` antes de calcular.",
+    "Mostrar montos en colones con f-strings, separador de miles y una cantidad fija de decimales.",
+    "Limpiar y consultar texto con `strip`, `lower`, `upper`, `title`, `replace`, `find`, `len` e `in`, relacionándolos con sus equivalentes de SQL."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Operadores, input() y f-strings",
+     "minutes": 75
+    },
+    {
+     "label": "Tema 2: Métodos de texto",
+     "minutes": 55
+    },
+    {
+     "label": "Práctica: tareas en tu computador",
+     "minutes": 60
+    },
+    {
+     "label": "Repaso SQL (2 ejercicios)",
+     "minutes": 20
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Operadores, input() y conversión de tipos, f-strings",
+     "concept": "Python calcula con `+`, `-`, `*` y `/`, y agrega tres operadores útiles: `//` (división entera), `%` (residuo) y `**` (potencia). Una diferencia importante con SQLite: **en Python `/` siempre da un `float`**, así que `7 / 2` es `3.5`, mientras que en el laboratorio `SELECT 7 / 2` daba 3. La trampa de la división entera de la semana 2 aquí no existe; si quieres la parte entera, usa `//`. Con 10 tazas en cajas de 4: `10 // 4` da 2 cajas y `10 % 4` da 2 tazas sueltas.\n\n`input(\"Cantidad: \")` muestra el mensaje, espera a que el usuario escriba y presione Enter, y **siempre devuelve texto**, aunque escriba números. Antes de calcular, convierte: `int()` para enteros, `float()` para decimales y `str()` para volver a texto.\n\nPara mostrar resultados, las f-strings son la herramienta: una `f` antes de las comillas y variables entre llaves, como `f\"Total: ₡{total}\"`. Después de dos puntos va el formato: `{total:,.2f}` pone separador de miles y 2 decimales, y `{total:,.0f}` redondea a colones enteros. Python usa la coma como separador de miles.",
+     "tip": "Convierte el dato en la misma línea en que lo pides: `cantidad = int(input(\"Cantidad: \"))`. Así nunca te queda una variable que parece número pero es texto.",
+     "example": "precio = 6500\ncantidad = 3\ndescuento = 0.1\n\nsubtotal = precio * cantidad\nmonto_descuento = subtotal * descuento\nneto = subtotal - monto_descuento\niva = neto * 0.13\ntotal = neto + iva\n\nprint(f\"Subtotal:  ₡{subtotal:,}\")\nprint(f\"Descuento: ₡{monto_descuento:,.0f}\")\nprint(f\"IVA 13 %:  ₡{iva:,.2f}\")\nprint(f\"Total:     ₡{total:,.2f}\")\nprint(7 / 2, 7 // 2, 7 % 2)",
+     "language": "python",
+     "exampleOutput": "Subtotal:  ₡19,500\nDescuento: ₡1,950\nIVA 13 %:  ₡2,281.50\nTotal:     ₡19,831.50\n3.5 3 1",
+     "steps": [
+      {
+       "title": "Prueba los operadores",
+       "body": "Crea `operaciones.py` y corre estas líneas. Compara `/` con `//` y fíjate en que `%` devuelve lo que sobra de la división. Luego corre `SELECT 10 / 4, 10 % 4;` en el laboratorio para ver la diferencia con SQLite.",
+       "code": "print(10 / 4)\nprint(10 // 4)\nprint(10 % 4)\nprint(2 ** 3)",
+       "language": "python"
+      },
+      {
+       "title": "Pide un dato con input()",
+       "body": "Corre este código y escribe un número. Aunque escribas 3, `type()` responde `<class 'str'>`: `input` siempre entrega texto. Por eso `cantidad * 2` repetiría el texto en vez de multiplicar.",
+       "code": "cantidad = input(\"¿Cuántas unidades? \")\nprint(type(cantidad))\nprint(cantidad * 2)",
+       "language": "python"
+      },
+      {
+       "title": "Convierte antes de calcular",
+       "body": "Envuelve cada `input` en `int()` o `float()` según el dato. El precio en colones es entero; un descuento como 7.5 necesita `float`. Si el usuario escribe letras, `int()` falla: el miércoles aprenderás a validarlo.",
+       "code": "precio = int(input(\"Precio en colones: \"))\ncantidad = int(input(\"Cantidad: \"))\nsubtotal = precio * cantidad\nprint(\"Subtotal:\", subtotal)",
+       "language": "python"
+      },
+      {
+       "title": "Da formato con f-strings",
+       "body": "Compara las tres formas de mostrar el mismo monto. Con `:,` aparece el separador de miles; con `.2f`, siempre dos decimales, aunque sean ceros. Así los montos quedan como en una factura.",
+       "code": "total = 41544.45\nprint(total)\nprint(f\"₡{total:,.2f}\")\nprint(f\"₡{total:,.0f}\")",
+       "language": "python"
+      },
+      {
+       "title": "Redondea con round()",
+       "body": "`round(valor, 2)` funciona como `ROUND(valor, 2)` en SQL: cambia el número, no solo cómo se ve. Úsalo cuando vayas a guardar o comparar el valor; para mostrarlo basta el formato de la f-string.",
+       "code": "iva = 36765 * 0.13\nprint(iva)\nprint(round(iva, 2))\nprint(round(iva))",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "La terminal se llena de 333333… en vez de mostrar el subtotal",
+       "cause": "No convertiste el resultado de `input`: `\"3\" * 6500` repite el texto «3» 6500 veces en lugar de multiplicar.",
+       "fix": "Convierte al pedir el dato: `cantidad = int(input(\"Cantidad: \"))`."
+      },
+      {
+       "error": "ValueError: invalid literal for int() with base 10: '2.5'",
+       "cause": "`int()` solo acepta texto con dígitos enteros. Con `2.5`, letras o una respuesta vacía, falla.",
+       "fix": "Usa `float()` si el dato puede tener decimales. Para rechazar letras sin que el programa se caiga, valida antes (lo verás el miércoles)."
+      },
+      {
+       "error": "print muestra Total: ₡{total} con las llaves",
+       "cause": "Olvidaste la `f` antes de las comillas, así que Python trata las llaves como texto normal.",
+       "fix": "Escribe `f\"Total: ₡{total}\"`, con la `f` pegada a la comilla de apertura."
+      },
+      {
+       "error": "ValueError: Invalid format specifier",
+       "cause": "El formato después de los dos puntos está mal escrito, por ejemplo `{total:.2,f}` o `{total: ,.2f}`.",
+       "fix": "El orden es fijo: primero la coma de miles y luego los decimales, sin espacios: `{total:,.2f}`."
+      }
+     ]
+    },
+    {
+     "title": "Métodos de texto",
+     "concept": "Un método es una función que pertenece a un valor y se llama con un punto: `nombre.upper()`. Los métodos de texto **no cambian el texto original**, devuelven uno nuevo; por eso hay que guardar el resultado: `correo = correo.strip()`.\n\nCasi todos ya los conoces de SQL: `upper()` y `lower()` son UPPER y LOWER; `strip()` es TRIM; `replace(\"a\", \"b\")` es REPLACE; `len(texto)` es LENGTH; y `texto.find(\"x\")` es INSTR, con dos diferencias: cuenta desde 0 y devuelve -1 si no encuentra (INSTR contaba desde 1 y devolvía 0). Para saber si un texto contiene otro, `\"café\" in nombre.lower()` hace el trabajo de `LIKE '%café%'`. Además están `title()` (mayúscula inicial en cada palabra), `startswith()` y `endswith()`.\n\nPython maneja bien las tildes: `\"Tarrazú\".upper()` da `TARRAZÚ`, mientras que el UPPER de SQLite deja la ú en minúscula. Y puedes tomar caracteres por posición: `texto[0]` es el primero, `texto[-4:]` los cuatro últimos y `texto[0:4]` los cuatro primeros, como `SUBSTR(texto, 1, 4)`.",
+     "tip": "Cuando limpies datos que escribe una persona, encadena métodos en este orden: primero `strip()` para quitar espacios y después `lower()` o `title()`. Así `\"  HEREDIA \"` termina siempre como `heredia`.",
+     "example": "correo = \"  Mariana.Alfaro@Gmail.com \"\nproducto = \"café molido tarrazú 500 g\"\n\nprint(correo.strip().lower())\nprint(producto.title())\nprint(producto.upper())\nprint(len(producto))\nprint(producto.find(\"tarrazú\"), producto.find(\"naranjo\"))\nprint(\"café\" in producto, producto.startswith(\"té\"))\nprint(producto.replace(\"500 g\", \"1 kg\"))",
+     "language": "python",
+     "exampleOutput": "mariana.alfaro@gmail.com\nCafé Molido Tarrazú 500 G\nCAFÉ MOLIDO TARRAZÚ 500 G\n25\n12 -1\nTrue False\ncafé molido tarrazú 1 kg",
+     "steps": [
+      {
+       "title": "Limpia un correo",
+       "body": "Los correos llegan con espacios y mayúsculas mezcladas. Encadena `strip()` y `lower()` y compara el largo antes y después con `len()`: los espacios también cuentan como caracteres.",
+       "code": "correo = \"  Silvia.Campos@RACSA.co.cr  \"\nlimpio = correo.strip().lower()\nprint(limpio)\nprint(len(correo), len(limpio))",
+       "language": "python"
+      },
+      {
+       "title": "Mayúsculas con tildes",
+       "body": "Corre este código y luego en el laboratorio `SELECT UPPER('Café Tarrazú');`. Python convierte la é y la ú; SQLite no. Es un buen motivo para preparar los textos en Python cuando lleguen las tildes.",
+       "code": "nombre = \"Café Tarrazú\"\nprint(nombre.upper())\nprint(nombre.lower())\nprint(\"maní garapiñado\".title())",
+       "language": "python"
+      },
+      {
+       "title": "Busca dentro de un texto",
+       "body": "`find` dice en qué posición empieza un texto (desde 0) y `in` solo responde `True` o `False`. Usa `in` cuando solo quieras saber si está, como hacías con `LIKE`.",
+       "code": "producto = \"Carreta típica de Sarchí (miniatura)\"\nprint(producto.find(\"Sarchí\"))\nprint(producto.find(\"Cartago\"))\nprint(\"Sarchí\" in producto)",
+       "language": "python"
+      },
+      {
+       "title": "Reemplaza y toma partes",
+       "body": "Un teléfono como `8451-3931` se puede limpiar con `replace` y medir con `len`. Con `[-4:]` tomas los últimos cuatro dígitos, útil para mostrar un número oculto en un comprobante.",
+       "code": "telefono = \"8451-3931\"\nsolo_digitos = telefono.replace(\"-\", \"\")\nprint(solo_digitos, len(solo_digitos))\nprint(\"****-\" + telefono[-4:])",
+       "language": "python"
+      },
+      {
+       "title": "Limpia lo que escribe el usuario",
+       "body": "Los métodos se pueden aplicar directo al resultado de `input`. Escribe tu nombre con espacios al inicio y en minúsculas, y comprueba que sale ordenado.",
+       "code": "nombre = input(\"Nombre del cliente: \").strip().title()\nprint(f\"Cliente: {nombre}\")",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "El texto sigue con espacios después de usar strip()",
+       "cause": "Llamaste `correo.strip()` sin guardar el resultado. Los textos no se modifican: el método devuelve uno nuevo.",
+       "fix": "Asigna el resultado: `correo = correo.strip()`."
+      },
+      {
+       "error": "print muestra <built-in method upper of str object at 0x...>",
+       "cause": "Escribiste `nombre.upper` sin paréntesis: eso es el método en sí, no el resultado de llamarlo.",
+       "fix": "Agrega los paréntesis: `nombre.upper()`."
+      },
+      {
+       "error": "AttributeError: 'int' object has no attribute 'upper'",
+       "cause": "Los métodos de texto solo existen para `str`. Lo llamaste sobre un número.",
+       "fix": "Revisa el tipo con `type()`. Si de verdad necesitas texto, convierte con `str(valor)`."
+      },
+      {
+       "error": "if correo.find(\"@\"): da un resultado al revés",
+       "cause": "`find` devuelve una posición, no `True` o `False`: 0 significa «está al inicio» y -1 significa «no está».",
+       "fix": "Para preguntar si contiene algo, usa `\"@\" in correo`; usa `find` solo cuando necesites la posición."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-24-1",
+     "title": "Repaso SQL: Precios con IVA",
+     "prompt": "Para las etiquetas de la góndola de café, la tienda quiere mostrar el precio con IVA. De los productos **activos** de la categoría «Café y bebidas», muestra el `nombre`, el `precio` y el precio con IVA del 13 % redondeado a colones enteros, en ese orden.",
+     "hint": "Une `productos` con `categorias` para filtrar por el nombre de la categoría. El precio con IVA es `precio * 1.13`, redondeado con `ROUND(..., 0)`.",
+     "solution": "SELECT p.nombre, p.precio, ROUND(p.precio * 1.13) AS precio_con_iva\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE c.nombre = 'Café y bebidas' AND p.activo = 1;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-24-2",
+     "title": "Repaso SQL: Clientes con datos incompletos",
+     "prompt": "Servicio al cliente quiere completar los datos de contacto. Para cada cliente al que le falta el email **o** el teléfono, muestra su nombre completo (nombre y apellido separados por un espacio), el nombre de su provincia y un dato de contacto: el email si lo tiene, si no el teléfono, y si no tiene ninguno el texto `sin contacto`. En ese orden.",
+     "hint": "El nombre completo se arma con `||`. Para el contacto, `COALESCE` devuelve el primer valor que no es NULL de su lista.",
+     "solution": "SELECT c.nombre || ' ' || c.apellido AS cliente, p.nombre AS provincia,\n       COALESCE(c.email, c.telefono, 'sin contacto') AS contacto\nFROM clientes c\nJOIN provincias p ON p.id = c.provincia_id\nWHERE c.email IS NULL OR c.telefono IS NULL;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "En `semana-07/operaciones.py`, sin `input`, calcula cuántas cajas completas de 6 tazas salen de 50 tazas de cerámica y cuántas quedan sueltas (`//` y `%`). Muestra también `7 / 2` y `7 // 2`, y compáralos con `SELECT 7 / 2, 7.0 / 2;` en el laboratorio.",
+    "Crea `linea_pedido.py`: pide con `input` el nombre del producto, el precio, la cantidad y el descuento en porcentaje (por ejemplo 5). Calcula subtotal, monto del descuento, neto, IVA del 13 % y total, y muéstralos con f-strings, ₡, separador de miles y 2 decimales. Pruébalo con el Cargador USB-C 30 W: 3 unidades de ₡12 900 con 5 %.",
+    "Crea `cliente.py`: pide el nombre y el correo de un cliente. Limpia el nombre con `strip().title()` y el correo con `strip().lower()`, muestra cuántos caracteres tiene el correo limpio, si contiene `@` (con `in`) y el dominio (lo que va después de la arroba).",
+    "Crea `etiqueta.py` con un producto que tenga tildes en el nombre (por ejemplo «Maní garapiñado 250 g», ₡2 100). Muestra el nombre en mayúsculas y el precio con IVA redondeado a colones. Corre `SELECT UPPER(nombre) FROM productos WHERE id = 13;` en el laboratorio y anota en un comentario la diferencia.",
+    "Equivócate a propósito con `linea_pedido.py`: escribe `2.5` o `tres` en la cantidad, lee el `ValueError` completo y anota en un comentario al final del archivo qué dato lo provocó y en qué línea."
+   ],
+   "taskHints": [
+    "50 // 6 da las cajas completas y 50 % 6 las tazas sueltas. En SQLite `7 / 2` da 3 porque los dos son enteros; con `7.0` ya da 3.5.",
+    "Convierte cada dato al pedirlo y pasa el porcentaje a fracción dividiendo entre 100. El caso de prueba debe dar subtotal ₡38,700.00, descuento ₡1,935.00, neto ₡36,765.00, IVA ₡4,779.45 y total ₡41,544.45.",
+    "La posición de la arroba es `correo.find(\"@\")`; el dominio empieza un carácter después: `correo[correo.find(\"@\") + 1:]`.",
+    "`round(2100 * 1.13)` da 2373. En SQLite la ñ y la í quedan en minúscula después de UPPER porque solo convierte letras sin tilde.",
+    "El mensaje termina con algo como `ValueError: invalid literal for int() with base 10: 'tres'`. La línea que lo provoca aparece un poco más arriba en el mensaje, con su número."
+   ],
+   "challenge": {
+    "title": "Comprobante de SINPE Móvil",
+    "description": "Escribe `comprobante.py` con estas variables: `cliente = \"  natalia RAMÍREZ \"`, `telefono = \"8888-1234\"` y `monto = 44451.25`. Muestra un comprobante entre dos líneas de 30 signos igual, con el título «Comprobante SINPE Móvil», el nombre del cliente limpio y con mayúscula inicial, el teléfono oculto como `****-1234` y el monto con ₡, separador de miles y 2 decimales.",
+    "hint": "`strip()` y luego `title()` para el nombre; `telefono[-4:]` toma los últimos cuatro caracteres; `f\"₡{monto:,.2f}\"` da el formato.",
+    "solution": "cliente = \"  natalia RAMÍREZ \"\ntelefono = \"8888-1234\"\nmonto = 44451.25\n\nnombre = cliente.strip().title()\noculto = \"****-\" + telefono[-4:]\n\nprint(\"=\" * 30)\nprint(\"Comprobante SINPE Móvil\")\nprint(f\"Cliente:  {nombre}\")\nprint(f\"Teléfono: {oculto}\")\nprint(f\"Monto:    ₡{monto:,.2f}\")\nprint(\"=\" * 30)",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Operador",
+     "definition": "Símbolo que hace un cálculo o una comparación entre valores, como `+`, `//` o `%`."
+    },
+    {
+     "term": "División entera",
+     "definition": "La operación `//`: divide y descarta la parte decimal. `10 // 4` da 2."
+    },
+    {
+     "term": "input()",
+     "definition": "Función que muestra un mensaje, espera a que el usuario escriba y devuelve lo escrito como texto (`str`)."
+    },
+    {
+     "term": "Conversión de tipos",
+     "definition": "Pasar un valor de un tipo a otro con `int()`, `float()` o `str()`. Es necesaria después de `input()`."
+    },
+    {
+     "term": "f-string",
+     "definition": "Texto con una `f` antes de las comillas donde las expresiones entre llaves se reemplazan por su valor: `f\"₡{total:,.2f}\"`."
+    },
+    {
+     "term": "Método",
+     "definition": "Función que pertenece a un valor y se llama con un punto, como `nombre.upper()`."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: números y cadenas de texto",
+     "url": "https://docs.python.org/es/3/tutorial/introduction.html"
+    },
+    {
+     "title": "Métodos de las cadenas (str)",
+     "url": "https://docs.python.org/es/3/builtins/stdtypes.html#string-methods"
+    },
+    {
+     "title": "Entrada y salida: f-strings y formato",
+     "url": "https://docs.python.org/es/3/tutorial/inputoutput.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "En el laboratorio, `SELECT 7 / 2;` devuelve 3. ¿Qué muestra `print(7 / 2)` en Python?",
+     "code": "",
+     "options": [
+      "3",
+      "3.5",
+      "4",
+      "Un error, porque hay que usar float()"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ese es el resultado de SQLite con dos enteros, o el de `7 // 2` en Python.",
+      "Correcto: en Python `/` siempre da un `float`, aunque los dos números sean enteros.",
+      "No: Python no redondea al dividir con `/`.",
+      "No: Python divide enteros sin problema; no hace falta convertir."
+     ],
+     "explanation": "En Python 3, `/` es división real y `//` es división entera. En SQLite, dividir dos enteros descarta los decimales.",
+     "hint": "Recuerda la diferencia entre `/` y `//`."
+    },
+    {
+     "type": "choice",
+     "prompt": "El usuario escribe 4 cuando el programa hace `cantidad = input(\"Cantidad: \")`. ¿Qué tipo tiene `cantidad`?",
+     "code": "",
+     "options": [
+      "int",
+      "float",
+      "bool",
+      "str"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `input` no convierte nada por su cuenta; habría que usar `int(...)`.",
+      "No: tampoco es `float` hasta que lo conviertas con `float(...)`.",
+      "No: `bool` es solo `True` o `False`.",
+      "Correcto: `input` siempre devuelve texto, aunque el usuario escriba dígitos."
+     ],
+     "explanation": "Todo lo que llega por `input` es `str`. Por eso se convierte con `int()` o `float()` antes de calcular.",
+     "hint": "Piensa en qué recibe `input` del teclado."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué método de texto de Python equivale a TRIM de SQL?",
+     "code": "",
+     "options": [
+      "strip()",
+      "replace()",
+      "find()",
+      "title()"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `strip()` quita los espacios del inicio y del final, como TRIM.",
+      "No: `replace` cambia un texto por otro en cualquier parte, como REPLACE.",
+      "No: `find` busca la posición de un texto, como INSTR.",
+      "No: `title` pone en mayúscula la primera letra de cada palabra; SQLite no tiene un equivalente directo."
+     ],
+     "explanation": "TRIM ↔ `strip()`, UPPER ↔ `upper()`, LOWER ↔ `lower()`, REPLACE ↔ `replace()`, LENGTH ↔ `len()`, INSTR ↔ `find()`.",
+     "hint": "Es el método que quita espacios en los extremos."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Después de `correo.lower()`, la variable `correo` queda en minúsculas aunque no se guarde el resultado.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: los textos no se modifican; `lower()` devuelve un texto nuevo que se pierde si no lo guardas.",
+      "Correcto: hay que escribir `correo = correo.lower()` para quedarse con el resultado."
+     ],
+     "explanation": "Los métodos de `str` devuelven un texto nuevo y el original queda igual.",
+     "hint": "Piensa en qué pasa con el valor que devuelve el método."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`\"Tarrazú\".upper()` devuelve `TARRAZÚ`, con la Ú en mayúscula.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: Python convierte también las letras con tilde. SQLite, en cambio, deja la ú en minúscula.",
+      "No: Python sí maneja tildes y eñes al cambiar mayúsculas; el que no lo hace es el UPPER de SQLite."
+     ],
+     "explanation": "Los textos de Python son Unicode completo; el UPPER de SQLite, por defecto, solo convierte letras sin tilde.",
+     "hint": "Compáralo con lo que viste en el laboratorio."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "precio = 2450\ncantidad = 4\nprint(f\"Total: ₡{precio * cantidad:,}\")",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Total: ₡9,800"
+     ],
+     "optionFeedback": [],
+     "explanation": "2450 × 4 = 9800, y el formato `:,` agrega el separador de miles.",
+     "hint": "Calcula el producto y agrega la coma de miles."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "producto = \"  bolso de manta \"\nprint(len(producto.strip()))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "14"
+     ],
+     "optionFeedback": [],
+     "explanation": "`strip()` quita los dos espacios del inicio y el del final; quedan los 14 caracteres de «bolso de manta», contando los espacios interiores.",
+     "hint": "Los espacios entre palabras sí cuentan; los de los extremos no."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea para que el precio salga con separador de miles y 2 decimales, por ejemplo ₡14,500.00.",
+     "code": "precio = 14500\nprint(f\"₡{precio:___}\")",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      ",.2f"
+     ],
+     "optionFeedback": [],
+     "explanation": "Después de los dos puntos va primero la coma de miles y luego `.2f` para dos decimales.",
+     "hint": "Coma de miles, punto, cantidad de decimales y la letra f."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-25",
+   "kind": "workshop",
+   "title": "Decisiones",
+   "summary": "Hacer que tus programas decidan con if, elif y else, combinar condiciones con and, or y not, y validar lo que escribe el usuario antes de usarlo.",
+   "objectives": [
+    "Escribir decisiones con `if`, `elif` y `else` respetando los dos puntos y la sangría.",
+    "Ordenar una cadena de `elif` como un `CASE WHEN`, de la condición más restrictiva a la más amplia.",
+    "Combinar condiciones con `and`, `or`, `not` y comparaciones encadenadas.",
+    "Validar entradas con `isdigit()`, rangos y textos vacíos para que el programa no se caiga."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: if, elif, else y comparaciones",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: and, or, not y validar entradas",
+     "minutes": 60
+    },
+    {
+     "label": "Práctica: tareas en tu computador",
+     "minutes": 60
+    },
+    {
+     "label": "Repaso SQL (2 ejercicios)",
+     "minutes": 20
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "if, elif, else y comparaciones",
+     "concept": "`if` ejecuta un bloque de código solo cuando una condición es verdadera. La línea termina en dos puntos y el bloque va **sangrado con 4 espacios**: la sangría no es decoración, es lo que le dice a Python qué líneas dependen del `if`. `else` cubre el caso contrario. Las comparaciones son `==`, `!=`, `<`, `>`, `<=` y `>=`; ojo: en Python `=` asigna y `==` compara, y `!=` es el `<>` de SQL.\n\n`elif` encadena más casos y funciona igual que el `CASE WHEN` de la semana 2: las condiciones se revisan **en orden** y solo se ejecuta la primera que se cumple; `else` es el `ELSE` final. Por eso el orden importa: si preguntas primero `precio <= 15000` y luego `precio < 5000`, la segunda rama nunca se ejecuta.\n\nAl comparar texto, Python distingue mayúsculas: `\"Heredia\" == \"heredia\"` es `False`, así que normaliza con `strip().lower()` antes de comparar. Y compara números con números: `\"10\" > \"9\"` es `False` porque compara texto letra por letra.",
+     "tip": "Antes de escribir un `elif` largo, escribe en un comentario la tabla de casos (de qué valor a qué valor y qué resultado). Es lo mismo que harías antes de un `CASE` y evita huecos entre rangos.",
+     "example": "precio = 14500\n\nif precio < 5000:\n    rango = \"Económico\"\nelif precio <= 15000:\n    rango = \"Medio\"\nelse:\n    rango = \"Premium\"\nprint(f\"₡{precio:,} -> {rango}\")\n\nstock = 0\nif stock == 0:\n    print(\"Agotado: pedir a bodega\")\nelse:\n    print(f\"Disponibles: {stock}\")\n\nprint(\"10\" > \"9\", 10 > 9)",
+     "language": "python",
+     "exampleOutput": "₡14,500 -> Medio\nAgotado: pedir a bodega\nFalse True",
+     "steps": [
+      {
+       "title": "Tu primer if",
+       "body": "Crea `decisiones.py`. Cambia el valor de `stock` entre 0, 5 y 40 y corre cada vez. Observa que la línea sin sangría al final se ejecuta siempre, porque ya no pertenece al `if`.",
+       "code": "stock = 5\nif stock < 10:\n    print(\"Stock bajo: reponer\")\nprint(\"Revisión terminada\")",
+       "language": "python"
+      },
+      {
+       "title": "Agrega else",
+       "body": "Con `else` el programa toma siempre uno de los dos caminos. Aquí decides si un pedido califica para envío gratis desde ₡50 000.",
+       "code": "monto = 37125\nif monto >= 50000:\n    print(\"Envío gratis\")\nelse:\n    faltan = 50000 - monto\n    print(f\"Te faltan ₡{faltan:,} para el envío gratis\")",
+       "language": "python"
+      },
+      {
+       "title": "Una cadena de elif como un CASE",
+       "body": "Clasifica una calificación de reseña igual que lo harías con `CASE WHEN calificacion >= 4 THEN ...`. Prueba con 5, 3 y 1 y comprueba que cada valor cae en una sola rama.",
+       "code": "calificacion = 3\nif calificacion >= 4:\n    opinion = \"positiva\"\nelif calificacion == 3:\n    opinion = \"neutral\"\nelse:\n    opinion = \"negativa\"\nprint(f\"Reseña {opinion}\")",
+       "language": "python"
+      },
+      {
+       "title": "Compara texto sin depender de mayúsculas",
+       "body": "Lo que escribe una persona puede venir con espacios o mayúsculas. Normaliza primero y compara después contra el texto en minúsculas.",
+       "code": "provincia = \"  HEREDIA \"\nif provincia.strip().lower() == \"heredia\":\n    print(\"Envío del Valle Central: ₡2,500\")\nelse:\n    print(\"Otra provincia\")",
+       "language": "python"
+      },
+      {
+       "title": "Mira qué pasa sin sangría",
+       "body": "Corre este código a propósito: Python se niega a ejecutarlo y señala la línea. En VS Code la tecla Tab pone 4 espacios.",
+       "code": "stock = 0\nif stock == 0:\nprint(\"Agotado\")",
+       "language": "python",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "IndentationError: expected an indented block after 'if' statement on line 2",
+       "cause": "La línea que sigue al `if` no tiene sangría, así que Python no sabe qué debe ejecutar cuando la condición se cumple.",
+       "fix": "Pon 4 espacios (Tab en VS Code) al inicio de cada línea del bloque."
+      },
+      {
+       "error": "SyntaxError: expected ':'",
+       "cause": "Falta el dos puntos al final de la línea del `if`, `elif` o `else`.",
+       "fix": "Termina la línea con `:`, por ejemplo `if precio < 5000:`."
+      },
+      {
+       "error": "SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?",
+       "cause": "Escribiste `if stock = 0:`. En Python `=` asigna; para comparar se usa `==`.",
+       "fix": "Cámbialo por `if stock == 0:`."
+      },
+      {
+       "error": "Todos los precios salen como «Medio», incluso los baratos",
+       "cause": "El `elif` más amplio está primero: `precio <= 15000` también atrapa a los menores de 5000, y como solo se ejecuta la primera rama verdadera, la de «Económico» nunca llega.",
+       "fix": "Ordena las condiciones de la más restrictiva a la más amplia, igual que en un `CASE`."
+      }
+     ]
+    },
+    {
+     "title": "and, or, not y validar entradas",
+     "concept": "`and`, `or` y `not` funcionan como en el `WHERE`: `and` exige que se cumplan las dos condiciones, `or` que se cumpla al menos una y `not` invierte el resultado. La precedencia también es la misma (`not`, luego `and`, luego `or`), así que usa paréntesis cuando mezcles. Python permite además rangos encadenados: `5000 <= precio <= 15000` es el `BETWEEN` de Python.\n\nValidar es comprobar un dato **antes** de usarlo. Si el usuario escribe `tres` y haces `int()`, el programa se cae. `texto.isdigit()` responde `True` solo si todos los caracteres son dígitos, así que rechaza letras, el texto vacío, el signo menos y el punto decimal. Después de convertir, revisa el rango: una cantidad debe ser al menos 1 y un descuento no puede pasar de 50 %. Es la misma idea que las restricciones `CHECK` de la semana 5, solo que aquí las escribes tú.\n\nPara saber si algo está vacío, `if not nombre:` es `True` cuando el texto es `\"\"`. Para None se usa `is None`, como `IS NULL`.",
+     "tip": "Valida en dos pasos y en este orden: primero que el texto se pueda convertir (`isdigit()`), después el rango con el número ya convertido. Si inviertes el orden, el `int()` falla antes de llegar a tu mensaje.",
+     "example": "cantidad_texto = \"3\"\ndescuento = 15\nprovincia = \"Limón\"\n\nif cantidad_texto.isdigit() and int(cantidad_texto) >= 1:\n    print(\"Cantidad válida\")\nelse:\n    print(\"La cantidad debe ser un entero mayor que 0\")\n\nif not (0 <= descuento <= 50):\n    print(\"Descuento fuera de rango\")\nelse:\n    print(f\"Descuento aplicado: {descuento} %\")\n\ncosta = provincia == \"Guanacaste\" or provincia == \"Puntarenas\" or provincia == \"Limón\"\nprint(\"Envío de costa:\", costa)\nprint(\"-3\".isdigit(), \"2.5\".isdigit(), \"\".isdigit())",
+     "language": "python",
+     "exampleOutput": "Cantidad válida\nDescuento aplicado: 15 %\nEnvío de costa: True\nFalse False False",
+     "steps": [
+      {
+       "title": "Combina condiciones con and",
+       "body": "Un cliente frecuente que compra al menos ₡30 000 recibe 10 % de descuento. Prueba las cuatro combinaciones de valores y comprueba que solo una da el descuento.",
+       "code": "frecuente = True\nmonto = 42000\nif frecuente and monto >= 30000:\n    print(\"Descuento del 10 %\")\nelse:\n    print(\"Sin descuento\")",
+       "language": "python"
+      },
+      {
+       "title": "Usa or y paréntesis",
+       "body": "Un pedido requiere revisión si está pendiente o pagado, y además tiene más de 3 días. Sin los paréntesis, un pedido pendiente de 1 día también entraría: es el mismo error de AND y OR que viste en la semana 1.",
+       "code": "estado = \"pendiente\"\ndias = 1\nif (estado == \"pendiente\" or estado == \"pagado\") and dias > 3:\n    print(\"Revisar pedido atrasado\")\nelse:\n    print(\"Todo en orden\")",
+       "language": "python"
+      },
+      {
+       "title": "Valida un número antes de convertirlo",
+       "body": "Escribe `tres`, luego `0` y luego `4`. Gracias a `isdigit()`, el `int()` solo se ejecuta cuando el texto es convertible, y el programa ya no se cae con letras.",
+       "code": "texto = input(\"Cantidad: \").strip()\nif not texto.isdigit():\n    print(\"Escribe solo números enteros\")\nelif int(texto) < 1:\n    print(\"La cantidad mínima es 1\")\nelse:\n    cantidad = int(texto)\n    print(f\"Agregadas {cantidad} unidades\")",
+       "language": "python"
+      },
+      {
+       "title": "Rangos encadenados como BETWEEN",
+       "body": "Comprueba que un descuento esté entre 0 y 50 con una sola comparación encadenada. Prueba con -5, 0, 25 y 60.",
+       "code": "descuento = 60\nif 0 <= descuento <= 50:\n    print(\"Descuento válido\")\nelse:\n    print(\"El descuento debe estar entre 0 y 50 %\")",
+       "language": "python"
+      },
+      {
+       "title": "Detecta respuestas vacías",
+       "body": "Si el usuario solo presiona Enter, `input` devuelve `\"\"`. `not nombre` lo detecta, y `strip()` antes evita que unos espacios pasen como un nombre.",
+       "code": "nombre = input(\"Nombre del producto: \").strip()\nif not nombre:\n    print(\"El nombre no puede quedar vacío\")\nelse:\n    print(f\"Producto: {nombre}\")",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "ValueError: invalid literal for int() with base 10: 'tres'",
+       "cause": "Se llamó a `int()` sin validar antes, o la validación quedó después de la conversión.",
+       "fix": "Revisa primero con `texto.isdigit()` y convierte solo cuando sea `True`."
+      },
+      {
+       "error": "if provincia == \"Limón\" or \"Cartago\": siempre es verdadero",
+       "cause": "Python lee `(provincia == \"Limón\") or \"Cartago\"`, y un texto no vacío como `\"Cartago\"` cuenta como verdadero.",
+       "fix": "Repite la comparación completa en cada lado: `provincia == \"Limón\" or provincia == \"Cartago\"`."
+      },
+      {
+       "error": "isdigit() rechaza un precio como 2500.50",
+       "cause": "El punto decimal no es un dígito, así que `\"2500.50\".isdigit()` es `False`.",
+       "fix": "Para decimales, quita un punto antes de revisar: `texto.replace(\".\", \"\", 1).isdigit()`, y convierte con `float()`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-25-1",
+     "title": "Repaso SQL: Productos por rango de precio",
+     "prompt": "Clasifica los productos **activos** con las mismas reglas que tu programa `rango_precio.py`: `Económico` si el precio es menor que 5000, `Medio` si va de 5000 a 15000 (incluidos) y `Premium` si es mayor que 15000. Muestra el rango (con esos textos exactos), cuántos productos hay en cada uno y su precio promedio redondeado a colones enteros, en ese orden.",
+     "hint": "Usa un `CASE WHEN` en el `SELECT` y agrupa por ese mismo rango (puedes usar su alias en el `GROUP BY`).",
+     "solution": "SELECT CASE\n         WHEN precio < 5000 THEN 'Económico'\n         WHEN precio <= 15000 THEN 'Medio'\n         ELSE 'Premium'\n       END AS rango,\n       COUNT(*) AS productos,\n       ROUND(AVG(precio)) AS precio_promedio\nFROM productos\nWHERE activo = 1\nGROUP BY rango;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-25-2",
+     "title": "Repaso SQL: Clientes que nunca compraron",
+     "prompt": "Mercadeo quiere escribirles a los clientes registrados que nunca han hecho un pedido. Muestra su `nombre`, `apellido` y `fecha_registro`, en ese orden.",
+     "hint": "Un `LEFT JOIN` de `clientes` a `pedidos` deja NULL en las columnas del pedido cuando no hay pareja; filtra esas filas con `IS NULL`.",
+     "solution": "SELECT c.nombre, c.apellido, c.fecha_registro\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nWHERE p.id IS NULL;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `semana-07/rango_precio.py`: pide un precio, valida que sea un número entero y clasifícalo como «Económico» (menos de ₡5 000), «Medio» (de ₡5 000 a ₡15 000) o «Premium» (más de ₡15 000). Prueba con 4 900, 5 000, 15 000 y 15 001.",
+    "Crea `envio.py`: pide la provincia y el monto del pedido. Si el monto es de ₡50 000 o más, el envío es gratis; si no, cuesta ₡2 500 en San José, Alajuela, Cartago y Heredia, y ₡3 500 en Guanacaste, Puntarenas y Limón. Si la provincia no existe, muestra un mensaje claro. Acepta la provincia con mayúsculas o espacios de más.",
+    "Crea `validar_cantidad.py` con `stock = 30` (el chorreador). Pide una cantidad y responde con un mensaje distinto para cada caso: no es un número entero, es menor que 1, supera el stock, o es válida (en ese caso muestra cuántas unidades quedarían).",
+    "Crea `descuento.py`: pregunta si el cliente es frecuente (s/n) y el monto de la compra. Da 10 % si es frecuente **y** el monto es de al menos ₡30 000, 5 % si se cumple solo una de las dos condiciones, y 0 % si ninguna. Muestra el porcentaje y el monto final.",
+    "Prueba `envio.py` con 5 casos (incluye uno con la provincia mal escrita y uno de exactamente ₡50 000) y anótalos con sus resultados en comentarios al final del archivo."
+   ],
+   "taskHints": [
+    "Lee el texto con `input().strip()`, valida con `isdigit()` y después usa `if`, `elif` y `else` con el número convertido. Ojo con los bordes: 5 000 y 15 000 son «Medio».",
+    "Normaliza con `provincia.strip().lower()` y compara contra los nombres en minúscula y con tilde: `\"san josé\"`, `\"limón\"`. Revisa primero el envío gratis y después la provincia.",
+    "El orden de las preguntas importa: primero `isdigit()`, luego `< 1`, luego `> stock`. Cada caso en su propio `elif`.",
+    "Guarda dos condiciones en variables: `es_frecuente = respuesta == \"s\"` y `compra_alta = monto >= 30000`. Luego: `if es_frecuente and compra_alta`, `elif es_frecuente or compra_alta`, `else`.",
+    "Un comentario de prueba se ve así: `# heredia, 37125 -> ₡2,500`. Con «Herdia» (mal escrito) debe salir tu mensaje de provincia desconocida, no un error de Python."
+   ],
+   "challenge": {
+    "title": "Semáforo de pedidos",
+    "description": "Escribe `semaforo.py` con tres variables: `estado` (uno de los cinco estados de la tabla `pedidos`), `dias` (días desde que se hizo el pedido) y `metodo_pago`. Muestra un mensaje según estas reglas: cancelado → «No requiere acción»; entregado → «Pedido cerrado»; pendiente o pagado con más de 3 días → «Atrasado: llamar al cliente»; cualquier otro caso → «En proceso». Además, si el pedido está pendiente y se pagó por SINPE, agrega al final « (revisar el comprobante SINPE)». Prueba con `estado = \"pendiente\"`, `dias = 5` y `metodo_pago = \"sinpe\"`.",
+    "hint": "Usa una cadena de `if`, `elif` y `else` para el mensaje principal y después un `if` aparte para el agregado. Pon paréntesis alrededor del `or` cuando lo combines con `and`.",
+    "solution": "estado = \"pendiente\"\ndias = 5\nmetodo_pago = \"sinpe\"\n\nif estado == \"cancelado\":\n    mensaje = \"No requiere acción\"\nelif estado == \"entregado\":\n    mensaje = \"Pedido cerrado\"\nelif (estado == \"pendiente\" or estado == \"pagado\") and dias > 3:\n    mensaje = \"Atrasado: llamar al cliente\"\nelse:\n    mensaje = \"En proceso\"\n\nif estado == \"pendiente\" and metodo_pago == \"sinpe\":\n    mensaje = mensaje + \" (revisar el comprobante SINPE)\"\n\nprint(f\"Pedido {estado}, {dias} días: {mensaje}\")",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Condición",
+     "definition": "Expresión que vale `True` o `False`, como `stock == 0` o `monto >= 50000`."
+    },
+    {
+     "term": "Sangría",
+     "definition": "Los espacios al inicio de una línea. En Python marcan qué líneas pertenecen a un `if`, un bucle o una función; se usan 4 espacios."
+    },
+    {
+     "term": "elif",
+     "definition": "Abreviatura de «else if»: agrega otra condición a una cadena de decisiones. Solo se revisa si las anteriores fueron falsas."
+    },
+    {
+     "term": "Operador lógico",
+     "definition": "`and`, `or` y `not`: combinan o invierten condiciones, igual que en el `WHERE` de SQL."
+    },
+    {
+     "term": "Validar",
+     "definition": "Comprobar que un dato tiene el formato y el rango correctos antes de usarlo."
+    },
+    {
+     "term": "isdigit()",
+     "definition": "Método de texto que devuelve `True` si todos los caracteres son dígitos (y el texto no está vacío)."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: la sentencia if",
+     "url": "https://docs.python.org/es/3/tutorial/controlflow.html#if-statements"
+    },
+    {
+     "title": "Operaciones booleanas y comparaciones",
+     "url": "https://docs.python.org/es/3/builtins/stdtypes.html#boolean-operations-and-or-not"
+    },
+    {
+     "title": "Método str.isdigit",
+     "url": "https://docs.python.org/es/3/builtins/stdtypes.html#str.isdigit"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Cuál es la forma correcta de preguntar si `stock` vale 0?",
+     "code": "",
+     "options": [
+      "if stock = 0:",
+      "if stock == 0",
+      "if stock == 0:",
+      "if (stock = 0)"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `=` asigna; Python responde con un `SyntaxError` y sugiere `==`.",
+      "Casi: compara bien, pero falta el dos puntos al final de la línea.",
+      "Correcto: `==` compara y la línea termina con dos puntos.",
+      "No: los paréntesis no cambian que `=` sea una asignación."
+     ],
+     "explanation": "En Python se compara con `==` y toda línea `if`, `elif` o `else` termina en `:`.",
+     "hint": "Dos signos igual y un detalle al final de la línea."
+    },
+    {
+     "type": "choice",
+     "prompt": "Con `precio = 3000`, ¿qué rango muestra este código?",
+     "code": "if precio <= 15000:\n    print(\"Medio\")\nelif precio < 5000:\n    print(\"Económico\")\nelse:\n    print(\"Premium\")",
+     "options": [
+      "Medio",
+      "Económico",
+      "Premium",
+      "Muestra dos rangos"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: la primera condición verdadera es `precio <= 15000`, y solo se ejecuta esa rama.",
+      "No: `precio < 5000` también es verdadera, pero llega tarde; la rama anterior ya se ejecutó.",
+      "No: el `else` solo se ejecuta si ninguna condición anterior se cumple.",
+      "No: en una cadena `if`/`elif`/`else` solo se ejecuta una rama."
+     ],
+     "explanation": "Igual que en `CASE WHEN`, se toma la primera condición verdadera. Aquí el orden está mal: la condición más amplia va primero.",
+     "hint": "Revisa las condiciones de arriba hacia abajo y detente en la primera verdadera."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué devuelve `\"2.5\".isdigit()`?",
+     "code": "",
+     "options": [
+      "True, porque es un número",
+      "2.5",
+      "False, porque el punto no es un dígito",
+      "Un ValueError"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `isdigit` no pregunta si el texto representa un número, sino si todos sus caracteres son dígitos.",
+      "No: `isdigit` responde `True` o `False`, nunca convierte.",
+      "Correcto: el punto no es un dígito, así que la respuesta es `False`.",
+      "No: `isdigit` nunca da error; el `ValueError` aparece con `int(\"2.5\")`."
+     ],
+     "explanation": "`isdigit()` revisa carácter por carácter. Para decimales hay que quitar el punto antes o usar otra estrategia.",
+     "hint": "Mira cada carácter del texto."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`5000 <= precio <= 15000` es una forma válida en Python de escribir el `BETWEEN 5000 AND 15000` de SQL.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: Python permite encadenar comparaciones y, como BETWEEN, incluye los dos extremos.",
+      "No: Python sí acepta comparaciones encadenadas; equivalen a `5000 <= precio and precio <= 15000`."
+     ],
+     "explanation": "Las comparaciones encadenadas se leen como un `and` entre cada par.",
+     "hint": "Piensa en cómo lo escribirías en matemáticas."
+    },
+    {
+     "type": "boolean",
+     "prompt": "En `if provincia == \"Limón\" or \"Cartago\":`, la condición es verdadera solo cuando la provincia es Limón o Cartago.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: Python evalúa `\"Cartago\"` solo, y un texto no vacío cuenta como verdadero, así que la condición es siempre verdadera.",
+      "Correcto: hay que repetir la comparación: `provincia == \"Limón\" or provincia == \"Cartago\"`."
+     ],
+     "explanation": "Cada lado del `or` es una condición completa; `\"Cartago\"` solo no compara nada.",
+     "hint": "¿Qué compara exactamente el lado derecho del `or`?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "monto = 50000\nif monto > 50000:\n    print(\"Gratis\")\nelif monto >= 30000:\n    print(\"Envío ₡1,500\")\nelse:\n    print(\"Envío ₡2,500\")",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Envío ₡1,500"
+     ],
+     "optionFeedback": [],
+     "explanation": "50000 no es mayor que 50000, así que la primera condición es falsa; la segunda (`>= 30000`) sí se cumple.",
+     "hint": "Fíjate en la diferencia entre `>` y `>=`."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "frecuente = False\nmonto = 45000\nprint(frecuente or monto >= 30000, frecuente and monto >= 30000)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "True False"
+     ],
+     "optionFeedback": [],
+     "explanation": "`or` necesita una condición verdadera (el monto lo es); `and` necesita las dos, y `frecuente` es `False`.",
+     "hint": "Evalúa `monto >= 30000` primero y luego aplica cada operador."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la condición para rechazar un texto que no sea un número entero.",
+     "code": "texto = input(\"Cantidad: \")\nif not texto.___():\n    print(\"Escribe solo números\")",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "isdigit"
+     ],
+     "optionFeedback": [],
+     "explanation": "`isdigit()` es `True` cuando todos los caracteres son dígitos; con `not` delante, el `if` atrapa los textos inválidos.",
+     "hint": "Es el método que pregunta si todo son dígitos."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-26",
+   "kind": "workshop",
+   "title": "Bucles",
+   "summary": "Repetir instrucciones con while y for, controlar las vueltas con break y continue, y calcular totales, conteos y promedios con acumuladores.",
+   "objectives": [
+    "Escribir bucles `while` que terminan, y usar `break` y `continue` para controlarlos.",
+    "Repetir una pregunta hasta obtener un dato válido y armar un menú de consola.",
+    "Recorrer rangos con `for` y `range`, sabiendo que el fin no se incluye.",
+    "Calcular total, conteo, promedio y máximo con acumuladores y compararlos con SUM, COUNT, AVG y MAX."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: while, break y continue",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: for, range y acumuladores",
+     "minutes": 65
+    },
+    {
+     "label": "Práctica: tareas en tu computador",
+     "minutes": 60
+    },
+    {
+     "label": "Repaso SQL (2 ejercicios)",
+     "minutes": 20
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "while, break y continue",
+     "concept": "Un `SELECT` procesa todas las filas de una vez y tú nunca ves el recorrido. En Python, en cambio, tú controlas cada vuelta. `while condición:` repite su bloque **mientras** la condición sea verdadera; la revisa antes de cada vuelta y, cuando se vuelve falsa, sigue con la línea de después del bloque. Algo dentro del bucle tiene que cambiar la condición, o el bucle no termina nunca (si te pasa, detenlo con Ctrl+C). `stock -= 3` es la forma corta de `stock = stock - 3`; también existen `+=` y `*=`.\n\nEl uso más común en un programa de consola es **repetir una pregunta hasta que la respuesta sea válida**: `while True:` crea un bucle que en principio no termina, y `break` lo corta en el momento en que el dato pasa la validación. `continue` hace lo contrario: abandona la vuelta actual y vuelve al inicio del bucle, útil para saltarse un dato inválido sin salir.\n\nCon `while` y un `if` adentro se arman los menús: mostrar opciones, leer la elegida, actuar, y repetir hasta que el usuario elija salir.",
+     "tip": "En todo `while` pregúntate: ¿qué línea de adentro hace que la condición llegue a ser falsa, o dónde está el `break`? Si no encuentras ninguna, tienes un bucle infinito.",
+     "example": "stock = 11\npedidos_atendidos = 0\ncantidad_por_pedido = 3\n\nwhile stock >= cantidad_por_pedido:\n    stock -= cantidad_por_pedido\n    pedidos_atendidos += 1\n    print(f\"Pedido {pedidos_atendidos}: quedan {stock}\")\nprint(f\"Atendidos: {pedidos_atendidos}. Sobran {stock} unidades.\")\n\nintento = 0\nwhile True:\n    intento += 1\n    if intento == 2:\n        continue\n    print(\"Intento\", intento)\n    if intento == 3:\n        break",
+     "language": "python",
+     "exampleOutput": "Pedido 1: quedan 8\nPedido 2: quedan 5\nPedido 3: quedan 2\nAtendidos: 3. Sobran 2 unidades.\nIntento 1\nIntento 3",
+     "steps": [
+      {
+       "title": "Vacía un inventario con while",
+       "body": "Crea `bucles.py` con este código. Antes de correrlo, predice cuántas líneas va a mostrar; después compruébalo. Cambia `stock` a 10 y vuelve a predecir.",
+       "code": "stock = 8\nwhile stock > 0:\n    print(\"Quedan\", stock)\n    stock -= 3\nprint(\"Inventario agotado\")",
+       "language": "python"
+      },
+      {
+       "title": "Pregunta hasta que la respuesta sea válida",
+       "body": "Este es el patrón que vas a usar toda la semana. Escribe letras, luego 0 y luego un número válido: el bucle solo termina con `break`, cuando el dato pasa las dos pruebas.",
+       "code": "while True:\n    texto = input(\"Cantidad: \").strip()\n    if texto.isdigit() and int(texto) >= 1:\n        break\n    print(\"Escribe un número entero mayor que 0\")\ncantidad = int(texto)\nprint(\"Cantidad registrada:\", cantidad)",
+       "language": "python"
+      },
+      {
+       "title": "Salta una vuelta con continue",
+       "body": "Recorres los días del 1 al 7 y los días 3 y 6 la tienda física está cerrada. `continue` salta el `print` de esos días sin terminar el bucle.",
+       "code": "dia = 0\nwhile dia < 7:\n    dia += 1\n    if dia == 3 or dia == 6:\n        continue\n    print(\"Abierto el día\", dia)",
+       "language": "python"
+      },
+      {
+       "title": "Arma un menú que se repite",
+       "body": "Un menú es un `while True` con una decisión por opción. La opción 3 rompe el bucle; cualquier respuesta desconocida muestra un aviso y vuelve a preguntar.",
+       "code": "while True:\n    print(\"1) Precio con IVA  2) Colones a dólares  3) Salir\")\n    opcion = input(\"Opción: \").strip()\n    if opcion == \"1\":\n        monto = float(input(\"Monto: \"))\n        print(f\"Con IVA: ₡{monto * 1.13:,.2f}\")\n    elif opcion == \"2\":\n        monto = float(input(\"Colones: \"))\n        print(f\"En dólares: ${monto / 505:,.2f}\")\n    elif opcion == \"3\":\n        break\n    else:\n        print(\"Opción no válida\")",
+       "language": "python"
+      },
+      {
+       "title": "Detén un bucle infinito",
+       "body": "Este bucle nunca termina porque `stock` no cambia adentro. Córrelo a propósito, mira cómo se llena la terminal y detenlo con Ctrl+C. Luego arréglalo agregando `stock -= 1` dentro del bloque.",
+       "code": "stock = 5\nwhile stock > 0:\n    print(\"Quedan\", stock)",
+       "language": "python",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "El programa no termina y la terminal se llena de líneas",
+       "cause": "Nada dentro del bucle cambia la condición, o el `break` está en una rama que nunca se ejecuta.",
+       "fix": "Detén con Ctrl+C. Revisa que la variable de la condición se actualice adentro (`stock -= 1`) o que exista un camino hacia el `break`."
+      },
+      {
+       "error": "SyntaxError: 'break' outside loop",
+       "cause": "El `break` quedó sin la sangría del bucle, o lo usaste dentro de un `if` que no está dentro de ningún `while` o `for`.",
+       "fix": "Mueve el `break` dentro del bloque del bucle, con la sangría correcta."
+      },
+      {
+       "error": "KeyboardInterrupt",
+       "cause": "No es un error de tu código: es lo que Python muestra cuando presionas Ctrl+C para detener el programa.",
+       "fix": "Si lo detuviste por un bucle infinito, corrige la condición. Si fue sin querer, vuelve a correr el programa."
+      },
+      {
+       "error": "El mensaje de error se muestra aunque la respuesta sea válida",
+       "cause": "El `print` del error quedó después del `if` con la misma sangría que el `break`, o antes de la validación.",
+       "fix": "En el patrón de validación, el `break` va dentro del `if` y el mensaje de error va después del `if`, al nivel del bucle."
+      }
+     ]
+    },
+    {
+     "title": "for, range y acumuladores",
+     "concept": "`for` recorre una secuencia elemento por elemento: `for dia in range(1, 8):` da siete vueltas con `dia` valiendo 1, 2… 7. `range(inicio, fin)` **no incluye el fin**, `range(5)` va de 0 a 4 y `range(0, 20, 5)` salta de 5 en 5. `for` también recorre un texto letra por letra. Usa `for` cuando sabes cuántas vueltas habrá y `while` cuando depende de lo que pase adentro.\n\nUn acumulador es una variable que se crea **antes** del bucle, se actualiza en cada vuelta y se usa **después**. Es lo que hacen por dentro las funciones de agregación que conoces: `total += precio` es un SUM, `contador += 1` es un COUNT, y el promedio es `total / contador`, igual que AVG. Para el máximo, guardas el mayor visto hasta ahora y lo cambias cuando aparece uno más grande.\n\nCon un `if` dentro del bucle cuentas o sumas solo algunos valores: es el equivalente de `COUNT` con `WHERE` o de `SUM(CASE WHEN ... THEN ... END)`. Antes de dividir, revisa que el contador no sea 0.",
+     "tip": "Escribe primero las tres partes del acumulador en comentarios: dónde empieza (`total = 0`), qué hace en cada vuelta (`total += precio`) y qué haces al final (mostrar, dividir). Casi todos los errores de acumuladores son una de esas tres líneas fuera de lugar.",
+     "example": "total_con_iva = 36160  # hamaca de algodón: 32 000 + 13 %\ncuotas = 4\ncuota = total_con_iva / cuotas\npagado = 0\n\nfor mes in range(1, cuotas + 1):\n    pagado += cuota\n    saldo = total_con_iva - pagado\n    print(f\"Mes {mes}: cuota ₡{cuota:,.0f}, saldo ₡{saldo:,.0f}\")\nprint(f\"Total pagado: ₡{pagado:,.0f}\")\n\ncodigo = \"PV-2026-0418\"\ndigitos = 0\nfor caracter in codigo:\n    if caracter.isdigit():\n        digitos += 1\nprint(\"Dígitos en el código:\", digitos)",
+     "language": "python",
+     "exampleOutput": "Mes 1: cuota ₡9,040, saldo ₡27,120\nMes 2: cuota ₡9,040, saldo ₡18,080\nMes 3: cuota ₡9,040, saldo ₡9,040\nMes 4: cuota ₡9,040, saldo ₡0\nTotal pagado: ₡36,160\nDígitos en el código: 8",
+     "steps": [
+      {
+       "title": "Recorre un range",
+       "body": "Corre las tres líneas y fíjate dónde termina cada una. El segundo número de `range` nunca aparece: `range(1, 6)` llega hasta 5.",
+       "code": "for n in range(1, 6):\n    print(n)\nfor n in range(3):\n    print(\"vuelta\", n)\nfor n in range(0, 20, 5):\n    print(n)",
+       "language": "python"
+      },
+      {
+       "title": "Arma una tabla de precios",
+       "body": "Para la Salsa Lizano (₡2 450), muestra el total con IVA de 1 a 5 unidades. Con `{valor:>8,}` el número se alinea a la derecha en 8 espacios y las columnas quedan parejas.",
+       "code": "precio = 2450\nfor cantidad in range(1, 6):\n    total = round(precio * cantidad * 1.13)\n    print(f\"{cantidad} unidades: ₡{total:>8,}\")",
+       "language": "python"
+      },
+      {
+       "title": "Cuenta con una condición",
+       "body": "La tienda hace promoción los días de noviembre que son múltiplo de 5. Es un COUNT con WHERE: el contador solo sube cuando se cumple el `if`.",
+       "code": "dias_promocion = 0\nfor dia in range(1, 31):\n    if dia % 5 == 0:\n        dias_promocion += 1\nprint(\"Días de promoción en noviembre:\", dias_promocion)",
+       "language": "python"
+      },
+      {
+       "title": "Suma, cuenta y promedia lo que escribe el usuario",
+       "body": "Cuando no sabes cuántos datos vendrán, usa `while True` y una señal de fin (aquí, 0). Los acumuladores funcionan igual: se crean antes, se actualizan adentro y se usan al final.",
+       "code": "total = 0\ncontador = 0\nwhile True:\n    precio = int(input(\"Precio (0 para terminar): \"))\n    if precio == 0:\n        break\n    total += precio\n    contador += 1\nif contador > 0:\n    print(f\"{contador} artículos, total ₡{total:,}, promedio ₡{total / contador:,.2f}\")\nelse:\n    print(\"No se registraron artículos\")",
+       "language": "python"
+      },
+      {
+       "title": "Encuentra el más caro",
+       "body": "Para el máximo, empieza con `None` (todavía no has visto nada) y reemplázalo cuando llegue un precio mayor. Es lo que hace MAX por dentro.",
+       "code": "mayor = None\nfor precio in range(1000, 5001, 1500):\n    if mayor is None or precio > mayor:\n        mayor = precio\nprint(\"Mayor:\", mayor)",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "El total muestra solo el último precio",
+       "cause": "El acumulador `total = 0` quedó dentro del bucle, así que se reinicia en cada vuelta.",
+       "fix": "Crea el acumulador antes del `for` o del `while`, sin sangría."
+      },
+      {
+       "error": "ZeroDivisionError: division by zero",
+       "cause": "Calculaste `total / contador` cuando no se registró ningún dato y el contador quedó en 0.",
+       "fix": "Revisa antes con `if contador > 0:`, como harías con NULLIF en SQL para no dividir entre cero."
+      },
+      {
+       "error": "TypeError: 'int' object is not iterable",
+       "cause": "Escribiste `for i in 5:`. `for` necesita algo que se pueda recorrer, y un número solo no lo es.",
+       "fix": "Usa `for i in range(5):`."
+      },
+      {
+       "error": "La tabla llega hasta 9 y no hasta 10",
+       "cause": "`range(1, 10)` no incluye el 10: el fin siempre queda fuera.",
+       "fix": "Suma uno al fin: `range(1, 11)`, o `range(1, cuotas + 1)` cuando el límite está en una variable."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-26-1",
+     "title": "Repaso SQL: Ventas por mes de 2026",
+     "prompt": "Para preparar la meta de ventas, la gerente quiere ver cada mes de 2026 con datos: el mes como texto de dos dígitos (`01`, `02`…), la cantidad de pedidos y el monto vendido redondeado a colones enteros, en ese orden. No cuentes los pedidos cancelados. El monto de cada línea es `cantidad * precio_unitario * (1 - descuento)`.",
+     "hint": "Une `pedidos` con `detalle_pedido`, extrae el mes con `strftime('%m', fecha)` y cuenta los pedidos con `COUNT(DISTINCT p.id)`, porque cada pedido tiene varias líneas.",
+     "solution": "SELECT strftime('%m', p.fecha) AS mes,\n       COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS ventas\nFROM pedidos p\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\n  AND p.estado <> 'cancelado'\nGROUP BY mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-26-2",
+     "title": "Repaso SQL: Productos sobre el promedio de su categoría",
+     "prompt": "Compras quiere revisar los productos caros de cada categoría. Muestra el `nombre` del producto, el nombre de su categoría y su `precio`, en ese orden, solo para los productos cuyo precio es mayor que el precio promedio de **su propia categoría** (considera todos los productos, activos o no).",
+     "hint": "Una subconsulta correlacionada en el `WHERE` puede calcular el promedio de la categoría de la fila que se está revisando: `WHERE p2.categoria_id = p.categoria_id`. También puedes calcular los promedios en una CTE y unirla.",
+     "solution": "SELECT p.nombre, c.nombre AS categoria, p.precio\nFROM productos p\nJOIN categorias c ON c.id = p.categoria_id\nWHERE p.precio > (\n  SELECT AVG(p2.precio)\n  FROM productos p2\n  WHERE p2.categoria_id = p.categoria_id\n);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `semana-07/caja.py`: pide precios de productos hasta que el usuario escriba 0. Si escribe algo que no es un número entero, muestra un aviso y usa `continue`. Al final muestra cuántos artículos registró, el total, el promedio con 2 decimales y el precio más alto.",
+    "Comprueba `caja.py` contra SQL: en el laboratorio corre `SELECT COUNT(*), SUM(precio), ROUND(AVG(precio), 2), MAX(precio) FROM productos WHERE categoria_id = 2;`, luego escribe en tu programa los 7 precios de esa categoría y verifica que los cuatro resultados coinciden.",
+    "Crea `tabla_iva.py`: con un `for` y `range`, muestra para la Salsa Lizano (₡2 450) una tabla de 1 a 10 unidades con tres columnas alineadas: subtotal, IVA y total. Al final muestra la suma de la columna total.",
+    "Crea `menu.py` con un `while True` y tres opciones: 1) calcular el precio con IVA de un monto, 2) convertir colones a dólares con un tipo de cambio guardado en una variable (por ejemplo 505), 3) salir. Una opción desconocida muestra «Opción no válida» y vuelve a preguntar.",
+    "Crea `inventario.py`: empieza con `stock = 30` y pide ventas una por una hasta que el stock llegue a 0 o el usuario escriba `fin`. Rechaza las ventas mayores que el stock disponible. Al final muestra cuántas ventas se hicieron y cuántas unidades se vendieron."
+   ],
+   "taskHints": [
+    "Necesitas tres acumuladores antes del bucle (`total`, `contador`, `mayor = None`). Revisa `isdigit()` antes de convertir; si falla, `print` del aviso y `continue`.",
+    "Los precios de «Snacks y dulces» son 2450, 1650, 3500, 1200, 1500, 1800 y 2100. Deben dar 7 artículos, ₡14,200 de total, ₡2,028.57 de promedio y ₡3,500 como máximo.",
+    "Usa `range(1, 11)` para incluir el 10. Para alinear, pon el ancho en la f-string: `f\"{cantidad:>3} {subtotal:>10,} {iva:>10,.2f}\"`. El acumulador de la columna total se crea antes del `for`.",
+    "Lee la opción como texto y compárala con `\"1\"`, `\"2\"` y `\"3\"`; así no hace falta convertirla y una letra no rompe el programa.",
+    "La condición del bucle puede ser `while stock > 0:`. Lee la respuesta como texto: si es `fin`, `break`; si no es número, aviso y `continue`; si supera el stock, aviso y `continue`."
+   ],
+   "challenge": {
+    "title": "Meta de ventas",
+    "description": "En el repaso SQL de hoy calculas que en septiembre de 2026 la tienda vendió ₡520 560 (sin pedidos cancelados). La gerente quiere saber en cuántos meses se llegaría a ₡1 000 000 al mes si las ventas crecieran 8 % cada mes. Escribe `meta.py` que muestre cada mes con su venta proyectada (sin decimales) hasta alcanzar o pasar la meta, y al final cuántos meses hicieron falta.",
+    "hint": "Es un `while` con la condición `ventas < meta`. En cada vuelta multiplica por 1.08 (`ventas *= 1.08`) y suma 1 al contador de meses.",
+    "solution": "ventas = 520560\nmeta = 1000000\nmeses = 0\n\nwhile ventas < meta:\n    ventas *= 1.08\n    meses += 1\n    print(f\"Mes {meses}: ₡{ventas:,.0f}\")\n\nprint(f\"Se alcanza la meta en {meses} meses.\")",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Bucle",
+     "definition": "Bloque de código que se repite. En Python hay dos: `while` (mientras se cumpla una condición) y `for` (por cada elemento)."
+    },
+    {
+     "term": "Iteración",
+     "definition": "Cada vuelta de un bucle."
+    },
+    {
+     "term": "break",
+     "definition": "Instrucción que termina el bucle de inmediato."
+    },
+    {
+     "term": "continue",
+     "definition": "Instrucción que salta el resto de la vuelta actual y pasa a la siguiente."
+    },
+    {
+     "term": "range()",
+     "definition": "Genera una secuencia de enteros: `range(1, 6)` da 1, 2, 3, 4 y 5. El fin no se incluye."
+    },
+    {
+     "term": "Acumulador",
+     "definition": "Variable que se crea antes de un bucle y se actualiza en cada vuelta para sumar o contar, como SUM o COUNT."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: for y range()",
+     "url": "https://docs.python.org/es/3/tutorial/controlflow.html#for-statements"
+    },
+    {
+     "title": "Tutorial de Python: break y continue",
+     "url": "https://docs.python.org/es/3/tutorial/controlflow.html#break-and-continue-statements"
+    },
+    {
+     "title": "Referencia: la sentencia while",
+     "url": "https://docs.python.org/es/3/reference/compound_stmts.html#the-while-statement"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué valores recorre `for n in range(2, 6):`?",
+     "code": "",
+     "options": [
+      "2, 3, 4, 5, 6",
+      "2, 3, 4, 5",
+      "3, 4, 5, 6",
+      "0, 1, 2, 3, 4, 5"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el segundo número de `range` nunca se incluye.",
+      "Correcto: empieza en 2 y se detiene antes de llegar a 6.",
+      "No: el primer número sí se incluye.",
+      "No: eso sería `range(6)`."
+     ],
+     "explanation": "`range(inicio, fin)` incluye el inicio y excluye el fin.",
+     "hint": "El fin queda afuera."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué hace `continue` dentro de un bucle?",
+     "code": "",
+     "options": [
+      "Termina el bucle por completo",
+      "Repite la vuelta actual desde el principio sin cambiar nada",
+      "Salta lo que falta de la vuelta actual y pasa a la siguiente",
+      "Continúa con la línea que está después del bucle"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso lo hace `break`.",
+      "No: no repite la misma vuelta; en un `while` vuelve a revisar la condición y en un `for` toma el siguiente elemento.",
+      "Correcto: el resto del bloque se omite en esa vuelta y el bucle sigue.",
+      "No: salir del bucle es trabajo de `break`."
+     ],
+     "explanation": "`break` sale del bucle; `continue` solo abandona la vuelta actual.",
+     "hint": "Uno de los dos sale del bucle; el otro no."
+    },
+    {
+     "type": "choice",
+     "prompt": "En un programa que suma precios, `total = 0` está dentro del `for`. ¿Qué pasa?",
+     "code": "",
+     "options": [
+      "El total muestra solo el último precio",
+      "El total sale correcto, solo que más lento",
+      "Python da un error de sintaxis",
+      "El total sale el doble"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: el acumulador se reinicia en cada vuelta y solo sobrevive la suma de la última.",
+      "No: el resultado cambia, no solo la velocidad.",
+      "No: es código válido; el problema es de lógica, no de sintaxis.",
+      "No: al reiniciarse, el total no puede crecer de más."
+     ],
+     "explanation": "Un acumulador se crea antes del bucle, se actualiza adentro y se usa después.",
+     "hint": "¿Cuántas veces se ejecuta `total = 0`?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Un acumulador `total += precio` dentro de un bucle hace el mismo trabajo que `SUM(precio)` en SQL.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: recorre los valores uno por uno y los va sumando, que es lo que SUM hace por dentro.",
+      "No: es exactamente la idea de SUM; la diferencia es que en Python escribes tú el recorrido."
+     ],
+     "explanation": "Las funciones de agregación de SQL son acumuladores que SQLite escribe por ti.",
+     "hint": "Piensa en qué hace SUM fila por fila."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Un bucle `while True:` siempre es un error, porque nunca termina.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: es un patrón normal cuando la salida se decide adentro con `break`, como al validar una respuesta.",
+      "Correcto: `while True` con un `break` alcanzable es la forma habitual de repetir una pregunta o un menú."
+     ],
+     "explanation": "El bucle termina cuando se ejecuta `break`; lo importante es que exista un camino hacia él.",
+     "hint": "Recuerda el menú del tema 1."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "total = 0\nfor cantidad in range(1, 5):\n    total += cantidad\nprint(total)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "10"
+     ],
+     "optionFeedback": [],
+     "explanation": "`range(1, 5)` da 1, 2, 3 y 4; su suma es 10.",
+     "hint": "Escribe los valores de `range(1, 5)` y súmalos."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "stock = 10\nventas = 0\nwhile stock >= 4:\n    stock -= 4\n    ventas += 1\nprint(ventas, stock)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2 2"
+     ],
+     "optionFeedback": [],
+     "explanation": "Primera vuelta: stock 6, ventas 1. Segunda: stock 2, ventas 2. Con 2 ya no se cumple `stock >= 4`.",
+     "hint": "Sigue las vueltas anotando `stock` y `ventas` en cada una."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa el código para que el bucle termine cuando el usuario escriba `fin`.",
+     "code": "while True:\n    respuesta = input(\"Venta: \")\n    if respuesta == \"fin\":\n        ___",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "break"
+     ],
+     "optionFeedback": [],
+     "explanation": "`break` termina el bucle de inmediato y el programa sigue después de él.",
+     "hint": "Es la palabra que sale del bucle."
+    }
+   ]
+  },
+  {
+   "date": "2026-11-27",
+   "kind": "workshop",
+   "title": "Funciones",
+   "summary": "Empaquetar cálculos en funciones propias con parámetros, return y valores por defecto, entender el alcance de las variables y documentarlas con docstrings.",
+   "objectives": [
+    "Definir funciones con `def`, llamarlas con argumentos y devolver resultados con `return`.",
+    "Explicar la diferencia entre mostrar un valor con `print` y devolverlo con `return`.",
+    "Usar valores por defecto y argumentos por nombre, y relacionarlos con `DEFAULT` en SQL.",
+    "Distinguir variables locales y globales, y documentar cada función con un docstring."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: def, parámetros y return",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Valores por defecto, alcance y docstrings",
+     "minutes": 60
+    },
+    {
+     "label": "Práctica: tareas en tu computador",
+     "minutes": 60
+    },
+    {
+     "label": "Repaso SQL (2 ejercicios)",
+     "minutes": 20
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "def, parámetros y return",
+     "concept": "Llevas semanas usando funciones: `ROUND`, `UPPER` y `COALESCE` en SQL, y `print`, `len` e `int` en Python. Ahora vas a escribir las tuyas. `def calcular_iva(monto):` define una función: un bloque de código con nombre que recibe datos y devuelve un resultado. **Definirla no la ejecuta**; se ejecuta cada vez que la llamas: `calcular_iva(37125)`.\n\nLos parámetros son las variables que reciben los datos, en el orden en que se pasan: en `total_linea(4, 2800, 0)` el 4 llega a `cantidad`, el 2800 a `precio_unitario` y el 0 a `descuento`. `return` entrega el resultado a quien llamó y termina la función. **`print` muestra, `return` entrega**: una función que solo imprime devuelve `None`, y su resultado no se puede usar en otra cuenta.\n\nLa ventaja es la misma que la de una vista en SQL: escribes la fórmula una vez con un buen nombre y la reutilizas. La fórmula `cantidad * precio_unitario * (1 - descuento)`, que escribiste en tantas consultas, vive ahora en un solo lugar.",
+     "tip": "Ponle a cada función un nombre con verbo que diga qué devuelve (`calcular_iva`, `costo_envio`, `es_telefono_valido`) y pruébala sola con un caso que puedas calcular a mano antes de usarla dentro de otro código.",
+     "example": "def total_linea(cantidad, precio_unitario, descuento):\n    return cantidad * precio_unitario * (1 - descuento)\n\ndef calcular_iva(monto):\n    return monto * 0.13\n\n# Las tres líneas del pedido 341 de la Tienda\nlinea1 = total_linea(4, 2800, 0)\nlinea2 = total_linea(2, 7500, 0)\nlinea3 = total_linea(1, 11500, 0.05)\nneto = linea1 + linea2 + linea3\n\nprint(f\"Neto:  ₡{neto:,.2f}\")\nprint(f\"IVA:   ₡{calcular_iva(neto):,.2f}\")\nprint(f\"Total: ₡{neto + calcular_iva(neto):,.2f}\")",
+     "language": "python",
+     "exampleOutput": "Neto:  ₡37,125.00\nIVA:   ₡4,826.25\nTotal: ₡41,951.25",
+     "steps": [
+      {
+       "title": "Define y llama tu primera función",
+       "body": "Crea `funciones.py`. La primera línea define la función; nada pasa hasta la llamada de la última línea. Prueba llamarla dos veces con montos distintos.",
+       "code": "def calcular_iva(monto):\n    return monto * 0.13\n\nprint(calcular_iva(10000))\nprint(calcular_iva(37125))",
+       "language": "python"
+      },
+      {
+       "title": "Usa varios parámetros",
+       "body": "Los argumentos llegan a los parámetros por posición. Cambia el orden de los números en la llamada y mira cómo cambia el resultado: Python no adivina cuál es el precio.",
+       "code": "def total_linea(cantidad, precio_unitario, descuento):\n    return cantidad * precio_unitario * (1 - descuento)\n\nprint(total_linea(3, 12900, 0.05))",
+       "language": "python"
+      },
+      {
+       "title": "Compara print con return",
+       "body": "`mostrar_iva` imprime pero no devuelve nada, así que `resultado` queda en `None`. Esa es la razón para preferir `return` y dejar los `print` para el programa principal.",
+       "code": "def mostrar_iva(monto):\n    print(monto * 0.13)\n\ndef calcular_iva(monto):\n    return monto * 0.13\n\nresultado = mostrar_iva(10000)\nprint(\"mostrar_iva devolvió:\", resultado)\nprint(\"calcular_iva devolvió:\", calcular_iva(10000))",
+       "language": "python"
+      },
+      {
+       "title": "Haz que una función use otra",
+       "body": "`total_con_iva` llama a `calcular_iva` en vez de repetir el 0.13. Si mañana cambia la tasa, se corrige en un solo lugar.",
+       "code": "def calcular_iva(monto):\n    return monto * 0.13\n\ndef total_con_iva(monto):\n    return monto + calcular_iva(monto)\n\nprint(total_con_iva(37125))",
+       "language": "python"
+      },
+      {
+       "title": "Compara con la base de datos",
+       "body": "Corre esta consulta en el laboratorio: debe dar 37125, el mismo neto que calculaste con `total_linea` para las líneas del pedido 341.",
+       "code": "SELECT SUM(cantidad * precio_unitario * (1 - descuento)) AS neto\nFROM detalle_pedido\nWHERE pedido_id = 341;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "NameError: name 'calcular_iva' is not defined",
+       "cause": "Llamaste a la función antes de definirla (más arriba en el archivo) o escribiste su nombre distinto.",
+       "fix": "Pon todas las definiciones `def` al inicio del archivo y las llamadas después. Revisa mayúsculas y guiones bajos."
+      },
+      {
+       "error": "TypeError: total_linea() missing 1 required positional argument: 'descuento'",
+       "cause": "La función pide tres datos y le pasaste dos.",
+       "fix": "Pasa todos los argumentos (`total_linea(2, 7500, 0)`) o dale un valor por defecto al parámetro (tema 2)."
+      },
+      {
+       "error": "TypeError: unsupported operand type(s) for +: 'NoneType' and 'float'",
+       "cause": "La función no tiene `return` (o solo hace `print`), así que devuelve `None`, y luego intentaste sumar con ese resultado.",
+       "fix": "Agrega `return` con el valor calculado dentro de la función."
+      },
+      {
+       "error": "Corro el archivo y no pasa nada",
+       "cause": "Solo definiste la función; nunca la llamaste.",
+       "fix": "Agrega una llamada al final del archivo, por ejemplo `print(calcular_iva(10000))`."
+      }
+     ]
+    },
+    {
+     "title": "Valores por defecto, alcance y docstrings",
+     "concept": "Un parámetro puede tener un valor por defecto: con `def total_linea(cantidad, precio_unitario, descuento=0):`, si no pasas el descuento se usa 0. Es la misma idea que `descuento REAL NOT NULL DEFAULT 0` en la tabla `detalle_pedido`. Los parámetros con valor por defecto van al final, y al llamar puedes nombrarlos para que se entienda: `total_linea(1, 11500, descuento=0.05)`.\n\nEl alcance dice dónde existe una variable. Las que creas dentro de una función son **locales**: nacen al llamarla y desaparecen cuando termina, así que afuera no se ven. Una función puede leer variables de afuera, pero no conviene depender de ellas: los datos entran por parámetros y salen con `return`. La excepción aceptada son las constantes en mayúscula al inicio del archivo, como `TASA_IVA = 0.13`.\n\nUn docstring es un texto entre triples comillas en la primera línea de la función que explica qué hace, qué recibe y qué devuelve. VS Code lo muestra al pasar el ratón sobre la función y `help(costo_envio)` lo imprime.",
+     "tip": "Ordena siempre tus archivos igual: arriba las constantes, después las funciones y al final el programa principal que las usa. Así encuentras todo rápido y nunca llamas una función antes de definirla.",
+     "example": "TASA_IVA = 0.13\n\n\ndef precio_con_iva(precio, tasa=TASA_IVA):\n    \"\"\"Devuelve el precio con impuesto, redondeado a colones.\"\"\"\n    return round(precio * (1 + tasa))\n\n\ndef costo_envio(provincia, monto):\n    \"\"\"Envío gratis desde ₡50 000; si no, ₡2 500 en el Valle Central y ₡3 500 en las costas.\"\"\"\n    if monto >= 50000:\n        return 0\n    provincia = provincia.strip().lower()\n    if provincia == \"san josé\" or provincia == \"alajuela\" or provincia == \"cartago\" or provincia == \"heredia\":\n        return 2500\n    return 3500\n\n\nprint(precio_con_iva(6500))\nprint(precio_con_iva(6500, tasa=0.01))\nprint(costo_envio(\"Heredia\", 37125), costo_envio(\"Limón\", 37125), costo_envio(\"Limón\", 60000))\nprint(costo_envio.__doc__)",
+     "language": "python",
+     "exampleOutput": "7345\n6565\n2500 3500 0\nEnvío gratis desde ₡50 000; si no, ₡2 500 en el Valle Central y ₡3 500 en las costas.",
+     "steps": [
+      {
+       "title": "Agrega un valor por defecto",
+       "body": "Con `descuento=0` la mayoría de las llamadas se acortan, porque casi ninguna línea lleva descuento. Prueba las dos llamadas y compara.",
+       "code": "def total_linea(cantidad, precio_unitario, descuento=0):\n    return cantidad * precio_unitario * (1 - descuento)\n\nprint(total_linea(4, 2800))\nprint(total_linea(1, 11500, 0.05))",
+       "language": "python"
+      },
+      {
+       "title": "Llama con argumentos por nombre",
+       "body": "Nombrar el argumento hace la llamada legible sin tener que ir a ver la definición. Los argumentos por nombre van después de los posicionales.",
+       "code": "def total_linea(cantidad, precio_unitario, descuento=0):\n    return cantidad * precio_unitario * (1 - descuento)\n\nprint(total_linea(2, 7500, descuento=0.1))\nprint(total_linea(precio_unitario=7500, cantidad=2))",
+       "language": "python"
+      },
+      {
+       "title": "Comprueba el alcance",
+       "body": "`descuento` solo existe dentro de `aplicar_descuento`. La última línea falla a propósito con `NameError`: córrela, lee el error y luego bórrala.",
+       "code": "def aplicar_descuento(monto):\n    descuento = monto * 0.1\n    return monto - descuento\n\nprint(aplicar_descuento(20000))\nprint(descuento)",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Escribe un docstring y léelo",
+       "body": "El docstring va justo debajo del `def`. Imprímelo con `__doc__` (dos guiones bajos a cada lado) o con `help()`, y pasa el ratón sobre el nombre de la función en VS Code para verlo.",
+       "code": "def formatear_colones(monto):\n    \"\"\"Devuelve el monto como texto con ₡, separador de miles y 2 decimales.\"\"\"\n    return f\"₡{monto:,.2f}\"\n\nprint(formatear_colones(44451.25))\nprint(formatear_colones.__doc__)",
+       "language": "python"
+      },
+      {
+       "title": "Organiza el archivo",
+       "body": "Este es el esqueleto que vas a usar en la calculadora del sábado: constantes, funciones y el programa principal al final.",
+       "code": "TASA_IVA = 0.13\n\n\ndef calcular_iva(monto, tasa=TASA_IVA):\n    \"\"\"Devuelve el impuesto de un monto.\"\"\"\n    return monto * tasa\n\n\n# Programa principal\nneto = 37125\nprint(f\"IVA: ₡{calcular_iva(neto):,.2f}\")",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "SyntaxError: parameter without a default follows parameter with a default",
+       "cause": "Pusiste un parámetro con valor por defecto antes de uno sin él, como `def total_linea(cantidad, descuento=0, precio_unitario):`.",
+       "fix": "Mueve los parámetros con valor por defecto al final: `def total_linea(cantidad, precio_unitario, descuento=0):`."
+      },
+      {
+       "error": "NameError: name 'descuento' is not defined (fuera de la función)",
+       "cause": "La variable se creó dentro de una función y es local: dejó de existir cuando la función terminó.",
+       "fix": "Devuelve el valor con `return` y guárdalo afuera: `resultado = aplicar_descuento(20000)`."
+      },
+      {
+       "error": "UnboundLocalError: cannot access local variable 'total' where it is not associated with a value",
+       "cause": "Dentro de una función intentaste cambiar una variable de afuera (`total += monto`). Al asignarla, Python la trata como local, y todavía no tiene valor.",
+       "fix": "Pasa el valor como parámetro y devuelve el nuevo: `def sumar(total, monto): return total + monto`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-27-1",
+     "title": "Repaso SQL: Ranking de vendedores 2026",
+     "prompt": "Para los incentivos de fin de año, la gerente quiere el ranking de vendedores de 2026. Para cada empleado que atendió pedidos desde el 1 de enero de 2026 (sin contar los cancelados), muestra su nombre completo (nombre y apellido separados por un espacio), el monto vendido redondeado a colones enteros y su puesto en el ranking (1 para el que más vendió), en ese orden.",
+     "hint": "Calcula primero las ventas por empleado en una CTE y después aplica `RANK() OVER (ORDER BY ventas DESC)` sobre ese resultado.",
+     "solution": "WITH ventas AS (\n  SELECT e.nombre || ' ' || e.apellido AS vendedor,\n         ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS monto\n  FROM empleados e\n  JOIN pedidos p ON p.empleado_id = e.id\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.fecha >= '2026-01-01' AND p.estado <> 'cancelado'\n  GROUP BY e.id\n)\nSELECT vendedor, monto, RANK() OVER (ORDER BY monto DESC) AS puesto\nFROM ventas;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-11-27-2",
+     "title": "Repaso SQL: Tabla de tarifas de envío",
+     "prompt": "Las reglas de envío de tu programa también pueden vivir en la base. Crea la tabla `tarifas_envio` con dos columnas: `provincia_id` (entero, clave primaria, que referencia a `provincias`) y `tarifa` (entero, obligatoria, con valor por defecto 2500). Inserta una fila por cada provincia **sin indicar la tarifa**, para que tome el valor por defecto, y luego cambia a 3500 la tarifa de Guanacaste, Puntarenas y Limón. Se revisará con una consulta que muestra el nombre de cada provincia y su tarifa.",
+     "hint": "`INSERT INTO tarifas_envio (provincia_id) SELECT id FROM provincias;` crea las siete filas de una vez. Para el `UPDATE`, puedes filtrar con `IN` y una subconsulta sobre los nombres de las provincias.",
+     "solution": "CREATE TABLE tarifas_envio (\n  provincia_id INTEGER PRIMARY KEY REFERENCES provincias(id),\n  tarifa INTEGER NOT NULL DEFAULT 2500\n);\nINSERT INTO tarifas_envio (provincia_id)\nSELECT id FROM provincias;\nUPDATE tarifas_envio\nSET tarifa = 3500\nWHERE provincia_id IN (\n  SELECT id FROM provincias\n  WHERE nombre IN ('Guanacaste', 'Puntarenas', 'Limón')\n);",
+     "check": "SELECT p.nombre, t.tarifa\nFROM tarifas_envio t\nJOIN provincias p ON p.id = t.provincia_id;",
+     "setup": "",
+     "starter": "CREATE TABLE tarifas_envio (\n  \n);\n",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `semana-07/funciones_tienda.py` con tres funciones con docstring: `total_linea(cantidad, precio_unitario, descuento=0)`, `calcular_iva(monto, tasa=TASA_IVA)` y `formatear_colones(monto)`, que devuelve el texto con ₡, separador de miles y 2 decimales. Pruébalas con las tres líneas del pedido 341 y comprueba que el neto da ₡37,125.00 y el IVA ₡4,826.25.",
+    "Agrega a `funciones_tienda.py` la función `costo_envio(provincia, monto)` con las reglas de `envio.py` del miércoles (gratis desde ₡50 000; ₡2 500 en el Valle Central; ₡3 500 en Guanacaste, Puntarenas y Limón). Pruébala con 4 llamadas que cubran todos los casos.",
+    "Escribe `pedir_entero(mensaje, minimo=1)`: repite la pregunta con `while True` hasta que el usuario escriba un entero mayor o igual que `minimo`, y lo devuelve con `return`. Úsala para pedir una cantidad y pruébala con letras, con 0 y con un número válido.",
+    "Reescribe `linea_pedido.py` del martes para que use `total_linea`, `calcular_iva` y `formatear_colones`. Corre la versión vieja y la nueva con el mismo caso (3 cargadores de ₡12 900 con 5 %) y comprueba que dan lo mismo.",
+    "Planifica el entregable: crea `calculadora.py` y escribe en comentarios qué datos va a pedir, qué funciones vas a necesitar (con sus parámetros) y en qué orden ocurre todo. Todavía sin programar."
+   ],
+   "taskHints": [
+    "Define `TASA_IVA = 0.13` arriba del archivo. Las líneas del pedido 341 son `(4, 2800)`, `(2, 7500)` y `(1, 11500, 0.05)`; `formatear_colones` es una sola línea: `return f\"₡{monto:,.2f}\"`.",
+    "Revisa primero el monto (`return 0`) y después la provincia normalizada con `strip().lower()`. Para una provincia desconocida puedes devolver `None` y revisarlo afuera con `is None`.",
+    "Es el patrón de validación del jueves dentro de una función: en vez de `break`, la función termina con `return int(texto)` cuando el dato es válido.",
+    "Copia las funciones arriba del archivo y deja el programa principal abajo. Si los resultados no coinciden, revisa que el descuento se pase como fracción (0.05) y no como 5.",
+    "Piensa en la calculadora como una caja registradora: un bucle que pide líneas hasta que el usuario termina, acumuladores para subtotal y descuentos, y al final provincia, envío, IVA y total."
+   ],
+   "challenge": {
+    "title": "Validador de teléfonos",
+    "description": "En la tabla `clientes` los teléfonos tienen el formato `8451-3931`. Escribe `es_telefono_valido(telefono)` con docstring: devuelve `True` si, después de quitar espacios de los extremos, el texto tiene 9 caracteres, un guion en la posición 4 (contando desde 0), 8 dígitos en el resto, y empieza con 2 (fijo) o con 6, 7 u 8 (celular). Pruébala con `\"8451-3931\"`, `\" 2222-1234 \"`, `\"84513931\"`, `\"1234-5678\"` y `\"8451-39a1\"`.",
+    "hint": "Encadena las reglas con `return` tempranos: si el largo no es 9 o `telefono[4]` no es `\"-\"`, devuelve `False`. Luego quita el guion con `replace` y revisa `isdigit()` y el primer carácter con `in \"2678\"`.",
+    "solution": "def es_telefono_valido(telefono):\n    \"\"\"Devuelve True si el teléfono tiene el formato 8888-8888 y empieza con 2, 6, 7 u 8.\"\"\"\n    telefono = telefono.strip()\n    if len(telefono) != 9 or telefono[4] != \"-\":\n        return False\n    digitos = telefono.replace(\"-\", \"\")\n    return digitos.isdigit() and digitos[0] in \"2678\"\n\n\nprint(es_telefono_valido(\"8451-3931\"))\nprint(es_telefono_valido(\" 2222-1234 \"))\nprint(es_telefono_valido(\"84513931\"))\nprint(es_telefono_valido(\"1234-5678\"))\nprint(es_telefono_valido(\"8451-39a1\"))",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Función",
+     "definition": "Bloque de código con nombre que recibe datos, hace un trabajo y puede devolver un resultado. Se define con `def`."
+    },
+    {
+     "term": "Parámetro",
+     "definition": "Variable de la definición de una función que recibe un dato: en `def calcular_iva(monto):`, `monto`."
+    },
+    {
+     "term": "Argumento",
+     "definition": "El valor concreto que se pasa al llamar una función: en `calcular_iva(37125)`, el 37125."
+    },
+    {
+     "term": "return",
+     "definition": "Instrucción que termina la función y entrega un valor a quien la llamó."
+    },
+    {
+     "term": "Valor por defecto",
+     "definition": "Valor que toma un parámetro cuando la llamada no lo indica, como `descuento=0`."
+    },
+    {
+     "term": "Variable local",
+     "definition": "Variable creada dentro de una función; solo existe mientras la función se ejecuta."
+    },
+    {
+     "term": "Docstring",
+     "definition": "Texto entre triples comillas al inicio de una función que explica qué hace; lo muestran `help()` y VS Code."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: definir funciones",
+     "url": "https://docs.python.org/es/3/tutorial/controlflow.html#defining-functions"
+    },
+    {
+     "title": "Tutorial de Python: valores por omisión en argumentos",
+     "url": "https://docs.python.org/es/3/tutorial/controlflow.html#default-argument-values"
+    },
+    {
+     "title": "PEP 257: convenciones para docstrings (en inglés)",
+     "url": "https://peps.python.org/pep-0257/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué devuelve una función que solo hace `print` y no tiene `return`?",
+     "code": "",
+     "options": [
+      "El valor que imprimió",
+      "None",
+      "0",
+      "Un error al llamarla"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: lo impreso se muestra en la terminal, pero no se entrega a quien llamó.",
+      "Correcto: toda función sin `return` devuelve `None`.",
+      "No: Python no inventa un número; devuelve la ausencia de valor.",
+      "No: llamarla funciona; el problema aparece cuando intentas usar su resultado."
+     ],
+     "explanation": "`print` muestra en pantalla; `return` entrega un valor. Sin `return`, el resultado de la llamada es `None`.",
+     "hint": "Es el equivalente de NULL en Python."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estas definiciones es válida?",
+     "code": "",
+     "options": [
+      "def total_linea(cantidad, descuento=0, precio):",
+      "def total_linea(descuento=0, cantidad, precio):",
+      "def total_linea(cantidad, precio, descuento=0):",
+      "def total_linea(cantidad, precio, descuento=):"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: un parámetro sin valor por defecto no puede ir después de uno que sí lo tiene.",
+      "No: mismo problema; los parámetros con valor por defecto van al final.",
+      "Correcto: los obligatorios primero y el que tiene valor por defecto al final.",
+      "No: después del `=` debe ir un valor."
+     ],
+     "explanation": "Python asigna los argumentos por posición, así que los parámetros opcionales tienen que ir después de los obligatorios.",
+     "hint": "¿Dónde van los parámetros con valor por defecto?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué columna de la Tienda se parece más a un parámetro con valor por defecto como `descuento=0`?",
+     "code": "",
+     "options": [
+      "`detalle_pedido.descuento`, definida con `DEFAULT 0`",
+      "`productos.id`, que es INTEGER PRIMARY KEY",
+      "`clientes.email`, que puede ser NULL",
+      "`pedidos.estado`, que tiene un CHECK"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: si un INSERT no da el descuento, SQLite usa 0; si una llamada no lo da, Python usa 0.",
+      "No: la clave primaria identifica la fila; no es un valor que se usa cuando falta el dato.",
+      "No: NULL significa «sin valor», no un valor por defecto.",
+      "No: CHECK valida valores, no los completa."
+     ],
+     "explanation": "DEFAULT en una columna y un valor por defecto en un parámetro resuelven lo mismo: qué usar cuando no se indica nada.",
+     "hint": "Busca la columna que se crea con DEFAULT."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Una variable creada dentro de una función se puede usar después, fuera de ella, con el mismo nombre.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: es local; deja de existir cuando la función termina y afuera da `NameError`.",
+      "Correcto: para usar el valor afuera, la función debe devolverlo con `return`."
+     ],
+     "explanation": "Las variables locales viven solo mientras se ejecuta la función.",
+     "hint": "Recuerda el paso «Comprueba el alcance»."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Escribir `def calcular_iva(monto):` y su bloque, sin nada más, ya calcula un IVA al correr el archivo.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: definir solo crea la función; hay que llamarla para que se ejecute.",
+      "Correcto: el código de la función se ejecuta cada vez que la llamas, no al definirla."
+     ],
+     "explanation": "`def` le enseña a Python una receta; la llamada es la que la prepara.",
+     "hint": "¿Qué falta para que la función se ejecute?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "def total_linea(cantidad, precio, descuento=0):\n    return cantidad * precio * (1 - descuento)\n\nprint(total_linea(2, 7500))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "15000"
+     ],
+     "optionFeedback": [],
+     "explanation": "El descuento toma su valor por defecto, 0, y 2 * 7500 * (1 - 0) da 15000.",
+     "hint": "¿Qué valor toma `descuento` si no lo pasas?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué muestra este programa?",
+     "code": "def costo_envio(monto):\n    if monto >= 50000:\n        return 0\n    return 2500\n\nprint(costo_envio(50000) + costo_envio(49999))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2500"
+     ],
+     "optionFeedback": [],
+     "explanation": "`costo_envio(50000)` devuelve 0 porque se cumple `>=`; `costo_envio(49999)` devuelve 2500. La suma es 2500.",
+     "hint": "Calcula cada llamada por separado y súmalas."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la función para que entregue el resultado a quien la llama.",
+     "code": "def calcular_iva(monto):\n    ___ monto * 0.13",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "return"
+     ],
+     "optionFeedback": [],
+     "explanation": "`return` termina la función y entrega el valor calculado.",
+     "hint": "Es la palabra que entrega el resultado, no la que lo muestra."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-11-28",
+  "kind": "weekly",
+  "path": "curso-python/semana-07/calculadora.py",
+  "description": "Un programa de consola que registra las líneas de un pedido de la Tienda Pura Vida (producto, precio, cantidad y descuento), valida cada dato y al final muestra el resumen: subtotal, descuentos, IVA del 13 %, envío según la provincia y total. Reúne todo lo de la semana: variables, input, decisiones, bucles y funciones.",
+  "criteria": [
+   "El programa corre con `python calculadora.py` sin errores y pide líneas en un bucle hasta que el usuario deja el nombre del producto vacío.",
+   "Ante una cantidad que no es un entero o es menor que 1, un precio inválido o un descuento fuera de 0 a 50 %, muestra un mensaje claro, vuelve a preguntar y nunca se cae con un error de Python.",
+   "Tiene al menos cuatro funciones con docstring, entre ellas `total_linea`, `calcular_iva` y `costo_envio`; los datos entran por parámetros y salen con `return` (solo las constantes como `TASA_IVA` están afuera).",
+   "Con las líneas del pedido 341 y la provincia Heredia, el resumen muestra subtotal ₡37,700.00, descuentos ₡575.00, IVA ₡4,826.25, envío ₡2,500.00 y total ₡44,451.25.",
+   "Todos los montos se muestran con f-strings, el signo ₡, separador de miles y 2 decimales.",
+   "Al final del archivo hay un comentario con al menos 3 casos probados y sus resultados, incluido uno con envío gratis."
+  ],
+  "steps": [
+   "Resuelve primero los dos ejercicios de repaso SQL de este entregable: te dan el desglose y el resumen del pedido 341, que será tu caso de prueba principal.",
+   "Abre el `calculadora.py` que planificaste el viernes y completa el plan en comentarios: qué se pide, qué se acumula, qué se muestra al final y qué funciones vas a escribir.",
+   "Escribe las funciones arriba del archivo, con docstring: `total_linea(cantidad, precio_unitario, descuento=0)`, `calcular_iva(monto, tasa=TASA_IVA)`, `costo_envio(provincia, monto)` y `formatear_colones(monto)`. Pruébalas una por una con casos que puedas calcular a mano.",
+   "Escribe las funciones de entrada que repiten la pregunta hasta tener un dato válido: `pedir_entero(mensaje, minimo=1)` para precio y cantidad, y otra para el descuento en porcentaje (de 0 a 50, se puede dejar vacío para 0).",
+   "Arma el bucle principal: pide el nombre del producto (vacío para terminar), luego precio, cantidad y descuento; muestra el total de la línea y actualiza los acumuladores de subtotal bruto, descuentos y cantidad de líneas.",
+   "Cuando termine el bucle, si no hay líneas muestra «Pedido vacío» y termina. Si hay, pide la provincia (repite si no es una de las siete), calcula el neto, el IVA, el envío y el total, y muestra el resumen alineado.",
+   "Prueba con el pedido 341 y Heredia, con un pedido de más de ₡50 000 (envío gratis) y con datos inválidos a propósito. Anota los casos y sus resultados en un comentario al final del archivo."
+  ],
+  "tips": [
+   "El subtotal bruto es `cantidad * precio` sin descuento; el descuento de la línea es `cantidad * precio * descuento`; el neto es la diferencia. El IVA se calcula sobre el neto y el envío se suma al final, sin IVA.",
+   "Pide el descuento en porcentaje (5) porque así lo dice una persona, y divídelo entre 100 al pasarlo a `total_linea`, que trabaja con fracciones como la columna `descuento` de la base.",
+   "El revisor va a escribir letras en la cantidad, un descuento de 80 y una provincia mal escrita: cada caso debe dar un mensaje y volver a preguntar.",
+   "Si un resultado no coincide con el del pedido 341, imprime los acumuladores dentro del bucle para ver en qué línea se desvía, y luego borra esos `print`."
+  ],
+  "stretch": "Al final, pregunta el método de pago (tarjeta, sinpe, efectivo o transferencia, como en la tabla `pedidos`). Si es efectivo, pide con cuánto paga el cliente, rechaza montos menores que el total y muestra el vuelto; si es SINPE, muestra un recordatorio para revisar el comprobante.",
+  "checklist": [
+   "El archivo se llama `calculadora.py` y está en `curso-python/semana-07`.",
+   "Corre de principio a fin con el pedido 341 y los cinco montos del resumen coinciden con el ejercicio s07-2.",
+   "Letras, ceros, negativos, descuentos mayores que 50 y provincias inexistentes muestran un mensaje y vuelven a preguntar.",
+   "Un pedido sin líneas muestra «Pedido vacío» en vez de un resumen en ceros o un error.",
+   "Cada función tiene docstring y no usa `print` para devolver resultados.",
+   "Hay un comentario final con al menos 3 casos probados."
+  ],
+  "exercises": [
+   {
+    "id": "s07-1",
+    "title": "Repaso SQL: Desglose del pedido 341",
+    "prompt": "Vas a usar el pedido 341 para probar tu calculadora. Muestra sus líneas con el nombre del producto, la `cantidad`, el `precio_unitario`, el descuento expresado en porcentaje (5 en lugar de 0.05) y el total de la línea (`cantidad * precio_unitario * (1 - descuento)`), en ese orden.",
+    "hint": "Une `detalle_pedido` con `productos` para obtener el nombre, filtra por `pedido_id = 341` y multiplica el descuento por 100.",
+    "solution": "SELECT pr.nombre, d.cantidad, d.precio_unitario,\n       d.descuento * 100 AS descuento_pct,\n       d.cantidad * d.precio_unitario * (1 - d.descuento) AS total_linea\nFROM detalle_pedido d\nJOIN productos pr ON pr.id = d.producto_id\nWHERE d.pedido_id = 341;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s07-2",
+    "title": "Repaso SQL: Resumen del pedido 341",
+    "prompt": "Calcula en una sola fila el resumen del pedido 341, como lo mostrará tu calculadora: subtotal bruto (sin descuentos), monto total de descuentos, neto (subtotal menos descuentos), IVA del 13 % sobre el neto, costo de envío (de la tabla `pedidos`) y total (neto más IVA más envío), en ese orden. Redondea el IVA y el total a 2 decimales.",
+    "hint": "Calcula el bruto y el descuento de cada línea en una CTE (`cantidad * precio_unitario` y `cantidad * precio_unitario * descuento`) y súmalos en otra. Después une con `pedidos` para traer `costo_envio`.",
+    "solution": "WITH lineas AS (\n  SELECT cantidad * precio_unitario AS bruto,\n         cantidad * precio_unitario * descuento AS descuento\n  FROM detalle_pedido\n  WHERE pedido_id = 341\n),\nresumen AS (\n  SELECT SUM(bruto) AS subtotal, SUM(descuento) AS descuentos\n  FROM lineas\n)\nSELECT r.subtotal,\n       r.descuentos,\n       r.subtotal - r.descuentos AS neto,\n       ROUND((r.subtotal - r.descuentos) * 0.13, 2) AS iva,\n       p.costo_envio,\n       ROUND((r.subtotal - r.descuentos) * 1.13 + p.costo_envio, 2) AS total\nFROM resumen r\nJOIN pedidos p ON p.id = 341;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   }
+  ]
+ }
+}

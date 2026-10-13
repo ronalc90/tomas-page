@@ -1,0 +1,1629 @@
+{
+ "id": "s08",
+ "number": 8,
+ "phaseId": 3,
+ "title": "Colecciones y archivos",
+ "rangeLabel": "30 nov – 5 dic",
+ "days": [
+  {
+   "date": "2026-11-30",
+   "kind": "workshop",
+   "title": "Listas y tuplas",
+   "summary": "Guardas muchas ventas en una sola variable, las recorres, ordenas y filtras, y descubres que una lista de tuplas se parece mucho al resultado de un SELECT.",
+   "objectives": [
+    "Crear listas, acceder a sus elementos con índices positivos y negativos y modificarlas con append, insert, remove, pop y sort.",
+    "Recorrer una lista con for y con enumerate, y calcular total, promedio, máximo y mínimo con sum, len, max y min.",
+    "Extraer partes de una lista con slicing y relacionarlo con LIMIT y OFFSET.",
+    "Representar productos como tuplas, desempaquetarlas y recorrer una lista de tuplas como si fueran filas de una tabla.",
+    "Escribir comprensiones de lista con y sin condición, y traducir entre una comprensión y un SELECT con WHERE."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Listas, métodos y recorridos",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Slicing, tuplas y comprensiones de lista",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: tareas en curso-python/semana-08",
+     "minutes": 60
+    },
+    {
+     "label": "Repaso SQL (2 ejercicios)",
+     "minutes": 20
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 25
+    }
+   ],
+   "topics": [
+    {
+     "title": "Listas, métodos y recorridos",
+     "concept": "La semana pasada cada dato vivía en su propia variable. Si hoy la tienda tuvo cinco pedidos, necesitarías `venta1`, `venta2`… y ningún bucle podría recorrerlas. Una **lista** guarda muchos valores en una sola variable y en orden: `ventas = [12500, 3800, 45000]`. Se escribe entre corchetes, con los valores separados por comas.\n\nCada elemento tiene una posición, el índice, que empieza en 0: `ventas[0]` es el primero y `ventas[-1]` el último. `len(ventas)` dice cuántos hay. A diferencia de un texto, una lista se puede cambiar: `append` agrega al final, `insert` en una posición, `remove` quita un valor, `pop` quita y devuelve un elemento, y `sort` la ordena.\n\nPiensa en una lista como **una columna de una tabla**. `[6500, 12500, 3800]` es lo que verías con `SELECT precio FROM productos`; `sum(precios)` equivale a `SUM(precio)`, `len(precios)` a `COUNT(*)` y `max(precios)` a `MAX(precio)`. Recorrerla con `for precio in precios:` es pasar fila por fila, igual que hace SQLite por dentro.",
+     "tip": "Cuando una lista no hace lo que esperas, imprímela completa justo antes de la línea que falla. Ver los valores reales (y sus comillas, si son textos) resuelve la mayoría de las dudas en segundos.",
+     "example": "ventas = [12500, 3800, 45000, 6500, 2100]\nprint(\"Pedidos de hoy:\", len(ventas))\nprint(\"Primera venta:\", ventas[0], \"| Última:\", ventas[-1])\nventas.append(9500)\nprint(\"Después de append:\", ventas)\n\ntotal = 0\nfor venta in ventas:\n    total += venta\nprint(f\"Total con acumulador: ₡{total:,}\")\nprint(f\"Total con sum(): ₡{sum(ventas):,}\")\nprint(f\"Mayor: ₡{max(ventas):,} | Menor: ₡{min(ventas):,}\")\nprint(f\"Promedio: ₡{sum(ventas) / len(ventas):,.0f}\")",
+     "language": "python",
+     "exampleOutput": "Pedidos de hoy: 5\nPrimera venta: 12500 | Última: 2100\nDespués de append: [12500, 3800, 45000, 6500, 2100, 9500]\nTotal con acumulador: ₡79,400\nTotal con sum(): ₡79,400\nMayor: ₡45,000 | Menor: ₡2,100\nPromedio: ₡13,233",
+     "steps": [
+      {
+       "title": "Crea una lista y usa índices",
+       "body": "Crea una lista con los nombres de cuatro productos. El primer elemento está en el índice 0 y el último en `len(lista) - 1`, o más fácil, en `-1`. Prueba también `-2` para ver el penúltimo.",
+       "code": "productos = [\"Salsa Lizano 700 ml\", \"Camiseta Pura Vida\", \"Hamaca de algodón\", \"Cable HDMI 2 m\"]\nprint(len(productos))\nprint(productos[0])\nprint(productos[2])\nprint(productos[-1])\nprint(productos[-2])",
+       "language": "python"
+      },
+      {
+       "title": "Recorre con for y con enumerate",
+       "body": "Un `for` simple te da cada valor. Cuando además necesitas el número de fila, usa `enumerate`, que entrega pares (posición, valor); con `start=1` la numeración empieza en 1, como en un reporte.",
+       "code": "ventas = [12500, 3800, 45000]\nfor venta in ventas:\n    print(\"Venta:\", venta)\n\nfor numero, venta in enumerate(ventas, start=1):\n    print(f\"Pedido {numero}: ₡{venta:,}\")",
+       "language": "python"
+      },
+      {
+       "title": "Agrega y quita elementos",
+       "body": "`append` agrega al final e `insert(0, x)` al principio. `remove` busca por valor y `pop` quita por posición y te devuelve lo que quitó. Imprime la lista después de cada paso para ver cómo cambia.",
+       "code": "carrito = [\"Café molido Orosi 250 g\", \"Cajeta de leche\"]\ncarrito.append(\"Taza de cerámica pintada\")\ncarrito.insert(0, \"Tapa de dulce 1 kg\")\nprint(carrito)\ncarrito.remove(\"Cajeta de leche\")\nprint(carrito)\nquitado = carrito.pop()\nprint(\"pop() quitó:\", quitado)\nprint(carrito)",
+       "language": "python"
+      },
+      {
+       "title": "Ordena sin perder la lista",
+       "body": "`sort()` ordena la lista en su lugar y devuelve `None`; `sorted()` devuelve una copia ordenada y deja la original intacta. Con `reverse=True` el orden es de mayor a menor, como un `ORDER BY ... DESC`.",
+       "code": "precios = [6500, 2450, 45000, 1200]\nordenados = sorted(precios, reverse=True)\nprint(\"Copia de mayor a menor:\", ordenados)\nprint(\"La original no cambió:\", precios)\nprecios.sort()\nprint(\"Original ordenada:\", precios)\nresultado = precios.sort()\nprint(\"sort() devuelve:\", resultado)",
+       "language": "python"
+      },
+      {
+       "title": "Construye una lista filtrando",
+       "body": "El patrón más usado: una lista vacía, un `for` y un `if` que decide qué se agrega con `append`. Es exactamente un `WHERE`: de todas las ventas, se quedan solo las que cumplen la condición.",
+       "code": "ventas = [12500, 3800, 45000, 6500, 2100, 9500]\ngrandes = []\nfor venta in ventas:\n    if venta >= 9000:\n        grandes.append(venta)\nprint(\"Ventas de ₡9 000 o más:\", grandes)\nprint(\"Cuántas:\", len(grandes), \"de\", len(ventas))",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "IndexError: list index out of range",
+       "cause": "Pediste una posición que no existe: en una lista de 5 elementos el último índice es 4, no 5.",
+       "fix": "Usa índices de 0 a `len(lista) - 1`, o `lista[-1]` para el último. Si solo necesitas los valores, recorre con `for x in lista` y olvídate de los índices."
+      },
+      {
+       "error": "Después de `precios = precios.sort()` la lista vale None",
+       "cause": "`sort()` ordena en su lugar y devuelve `None`; al asignar ese resultado perdiste la lista.",
+       "fix": "Escribe `precios.sort()` solo, sin asignar, o usa `ordenados = sorted(precios)` si quieres conservar la original."
+      },
+      {
+       "error": "ValueError: list.remove(x): x not in list",
+       "cause": "Intentaste quitar un valor que no está en la lista (o ya lo habías quitado, o lo escribiste con otra mayúscula).",
+       "fix": "Pregunta antes con `in`: `if producto in carrito: carrito.remove(producto)`."
+      },
+      {
+       "error": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+       "cause": "La lista tiene números guardados como texto, por ejemplo `[\"12500\", \"3800\"]`, y `sum` no puede sumarlos.",
+       "fix": "Convierte cada valor con `int()` al agregarlo a la lista. Mañana y el jueves verás que lo que viene de un archivo siempre llega como texto."
+      }
+     ]
+    },
+    {
+     "title": "Slicing, tuplas y comprensiones de lista",
+     "concept": "El **slicing** saca un pedazo de una lista: `ventas[inicio:fin]` incluye `inicio` pero no `fin`. `ventas[:3]` son los tres primeros, como un `LIMIT 3`; `ventas[3:6]` son los tres siguientes, como `LIMIT 3 OFFSET 3`. No modifica la lista: crea una nueva.\n\nUna **tupla** es como una lista que no se puede cambiar, y se escribe con paréntesis: `(\"Salsa Lizano 700 ml\", 2450, 300)`. Se usa para registros cuyos datos van juntos y en un orden fijo: nombre, precio y stock. Se desempaqueta en variables: `nombre, precio, stock = producto`. Una lista de tuplas es exactamente **el resultado de un SELECT de varias columnas**: cada tupla es una fila; en la semana 9 verás que Python recibe así los datos de SQLite.\n\nUna **comprensión de lista** crea una lista nueva en una línea: `[precio * 1.13 for precio in precios if precio > 5000]`. Se lee como SQL: la expresión es lo que va en el `SELECT`, el `for` es el `FROM` y el `if` es el `WHERE`. Todo lo que haces con `for`, `if` y `append` se puede escribir así.",
+     "tip": "Escribe primero la versión larga con `for`, `if` y `append`, comprueba que funciona y solo entonces conviértela en comprensión. Si la comprensión no cabe cómoda en una línea, la versión larga es mejor.",
+     "example": "productos = [\n    (\"Café molido Tarrazú 500 g\", 6500, 120),\n    (\"Salsa Lizano 700 ml\", 2450, 300),\n    (\"Máscara boruca tallada\", 45000, 6),\n    (\"Bolso de manta\", 6500, 0),\n    (\"Audífonos inalámbricos\", 24900, 25),\n]\nnombre, precio, stock = productos[0]\nprint(f\"{nombre}: ₡{precio:,} ({stock} en bodega)\")\n\n# SELECT nombre FROM productos WHERE stock = 0\nagotados = [nombre for nombre, precio, stock in productos if stock == 0]\nprint(\"Agotados:\", agotados)\n\n# SELECT precio * stock FROM productos\nvalores = [precio * stock for nombre, precio, stock in productos]\nprint(\"Valor en bodega:\", valores)\nprint(f\"Inventario total: ₡{sum(valores):,}\")\n\n# SELECT precio FROM productos ORDER BY precio DESC LIMIT 3\nprecios = sorted([precio for nombre, precio, stock in productos], reverse=True)\nprint(\"Tres precios más altos:\", precios[:3])",
+     "language": "python",
+     "exampleOutput": "Café molido Tarrazú 500 g: ₡6,500 (120 en bodega)\nAgotados: ['Bolso de manta']\nValor en bodega: [780000, 735000, 270000, 0, 622500]\nInventario total: ₡2,407,500\nTres precios más altos: [45000, 24900, 6500]",
+     "steps": [
+      {
+       "title": "Saca pedazos con slicing",
+       "body": "Con las ventas de una semana, prueba los cortes más comunes. Recuerda que el número de `fin` no se incluye: `[1:4]` da los índices 1, 2 y 3. `[::-1]` devuelve la lista al revés.",
+       "code": "ventas_semana = [185000, 142000, 210500, 98000, 263000, 301000, 120000]\nprint(\"Lunes a miércoles:\", ventas_semana[:3])\nprint(\"Martes a jueves:\", ventas_semana[1:4])\nprint(\"Fin de semana:\", ventas_semana[-2:])\nprint(\"Al revés:\", ventas_semana[::-1])\nprint(\"La original sigue igual:\", ventas_semana)",
+       "language": "python"
+      },
+      {
+       "title": "Crea y desempaqueta tuplas",
+       "body": "Una tupla agrupa datos que van juntos. Desempaquetarla da un nombre a cada parte y hace el código más legible que usar `producto[1]` y `producto[2]`. El número de variables debe ser igual al de elementos.",
+       "code": "producto = (\"Hamaca de algodón\", 32000, 10)\nnombre, precio, stock = producto\nprint(nombre)\nprint(f\"Precio: ₡{precio:,}\")\nprint(f\"Valor en bodega: ₡{precio * stock:,}\")\nprint(type(producto), len(producto))",
+       "language": "python"
+      },
+      {
+       "title": "Comprueba que una tupla no cambia",
+       "body": "Intentar cambiar un elemento de una tupla produce un error. Ejecútalo para ver el mensaje: es la forma en que Python protege un registro que no debería alterarse por accidente.",
+       "code": "producto = (\"Hamaca de algodón\", 32000, 10)\nproducto[1] = 30000",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Recorre una lista de tuplas como filas",
+       "body": "Cada vuelta del `for` recibe una fila y la desempaqueta en el mismo encabezado del bucle. Es el equivalente a leer el resultado de `SELECT nombre, precio, stock FROM productos` fila por fila.",
+       "code": "productos = [\n    (\"Camiseta Pura Vida\", 9500, 200),\n    (\"Gorra bordada Costa Rica\", 8500, 75),\n    (\"Pañoleta de colores\", 5500, 50),\n]\nfor nombre, precio, stock in productos:\n    print(f\"{nombre:<26} ₡{precio:>6,} {stock:>4} u.\")",
+       "language": "python"
+      },
+      {
+       "title": "De for + append a comprensión",
+       "body": "Las dos versiones producen la misma lista. Lee la comprensión en voz alta como si fuera SQL: «selecciona el nombre, de cada producto, donde el stock sea menor que 60».",
+       "code": "productos = [(\"Camiseta Pura Vida\", 9500, 200), (\"Gorra bordada Costa Rica\", 8500, 75), (\"Pañoleta de colores\", 5500, 50), (\"Bolso de manta\", 6500, 0)]\n\npocos = []\nfor nombre, precio, stock in productos:\n    if stock < 60:\n        pocos.append(nombre)\nprint(pocos)\n\npocos2 = [nombre for nombre, precio, stock in productos if stock < 60]\nprint(pocos2)\nprint(pocos == pocos2)",
+       "language": "python"
+      },
+      {
+       "title": "Ordena por una columna y toma los primeros",
+       "body": "`sorted` acepta `key=`, una función que dice por qué valor ordenar. Aquí la función devuelve el precio de cada tupla. Con `reverse=True` y `[:2]` obtienes un `ORDER BY precio DESC LIMIT 2`.",
+       "code": "def precio_de(producto):\n    return producto[1]\n\nproductos = [(\"Camiseta Pura Vida\", 9500, 200), (\"Sudadera con capucha Tico\", 19500, 35), (\"Pañoleta de colores\", 5500, 50)]\nmas_caros = sorted(productos, key=precio_de, reverse=True)[:2]\nfor nombre, precio, stock in mas_caros:\n    print(nombre, precio)",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "TypeError: 'tuple' object does not support item assignment",
+       "cause": "Intentaste cambiar un elemento de una tupla; las tuplas no se modifican.",
+       "fix": "Si el dato debe cambiar, crea una tupla nueva (`producto = (nombre, 30000, stock)`) o usa una lista. Mañana verás que un diccionario es aún mejor para registros que cambian."
+      },
+      {
+       "error": "ValueError: too many values to unpack (expected 2)",
+       "cause": "Desempaquetaste una tupla de 3 elementos en 2 variables, por ejemplo `for nombre, precio in productos` cuando cada fila trae también el stock.",
+       "fix": "Pon tantas variables como elementos tiene cada tupla. Si alguno no te interesa, usa `_`: `for nombre, precio, _ in productos`."
+      },
+      {
+       "error": "Al pedir `ventas[1:3]` me falta un elemento",
+       "cause": "El índice de `fin` nunca se incluye: `[1:3]` da solo los índices 1 y 2.",
+       "fix": "Piensa en `[inicio:fin]` como «desde inicio, cuántos: fin - inicio». Para tres elementos desde el 1, escribe `[1:4]`."
+      },
+      {
+       "error": "SyntaxError en `[p for p in precios if p > 5000 else 0]`",
+       "cause": "En una comprensión el `if` del final solo filtra y no admite `else`.",
+       "fix": "Para filtrar: `[p for p in precios if p > 5000]`. Para transformar con dos casos, el `if ... else` va al principio: `[p if p > 5000 else 0 for p in precios]`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-11-30-1",
+     "title": "Repaso SQL: Pedidos de 2026 por método de pago",
+     "prompt": "Hoy cuentas valores en listas de Python; repasa cómo se cuenta en SQL. Para los pedidos de 2026 que no están cancelados, muestra el `metodo_pago` y cuántos pedidos se hicieron con él, en ese orden, de mayor a menor cantidad y, si empatan, por método de pago en orden alfabético.",
+     "hint": "Filtra con `WHERE fecha >= '2026-01-01' AND estado <> 'cancelado'`, agrupa por `metodo_pago` y ordena por el conteo con `DESC`.",
+     "solution": "SELECT metodo_pago, COUNT(*) AS pedidos\nFROM pedidos\nWHERE fecha >= '2026-01-01' AND estado <> 'cancelado'\nGROUP BY metodo_pago\nORDER BY pedidos DESC, metodo_pago;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-11-30-2",
+     "title": "Repaso SQL: Productos activos agotados",
+     "prompt": "Bodega necesita la lista de reposición urgente: productos activos (`activo = 1`) con `stock` igual a 0. Muestra el nombre del producto y el nombre de su categoría, en ese orden.",
+     "hint": "Une `productos` con `categorias` por `categoria_id` y combina las dos condiciones con `AND`.",
+     "solution": "SELECT p.nombre, c.nombre AS categoria\nFROM productos AS p\nJOIN categorias AS c ON c.id = p.categoria_id\nWHERE p.activo = 1 AND p.stock = 0;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea la carpeta `curso-python/semana-08/` y dentro el archivo `ventas_semana.py` con dos listas: `dias` (de \"Lunes\" a \"Domingo\") y `ventas` (7 montos en colones, uno por día). Recórrelas con `enumerate` para imprimir cada día con su venta y, al final, el total, el promedio sin decimales, la venta mayor con el día en que ocurrió (usa `index`) y la menor.",
+    "En `ventas_semana.py` agrega una comprensión que construya la lista de días cuya venta superó el promedio, y otra que calcule las ventas con un aumento del 5 % redondeado a colones. Imprime también los tres mejores montos usando `sorted(..., reverse=True)` y slicing, y comprueba que la lista `ventas` original no cambió de orden.",
+    "Crea `catalogo_cafe.py`. En el laboratorio SQL ejecuta `SELECT nombre, precio, stock FROM productos WHERE categoria_id = 1;` y copia las 6 filas como una lista de tuplas `(nombre, precio, stock)`. Imprime una tabla alineada con f-strings y calcula el valor del inventario (`precio * stock` sumado) con una comprensión. Comprueba que coincide con `SELECT SUM(precio * stock) FROM productos WHERE categoria_id = 1;` en el laboratorio.",
+    "En `catalogo_cafe.py` escribe dos funciones con docstring: `entre_precios(productos, minimo, maximo)`, que devuelve con una comprensión los productos cuyo precio está en ese rango (como un `BETWEEN`), y `mas_caros(productos, n=3)`, que devuelve los `n` más caros usando `sorted` con `key=` y slicing. Pruébalas con dos rangos y con `n=2`.",
+    "Crea `pedido_21.py`. Consulta en el laboratorio `SELECT producto_id, cantidad, precio_unitario, descuento FROM detalle_pedido WHERE pedido_id = 21;` y guarda las 4 líneas como una lista de tuplas. Recórrela desempaquetando cada tupla, imprime el subtotal de cada línea (`cantidad * precio_unitario * (1 - descuento)`) y el total del pedido. Debe darte ₡51,785; compruébalo también con un `SUM` en el laboratorio."
+   ],
+   "taskHints": [
+    "`for i, venta in enumerate(ventas):` te da la posición `i`, y `dias[i]` es el día que le corresponde. Para el día de la venta mayor: `dias[ventas.index(max(ventas))]`.",
+    "Calcula primero `promedio = sum(ventas) / len(ventas)` y úsalo dentro del `if` de la comprensión. Para recorrer días y ventas juntos en la comprensión, recorre posiciones: `[dias[i] for i in range(len(ventas)) if ventas[i] > promedio]`.",
+    "Al copiar del laboratorio, los nombres van entre comillas y los números sin comillas. Para alinear, usa `f\"{nombre:<28}\"` y `f\"{precio:>7,}\"`. El total debería ser ₡2,402,000.",
+    "La condición de `entre_precios` es `minimo <= precio <= maximo`, igual que `BETWEEN`, que incluye los dos extremos. Para `mas_caros`, define una función `precio_de(producto)` que devuelva `producto[1]` y pásala como `key=precio_de`.",
+    "Cada tupla tiene 4 elementos, así que el `for` necesita 4 variables: `for producto_id, cantidad, precio, descuento in lineas:`. Usa un acumulador para el total y redondea al imprimir con `:,.0f`."
+   ],
+   "challenge": {
+    "title": "Reporte de reposición",
+    "description": "Tienes una lista de tuplas `(nombre, categoria, precio, stock, activo)` con 8 productos de la tienda. Escribe un programa que, usando comprensiones y sin escribir números a mano, imprima: 1) los nombres de los productos activos con stock menor que 20, ordenados de menor a mayor stock; 2) el valor total del inventario de los productos activos; 3) los dos productos activos con mayor valor en bodega (`precio * stock`), con su valor. Escribe al lado de cada parte, en un comentario, la consulta SQL equivalente.",
+    "hint": "Para ordenar tuplas por una columna usa `sorted` con `key=` y una función que devuelva esa columna. Primero filtra los activos en una lista aparte y trabaja sobre ella.",
+    "solution": "productos = [\n    (\"Café molido Tarrazú 500 g\", \"Café y bebidas\", 6500, 120, 1),\n    (\"Té de manzanilla orgánico\", \"Café y bebidas\", 2800, 40, 0),\n    (\"Máscara boruca tallada\", \"Artesanía\", 45000, 6, 1),\n    (\"Hamaca de algodón\", \"Artesanía\", 32000, 10, 1),\n    (\"Camiseta Pura Vida\", \"Ropa\", 9500, 200, 1),\n    (\"Tabla de picar de teca\", \"Hogar y cocina\", 11500, 22, 1),\n    (\"Parlante bluetooth resistente al agua\", \"Tecnología\", 29900, 12, 1),\n    (\"Mouse inalámbrico\", \"Tecnología\", 9900, 0, 0),\n]\n\n\ndef stock_de(producto):\n    return producto[3]\n\n\ndef valor_de(producto):\n    return producto[2] * producto[3]\n\n\nactivos = [p for p in productos if p[4] == 1]\n\n# SELECT nombre FROM productos WHERE activo = 1 AND stock < 20 ORDER BY stock;\npocos = sorted([p for p in activos if p[3] < 20], key=stock_de)\nprint(\"Reponer:\", [p[0] for p in pocos])\n\n# SELECT SUM(precio * stock) FROM productos WHERE activo = 1;\ntotal = sum([valor_de(p) for p in activos])\nprint(f\"Inventario activo: ₡{total:,}\")\n\n# SELECT nombre, precio * stock AS valor FROM productos WHERE activo = 1\n# ORDER BY valor DESC LIMIT 2;\nfor p in sorted(activos, key=valor_de, reverse=True)[:2]:\n    print(f\"{p[0]}: ₡{valor_de(p):,}\")",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "lista",
+     "definition": "Colección ordenada y modificable de valores, escrita entre corchetes: `[12500, 3800]`."
+    },
+    {
+     "term": "índice",
+     "definition": "Posición de un elemento dentro de una lista o tupla; empieza en 0, y -1 es el último."
+    },
+    {
+     "term": "slicing",
+     "definition": "Extraer una parte de una lista con `lista[inicio:fin]`; incluye inicio y excluye fin."
+    },
+    {
+     "term": "tupla",
+     "definition": "Colección ordenada que no se puede modificar, escrita entre paréntesis; ideal para registros como (nombre, precio, stock)."
+    },
+    {
+     "term": "desempaquetar",
+     "definition": "Asignar cada elemento de una tupla a su propia variable en una sola línea: `nombre, precio = producto`."
+    },
+    {
+     "term": "comprensión de lista",
+     "definition": "Forma corta de crear una lista a partir de otra: `[expresión for x in lista if condición]`."
+    },
+    {
+     "term": "enumerate",
+     "definition": "Función que recorre una lista entregando pares (posición, valor)."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: listas",
+     "url": "https://docs.python.org/es/3/tutorial/introduction.html#lists"
+    },
+    {
+     "title": "Tutorial de Python: más sobre listas, comprensiones y tuplas",
+     "url": "https://docs.python.org/es/3/tutorial/datastructures.html"
+    },
+    {
+     "title": "Guía para ordenar en Python (sorted y key)",
+     "url": "https://docs.python.org/es/3/howto/sorting.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Si `ventas = [12500, 3800, 45000, 6500]`, ¿qué valor tiene `ventas[-1]`?",
+     "code": "",
+     "options": [
+      "12500",
+      "6500",
+      "45000",
+      "Da IndexError porque no hay índices negativos"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: 12500 es `ventas[0]`, el primer elemento.",
+      "Correcto: los índices negativos cuentan desde el final y -1 es el último.",
+      "No: 45000 es `ventas[2]` o `ventas[-2]`.",
+      "No: Python sí acepta índices negativos; -1 es el último elemento."
+     ],
+     "explanation": "Los índices negativos cuentan desde el final: `-1` es el último elemento, `-2` el penúltimo, y así sucesivamente.",
+     "hint": "Piensa en contar hacia atrás desde el final de la lista."
+    },
+    {
+     "type": "choice",
+     "prompt": "`productos` es una lista de tuplas `(nombre, precio, stock)`. ¿Qué comprensión equivale a `SELECT nombre FROM productos WHERE stock = 0`?",
+     "code": "",
+     "options": [
+      "[stock == 0 for nombre, precio, stock in productos]",
+      "[nombre for nombre, precio, stock in productos]",
+      "[nombre for nombre, precio, stock in productos if stock == 0]",
+      "[nombre if stock == 0 for nombre, precio, stock in productos]"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: esto da una lista de `True` y `False`, uno por producto; la condición no filtra.",
+      "No: falta el `WHERE`; devolvería los nombres de todos los productos.",
+      "Correcto: la expresión es el SELECT, el for es el FROM y el if final es el WHERE.",
+      "No: es un error de sintaxis; el `if` que filtra va al final y sin `else`."
+     ],
+     "explanation": "En una comprensión, lo que va antes del `for` es lo que se selecciona y el `if` del final filtra, igual que el WHERE.",
+     "hint": "Busca la opción donde la condición aparece después del for."
+    },
+    {
+     "type": "choice",
+     "prompt": "Quieres mostrar los precios ordenados de mayor a menor sin cambiar el orden de la lista `precios`. ¿Qué escribes?",
+     "code": "",
+     "options": [
+      "precios.sort(reverse=True)",
+      "ordenados = precios.sort(reverse=True)",
+      "precios.reverse()",
+      "ordenados = sorted(precios, reverse=True)"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `sort` ordena pero cambia la lista original.",
+      "No: además de cambiar la original, `sort` devuelve `None`, así que `ordenados` quedaría en `None`.",
+      "No: `reverse` solo invierte el orden actual, no ordena, y también modifica la lista.",
+      "Correcto: `sorted` devuelve una copia ordenada y deja `precios` intacta."
+     ],
+     "explanation": "`sorted()` crea una lista nueva ordenada; `sort()` modifica la lista en su lugar y devuelve `None`.",
+     "hint": "Una de las dos herramientas de ordenar devuelve una lista nueva."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si `producto = (\"Cajeta de leche\", 1200, 180)`, la línea `producto[1] = 1300` cambia el precio a 1300.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: las tuplas no se pueden modificar; esa línea produce un TypeError.",
+      "Correcto: las tuplas son inmutables y Python responde con `TypeError: 'tuple' object does not support item assignment`."
+     ],
+     "explanation": "Una tupla no se puede cambiar después de creada. Para otro precio hay que crear una tupla nueva.",
+     "hint": "Recuerda la diferencia principal entre una lista y una tupla."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si `ventas` tiene 10 elementos, `ventas[:3]` devuelve los mismos valores que mostraría un `LIMIT 3` sobre esa columna, sin modificar la lista.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `[:3]` toma los índices 0, 1 y 2 en una lista nueva y deja la original igual.",
+      "No: el slicing crea una lista nueva con los tres primeros y no cambia la original."
+     ],
+     "explanation": "`ventas[:3]` va desde el inicio hasta el índice 3 sin incluirlo: los tres primeros valores, en una lista nueva.",
+     "hint": "¿Qué índices incluye un corte que empieza al principio y termina en 3?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "stock = [120, 60, 95, 0]\nstock.append(210)\nstock.remove(60)\nprint(len(stock), stock[1], stock[-1])",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "4 95 210"
+     ],
+     "optionFeedback": [],
+     "explanation": "Después de `append` la lista es `[120, 60, 95, 0, 210]`; `remove(60)` la deja en `[120, 95, 0, 210]`. Tiene 4 elementos, el índice 1 es 95 y el último es 210.",
+     "hint": "Escribe la lista completa después de cada línea antes de responder."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "lineas = [(\"Café molido Orosi 250 g\", 2, 3800), (\"Tapa de dulce 1 kg\", 3, 1650), (\"Cajeta de leche\", 1, 1200)]\ntotal = sum([cantidad * precio for nombre, cantidad, precio in lineas if cantidad > 1])\nprint(total)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "12550"
+     ],
+     "optionFeedback": [],
+     "explanation": "Solo pasan el filtro las dos líneas con cantidad mayor que 1: 2 × 3800 = 7600 y 3 × 1650 = 4950. La suma es 12550.",
+     "hint": "Primero decide qué líneas cumplen `cantidad > 1`; después multiplica y suma."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la función que recorre la lista entregando la posición y el valor, numerando desde 1.",
+     "code": "ventas = [12500, 3800, 45000]\nfor numero, venta in ___(ventas, start=1):\n    print(numero, venta)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "enumerate"
+     ],
+     "optionFeedback": [],
+     "explanation": "`enumerate` entrega pares (posición, valor); con `start=1` la numeración empieza en 1.",
+     "hint": "Es la función que «enumera» los elementos."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-01",
+   "kind": "holiday",
+   "title": "Día de la Abolición del Ejército",
+   "summary": "Feriado nacional: hoy no hay taller."
+  },
+  {
+   "date": "2026-12-02",
+   "kind": "workshop",
+   "title": "Diccionarios y conjuntos",
+   "summary": "Buscas datos por nombre con diccionarios, cuentas y sumas por grupo como un GROUP BY, tratas una lista de diccionarios como una tabla y usas conjuntos para quitar duplicados y comparar grupos de clientes.",
+   "objectives": [
+    "Crear diccionarios, leer valores con [] y con get(), agregar, cambiar y borrar claves, y recorrerlos con items().",
+    "Contar y sumar por grupo con un diccionario acumulador y explicar su equivalencia con GROUP BY, COUNT y SUM.",
+    "Representar una tabla como lista de diccionarios y filtrarla, ordenarla y agruparla como harías con WHERE, ORDER BY y GROUP BY.",
+    "Usar conjuntos para quitar duplicados y calcular intersección, diferencia y unión, relacionándolos con DISTINCT, INTERSECT, EXCEPT y UNION."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Diccionarios, items() y get()",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Listas de diccionarios y conjuntos",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: tareas en curso-python/semana-08",
+     "minutes": 60
+    },
+    {
+     "label": "Repaso SQL (2 ejercicios)",
+     "minutes": 20
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 25
+    }
+   ],
+   "topics": [
+    {
+     "title": "Diccionarios, items() y get()",
+     "concept": "Una lista se consulta por posición; un **diccionario** se consulta por nombre. Guarda pares clave: valor entre llaves: `precios = {\"Salsa Lizano 700 ml\": 2450, \"Cajeta de leche\": 1200}`. Con `precios[\"Cajeta de leche\"]` obtienes 1200 sin recorrer nada. Las claves no se repiten (como una clave primaria) y suelen ser textos o números.\n\nSe modifica asignando: `precios[\"Tosteles de coco\"] = 1500` agrega la clave si no existe o cambia su valor si ya existe; `del precios[\"Cajeta de leche\"]` la borra. Pedir una clave inexistente con corchetes da `KeyError`; `precios.get(clave, 0)` devuelve 0 (o `None` si no das un valor por defecto) en lugar de fallar. `in` pregunta si una clave existe y `for clave, valor in precios.items():` recorre los pares.\n\nEl uso estrella es **acumular por grupo**: `conteo[metodo] = conteo.get(metodo, 0) + 1` cuenta cuántos pedidos hay por método de pago. Eso es exactamente `SELECT metodo_pago, COUNT(*) FROM pedidos GROUP BY metodo_pago`: cada clave del diccionario es un grupo y cada valor, su agregado. Cambia el `+ 1` por `+ total` y tienes un `SUM`.",
+     "tip": "Usa corchetes cuando la clave tiene que existir (si falta, es un error que quieres ver) y `get` con un valor por defecto cuando que falte es normal, como al contar por primera vez una categoría.",
+     "example": "metodos = [\"sinpe\", \"tarjeta\", \"sinpe\", \"efectivo\", \"tarjeta\", \"sinpe\", \"transferencia\", \"tarjeta\"]\ntotales = [12500, 45000, 3800, 6500, 24900, 9500, 32000, 2100]\n\n# SELECT metodo_pago, COUNT(*), SUM(total) FROM ... GROUP BY metodo_pago\nconteo = {}\nmonto = {}\nfor i in range(len(metodos)):\n    metodo = metodos[i]\n    conteo[metodo] = conteo.get(metodo, 0) + 1\n    monto[metodo] = monto.get(metodo, 0) + totales[i]\n\nfor metodo, cantidad in conteo.items():\n    print(f\"{metodo:<14} pedidos: {cantidad}  monto: ₡{monto[metodo]:>7,}\")\n\nprint(\"¿Hubo pagos en efectivo?\", \"efectivo\" in conteo)\nprint(\"Pedidos con cheque:\", conteo.get(\"cheque\", 0))",
+     "language": "python",
+     "exampleOutput": "sinpe          pedidos: 3  monto: ₡ 25,800\ntarjeta        pedidos: 3  monto: ₡ 72,000\nefectivo       pedidos: 1  monto: ₡  6,500\ntransferencia  pedidos: 1  monto: ₡ 32,000\n¿Hubo pagos en efectivo? True\nPedidos con cheque: 0",
+     "steps": [
+      {
+       "title": "Crea un diccionario y lee valores",
+       "body": "Un diccionario de precios por producto. Leer con corchetes es directo; `get` permite un valor por defecto para las claves que no existen. `len` cuenta cuántos pares hay.",
+       "code": "precios = {\"Salsa Lizano 700 ml\": 2450, \"Cajeta de leche\": 1200, \"Camiseta Pura Vida\": 9500}\nprint(precios[\"Cajeta de leche\"])\nprint(precios.get(\"Camiseta Pura Vida\"))\nprint(precios.get(\"Mouse inalámbrico\"))\nprint(precios.get(\"Mouse inalámbrico\", \"no está en el catálogo\"))\nprint(len(precios))",
+       "language": "python"
+      },
+      {
+       "title": "Agrega, cambia y borra claves",
+       "body": "Asignar a una clave nueva la agrega; asignar a una existente la reemplaza. `del` la elimina. Observa que un diccionario nunca tiene dos claves iguales: el segundo valor pisa al primero, como un UPDATE.",
+       "code": "precios = {\"Salsa Lizano 700 ml\": 2450, \"Cajeta de leche\": 1200}\nprecios[\"Tosteles de coco\"] = 1500\nprecios[\"Cajeta de leche\"] = 1300\nprint(precios)\ndel precios[\"Salsa Lizano 700 ml\"]\nprint(precios)\nprint(\"Salsa Lizano 700 ml\" in precios)",
+       "language": "python"
+      },
+      {
+       "title": "Recorre con items, keys y values",
+       "body": "`items()` entrega pares (clave, valor) y es lo que usarás casi siempre. `keys()` da solo las claves y `values()` solo los valores, útil para sumar o buscar el máximo.",
+       "code": "stock = {\"Café molido Tarrazú 500 g\": 120, \"Café en grano Naranjo 1 kg\": 60, \"Café descafeinado 340 g\": 0}\nfor producto, unidades in stock.items():\n    estado = \"AGOTADO\" if unidades == 0 else f\"{unidades} u.\"\n    print(f\"{producto:<28} {estado}\")\nprint(\"Unidades totales:\", sum(stock.values()))\nprint(\"Productos:\", list(stock.keys()))",
+       "language": "python"
+      },
+      {
+       "title": "Cuenta por grupo con get",
+       "body": "El patrón de conteo: si la clave no existe, `get` devuelve 0 y se suma 1; si existe, se suma 1 a lo que había. Compara el resultado con un `GROUP BY` en tu cabeza: cada clave es una fila del resultado.",
+       "code": "categorias = [\"Ropa\", \"Café y bebidas\", \"Ropa\", \"Tecnología\", \"Café y bebidas\", \"Ropa\"]\nconteo = {}\nfor categoria in categorias:\n    conteo[categoria] = conteo.get(categoria, 0) + 1\nprint(conteo)\nfor categoria in sorted(conteo):\n    print(categoria, conteo[categoria])",
+       "language": "python"
+      },
+      {
+       "title": "Encuentra la clave con el valor mayor",
+       "body": "Para saber qué grupo ganó, recorre los pares y guarda el mejor que has visto, como un `ORDER BY ... DESC LIMIT 1`. `max(conteo, key=conteo.get)` hace lo mismo en una línea: compara las claves usando su valor.",
+       "code": "ventas = {\"Ropa\": 348875, \"Tecnología\": 650055, \"Café y bebidas\": 293140}\nmejor, mejor_monto = None, 0\nfor categoria, monto in ventas.items():\n    if monto > mejor_monto:\n        mejor, mejor_monto = categoria, monto\nprint(mejor, mejor_monto)\nprint(max(ventas, key=ventas.get))",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "KeyError: 'Cajeta'",
+       "cause": "Pediste con corchetes una clave que no existe; las claves deben coincidir exactamente, con mayúsculas, tildes y espacios.",
+       "fix": "Revisa la clave imprimiendo `list(d.keys())`, o usa `d.get(clave, valor_por_defecto)` si es normal que falte."
+      },
+      {
+       "error": "El conteo da 1 en todas las claves",
+       "cause": "Escribiste `conteo[categoria] = 1` en lugar de sumar a lo que ya había.",
+       "fix": "Suma sobre el valor anterior: `conteo[categoria] = conteo.get(categoria, 0) + 1`."
+      },
+      {
+       "error": "ValueError: too many values to unpack al recorrer un diccionario",
+       "cause": "Escribiste `for clave, valor in d:`; recorrer un diccionario directamente da solo las claves.",
+       "fix": "Usa `for clave, valor in d.items():` para recibir los pares."
+      },
+      {
+       "error": "TypeError: unhashable type: 'list'",
+       "cause": "Usaste una lista como clave; las claves tienen que ser valores que no cambian (textos, números o tuplas).",
+       "fix": "Convierte la clave en tupla, por ejemplo `(provincia, categoria)`, o usa un texto."
+      }
+     ]
+    },
+    {
+     "title": "Listas de diccionarios y conjuntos",
+     "concept": "Un diccionario con claves fijas es **una fila con nombres de columna**: `{\"pedido\": 100, \"categoria\": \"Ropa\", \"total\": 9500}`. Una lista de esos diccionarios es **una tabla**: cada elemento una fila y cada clave una columna. Sobre ella haces lo mismo que en SQL: una comprensión con `if` es un `WHERE`, `sorted(filas, key=...)` es un `ORDER BY` y un diccionario acumulador es un `GROUP BY`. Es más claro que una lista de tuplas porque escribes `fila[\"total\"]` en vez de `fila[2]`.\n\nUn **conjunto** (`set`) es una colección sin duplicados y sin orden: `set([\"Heredia\", \"Limón\", \"Heredia\"])` queda con dos provincias, igual que `SELECT DISTINCT`. Preguntar `x in conjunto` es muy rápido. Entre conjuntos, `a & b` da lo que está en ambos (`INTERSECT`), `a - b` lo que está en `a` pero no en `b` (`EXCEPT`) y `a | b` todo junto sin repetir (`UNION`).\n\nComo un conjunto no tiene orden, **imprímelo con `sorted()`** si quieres ver siempre el mismo resultado.",
+     "tip": "Antes de escribir el código, escribe la consulta SQL que harías en el laboratorio. Luego traduce cada cláusula: FROM es el for, WHERE el if, GROUP BY el diccionario acumulador y ORDER BY el sorted.",
+     "example": "ventas = [\n    {\"pedido\": 100, \"provincia\": \"Heredia\", \"categoria\": \"Snacks y dulces\", \"total\": 8300},\n    {\"pedido\": 101, \"provincia\": \"San José\", \"categoria\": \"Café y bebidas\", \"total\": 11400},\n    {\"pedido\": 102, \"provincia\": \"Heredia\", \"categoria\": \"Ropa\", \"total\": 9500},\n    {\"pedido\": 103, \"provincia\": \"Cartago\", \"categoria\": \"Tecnología\", \"total\": 59800},\n    {\"pedido\": 104, \"provincia\": \"San José\", \"categoria\": \"Snacks y dulces\", \"total\": 2450},\n    {\"pedido\": 105, \"provincia\": \"Limón\", \"categoria\": \"Ropa\", \"total\": 58500},\n]\n\n# SELECT pedido, total FROM ventas WHERE total > 10000\ngrandes = [(v[\"pedido\"], v[\"total\"]) for v in ventas if v[\"total\"] > 10000]\nprint(\"Pedidos grandes:\", grandes)\n\n# SELECT categoria, SUM(total) FROM ventas GROUP BY categoria\npor_categoria = {}\nfor v in ventas:\n    por_categoria[v[\"categoria\"]] = por_categoria.get(v[\"categoria\"], 0) + v[\"total\"]\nfor categoria in sorted(por_categoria):\n    print(f\"{categoria:<16} ₡{por_categoria[categoria]:>7,}\")\n\n# SELECT DISTINCT provincia FROM ventas\nprovincias = set([v[\"provincia\"] for v in ventas])\nprint(\"Provincias:\", sorted(provincias))",
+     "language": "python",
+     "exampleOutput": "Pedidos grandes: [(101, 11400), (103, 59800), (105, 58500)]\nCafé y bebidas   ₡ 11,400\nRopa             ₡ 68,000\nSnacks y dulces  ₡ 10,750\nTecnología       ₡ 59,800\nProvincias: ['Cartago', 'Heredia', 'Limón', 'San José']",
+     "steps": [
+      {
+       "title": "Una fila como diccionario",
+       "body": "Compara una fila como tupla y como diccionario. Con la tupla tienes que recordar que el total es la posición 2; con el diccionario lo pides por su nombre, igual que una columna en SQL.",
+       "code": "fila_tupla = (102, \"Ropa\", 9500)\nfila_dict = {\"pedido\": 102, \"categoria\": \"Ropa\", \"total\": 9500}\nprint(fila_tupla[2])\nprint(fila_dict[\"total\"])\nprint(list(fila_dict.keys()))",
+       "language": "python"
+      },
+      {
+       "title": "Filtra y ordena la tabla",
+       "body": "Una comprensión con `if` hace de `WHERE`. Para el `ORDER BY`, `sorted` necesita saber qué columna mirar: le pasas una función que, dada una fila, devuelve su total.",
+       "code": "def total_de(fila):\n    return fila[\"total\"]\n\nventas = [\n    {\"pedido\": 102, \"categoria\": \"Ropa\", \"total\": 9500},\n    {\"pedido\": 103, \"categoria\": \"Tecnología\", \"total\": 59800},\n    {\"pedido\": 104, \"categoria\": \"Snacks y dulces\", \"total\": 2450},\n    {\"pedido\": 105, \"categoria\": \"Ropa\", \"total\": 58500},\n]\nropa = [v for v in ventas if v[\"categoria\"] == \"Ropa\"]\nprint(\"WHERE categoria = 'Ropa':\", [v[\"pedido\"] for v in ropa])\nfor v in sorted(ventas, key=total_de, reverse=True):\n    print(v[\"pedido\"], v[\"total\"])",
+       "language": "python"
+      },
+      {
+       "title": "Agrupa con conteo y suma a la vez",
+       "body": "Para un `GROUP BY` con `COUNT(*)` y `SUM(total)` juntos, guarda como valor otro diccionario con los dos acumuladores. `setdefault` crea el grupo la primera vez y lo devuelve las siguientes.",
+       "code": "ventas = [\n    {\"categoria\": \"Ropa\", \"total\": 9500},\n    {\"categoria\": \"Tecnología\", \"total\": 59800},\n    {\"categoria\": \"Ropa\", \"total\": 58500},\n]\ngrupos = {}\nfor v in ventas:\n    g = grupos.setdefault(v[\"categoria\"], {\"pedidos\": 0, \"total\": 0})\n    g[\"pedidos\"] += 1\n    g[\"total\"] += v[\"total\"]\nfor categoria, g in sorted(grupos.items()):\n    print(categoria, g[\"pedidos\"], g[\"total\"])",
+       "language": "python"
+      },
+      {
+       "title": "Quita duplicados con set",
+       "body": "`set` elimina repetidos, como `DISTINCT`. Fíjate en que imprimimos con `sorted`: el orden interno de un conjunto puede cambiar de una ejecución a otra.",
+       "code": "metodos = [\"sinpe\", \"tarjeta\", \"sinpe\", \"efectivo\", \"tarjeta\", \"sinpe\"]\nunicos = set(metodos)\nprint(len(metodos), \"pagos,\", len(unicos), \"métodos distintos\")\nprint(sorted(unicos))\nprint(\"transferencia\" in unicos)",
+       "language": "python"
+      },
+      {
+       "title": "Compara grupos de clientes",
+       "body": "Con dos conjuntos de identificadores de clientes respondes preguntas de negocio sin bucles: quién compró en los dos meses (`&`), quién compró en agosto y no volvió en setiembre (`-`) y cuántos clientes distintos hubo en total (`|`).",
+       "code": "agosto = {12, 29, 51, 57, 63, 70}\nsetiembre = {29, 51, 57, 70, 78, 80}\nprint(\"Compraron en ambos:\", sorted(agosto & setiembre))\nprint(\"No volvieron:\", sorted(agosto - setiembre))\nprint(\"Nuevos en setiembre:\", sorted(setiembre - agosto))\nprint(\"Clientes distintos:\", len(agosto | setiembre))",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "TypeError: list indices must be integers or slices, not str",
+       "cause": "Escribiste `ventas[\"total\"]` sobre la lista completa; la lista se indexa por posición y solo cada fila tiene la clave \"total\".",
+       "fix": "Recorre la lista y usa la clave en cada fila: `for v in ventas: v[\"total\"]`, o `ventas[0][\"total\"]` para la primera."
+      },
+      {
+       "error": "TypeError: 'set' object is not subscriptable",
+       "cause": "Intentaste leer `conjunto[0]`; los conjuntos no tienen orden ni posiciones.",
+       "fix": "Si necesitas posiciones, conviértelo en lista ordenada: `sorted(conjunto)[0]`."
+      },
+      {
+       "error": "El conjunto se imprime en otro orden cada vez",
+       "cause": "Los conjuntos no guardan orden; Python los muestra en un orden interno que puede variar.",
+       "fix": "Imprime `sorted(conjunto)` cuando el orden importe o cuando quieras comparar resultados."
+      },
+      {
+       "error": "`vacio = {}` y luego `vacio.add(1)` da AttributeError",
+       "cause": "`{}` crea un diccionario vacío, no un conjunto.",
+       "fix": "Para un conjunto vacío escribe `set()`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-02-1",
+     "title": "Repaso SQL: Clientes por provincia",
+     "prompt": "Lo que hoy haces con un diccionario contador, SQL lo hace con GROUP BY. Muestra el nombre de cada provincia y cuántos clientes tiene registrados, en ese orden. Ordena de más a menos clientes y, si empatan, por nombre de provincia. Incluye una provincia aunque no tuviera clientes.",
+     "hint": "Parte de `provincias` y usa `LEFT JOIN clientes`; cuenta `COUNT(c.id)` (no `COUNT(*)`) para que una provincia sin clientes dé 0.",
+     "solution": "SELECT pr.nombre, COUNT(c.id) AS clientes\nFROM provincias AS pr\nLEFT JOIN clientes AS c ON c.provincia_id = pr.id\nGROUP BY pr.id, pr.nombre\nORDER BY clientes DESC, pr.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-02-2",
+     "title": "Repaso SQL: Productos sin reseñas",
+     "prompt": "Marketing quiere pedir opiniones de los productos que nadie ha reseñado. Muestra el `id` y el `nombre` de los productos que no tienen ninguna fila en `resenas`, en ese orden. Es la misma idea que la diferencia de conjuntos `todos - reseñados`.",
+     "hint": "Un anti-join: `LEFT JOIN resenas` y quédate con las filas donde el id de la reseña `IS NULL`. También sirve `NOT IN` o `EXCEPT`.",
+     "solution": "SELECT p.id, p.nombre\nFROM productos AS p\nLEFT JOIN resenas AS r ON r.producto_id = p.id\nWHERE r.id IS NULL;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `curso-python/semana-08/catalogo_dict.py` con un diccionario `precios` de 6 productos de la tienda (nombre: precio). Escribe la función `consultar_precio(precios, nombre)`, que devuelva el precio o `None` usando `get`, y pruébala con un producto que existe y otro que no, imprimiendo un mensaje claro en cada caso. Luego sube un precio, agrega un producto, borra otro con `del` y muestra el catálogo ordenado por nombre con `items()`.",
+    "Crea `metodos_setiembre.py`. En el laboratorio ejecuta `SELECT metodo_pago FROM pedidos WHERE fecha BETWEEN '2026-09-01' AND '2026-09-30';` y copia los 21 valores en una lista. Cuenta los pedidos por método con un diccionario y `get`, imprime el resultado ordenado de mayor a menor y comprueba que coincide con la misma consulta agrupada con `GROUP BY metodo_pago` en el laboratorio.",
+    "Crea `ventas_tabla.py`. Ejecuta en el laboratorio `SELECT d.pedido_id, pr.nombre AS producto, c.nombre AS categoria, d.cantidad, d.precio_unitario FROM detalle_pedido AS d JOIN productos AS pr ON pr.id = d.producto_id JOIN categorias AS c ON c.id = pr.categoria_id WHERE d.pedido_id BETWEEN 410 AND 415;` y copia las 10 filas como una lista de diccionarios con esas cinco claves. Escribe `total_por_categoria(filas)`, que devuelva un diccionario categoría: suma de `cantidad * precio_unitario`, y compara su resultado con la misma consulta agrupada por categoría en el laboratorio.",
+    "En `ventas_tabla.py` agrega `filtrar(filas, categoria)` (el WHERE), `ordenar_por_subtotal(filas)` (el ORDER BY, de mayor a menor) y `productos_distintos(filas)`, que devuelva con un conjunto cuántos productos diferentes aparecen (el COUNT(DISTINCT)). Encima de cada función, en un comentario, escribe la consulta SQL equivalente.",
+    "Crea `clientes_mes.py`. En el laboratorio obtén los `cliente_id` de los pedidos de agosto y de setiembre de 2026 (dos consultas) y guárdalos en dos conjuntos. Imprime, siempre con `sorted`, los clientes que compraron en ambos meses, los que compraron en agosto y no en setiembre, y el total de clientes distintos. Comprueba el primer resultado con un `INTERSECT` en el laboratorio: deben ser 5 clientes."
+   ],
+   "taskHints": [
+    "`precios.get(nombre)` devuelve `None` si no existe; pregunta `if precio is None:` para decidir el mensaje. Para ordenar por nombre: `for nombre, precio in sorted(precios.items()):`.",
+    "Para ordenar el resultado de mayor a menor: `for metodo in sorted(conteo, key=conteo.get, reverse=True):`. Deben sumar 21 pedidos en total; compruébalo con `sum(conteo.values())`.",
+    "Una fila queda así: `{\"pedido_id\": 410, \"producto\": \"Cajeta de leche\", \"categoria\": \"Snacks y dulces\", \"cantidad\": 4, \"precio_unitario\": 1200}`. En el laboratorio, la consulta de comparación es la misma con `SELECT c.nombre, SUM(d.cantidad * d.precio_unitario) ... GROUP BY c.nombre`.",
+    "Para ordenar por subtotal define `def subtotal(fila): return fila[\"cantidad\"] * fila[\"precio_unitario\"]` y úsala como `key=subtotal`. Para los productos distintos: `len(set([f[\"producto\"] for f in filas]))`.",
+    "Las consultas son `SELECT cliente_id FROM pedidos WHERE fecha BETWEEN '2026-08-01' AND '2026-08-31';` y la misma con setiembre. Al copiar a un conjunto, los repetidos desaparecen solos: cada mes tiene 16 clientes distintos."
+   ],
+   "challenge": {
+    "title": "Resumen de ventas por provincia y categoría",
+    "description": "Con una lista de diccionarios de ventas (provincia, categoría y total), escribe la función `resumen(ventas)` que devuelva un diccionario cuyas claves sean tuplas `(provincia, categoria)` y cuyos valores sean otro diccionario con `pedidos` y `total`, como un `GROUP BY provincia, categoria` con `COUNT(*)` y `SUM(total)`. Imprime el resultado ordenado por provincia y categoría, y después la provincia con más ventas en total y el conjunto de categorías que se vendieron en todas las provincias.",
+    "hint": "Usa `setdefault((v[\"provincia\"], v[\"categoria\"]), {\"pedidos\": 0, \"total\": 0})`. Para las categorías presentes en todas las provincias, arma un conjunto de categorías por provincia y calcula la intersección de todos.",
+    "solution": "def resumen(ventas):\n    \"\"\"Agrupa por (provincia, categoria) contando pedidos y sumando totales.\"\"\"\n    grupos = {}\n    for v in ventas:\n        g = grupos.setdefault((v[\"provincia\"], v[\"categoria\"]), {\"pedidos\": 0, \"total\": 0})\n        g[\"pedidos\"] += 1\n        g[\"total\"] += v[\"total\"]\n    return grupos\n\n\nventas = [\n    {\"provincia\": \"Heredia\", \"categoria\": \"Ropa\", \"total\": 9500},\n    {\"provincia\": \"Heredia\", \"categoria\": \"Café y bebidas\", \"total\": 13000},\n    {\"provincia\": \"Heredia\", \"categoria\": \"Ropa\", \"total\": 19500},\n    {\"provincia\": \"Cartago\", \"categoria\": \"Café y bebidas\", \"total\": 7600},\n    {\"provincia\": \"Cartago\", \"categoria\": \"Tecnología\", \"total\": 59800},\n    {\"provincia\": \"Limón\", \"categoria\": \"Café y bebidas\", \"total\": 3800},\n    {\"provincia\": \"Limón\", \"categoria\": \"Ropa\", \"total\": 8500},\n]\n\ngrupos = resumen(ventas)\nfor (provincia, categoria), g in sorted(grupos.items()):\n    print(f\"{provincia:<8} {categoria:<15} {g['pedidos']} ₡{g['total']:>7,}\")\n\npor_provincia = {}\nfor (provincia, categoria), g in grupos.items():\n    por_provincia[provincia] = por_provincia.get(provincia, 0) + g[\"total\"]\nprint(\"Provincia con más ventas:\", max(por_provincia, key=por_provincia.get))\n\ncategorias = {}\nfor v in ventas:\n    categorias.setdefault(v[\"provincia\"], set()).add(v[\"categoria\"])\nen_todas = None\nfor conjunto in categorias.values():\n    en_todas = conjunto if en_todas is None else en_todas & conjunto\nprint(\"Vendidas en todas las provincias:\", sorted(en_todas))",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "diccionario",
+     "definition": "Colección de pares clave: valor, escrita entre llaves, en la que cada valor se busca por su clave."
+    },
+    {
+     "term": "clave",
+     "definition": "El nombre con que se guarda y se busca un valor en un diccionario; no se repite, como una clave primaria."
+    },
+    {
+     "term": "get()",
+     "definition": "Método que lee el valor de una clave y devuelve un valor por defecto (o None) si la clave no existe, en vez de dar KeyError."
+    },
+    {
+     "term": "items()",
+     "definition": "Método que entrega los pares (clave, valor) de un diccionario para recorrerlos con for."
+    },
+    {
+     "term": "diccionario acumulador",
+     "definition": "Diccionario que va sumando o contando por clave mientras recorres datos; es el equivalente de GROUP BY."
+    },
+    {
+     "term": "conjunto",
+     "definition": "Colección sin orden y sin elementos repetidos (`set`), con operaciones de intersección, diferencia y unión."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: diccionarios",
+     "url": "https://docs.python.org/es/3/tutorial/datastructures.html#dictionaries"
+    },
+    {
+     "title": "Tutorial de Python: conjuntos",
+     "url": "https://docs.python.org/es/3/tutorial/datastructures.html#sets"
+    },
+    {
+     "title": "Tutorial de Python: técnicas para recorrer colecciones",
+     "url": "https://docs.python.org/es/3/tutorial/datastructures.html#looping-techniques"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Si `precios = {\"Cajeta de leche\": 1200}`, ¿qué hace `precios.get(\"Tosteles de coco\", 0)`?",
+     "code": "",
+     "options": [
+      "Da KeyError porque la clave no existe",
+      "Agrega \"Tosteles de coco\" con valor 0 al diccionario",
+      "Devuelve 0 y el diccionario no cambia",
+      "Devuelve None"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el KeyError lo daría `precios[\"Tosteles de coco\"]`; `get` está hecho para no fallar.",
+      "No: `get` solo lee; no agrega claves.",
+      "Correcto: si la clave no existe, `get` devuelve el valor por defecto y deja el diccionario igual.",
+      "No: devolvería `None` si no le dieras un valor por defecto; aquí le diste 0."
+     ],
+     "explanation": "`get(clave, defecto)` devuelve el valor de la clave si existe y, si no, el valor por defecto, sin modificar el diccionario.",
+     "hint": "Fíjate en el segundo argumento de `get`."
+    },
+    {
+     "type": "choice",
+     "prompt": "Tienes una lista `ventas` de diccionarios con las claves \"categoria\" y \"total\". ¿Qué consulta SQL equivale a este código?",
+     "code": "suma = {}\nfor v in ventas:\n    suma[v[\"categoria\"]] = suma.get(v[\"categoria\"], 0) + v[\"total\"]",
+     "options": [
+      "SELECT categoria, total FROM ventas ORDER BY categoria;",
+      "SELECT categoria, SUM(total) FROM ventas GROUP BY categoria;",
+      "SELECT DISTINCT categoria FROM ventas;",
+      "SELECT SUM(total) FROM ventas;"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ese SELECT devuelve todas las filas sin sumar nada.",
+      "Correcto: cada clave es un grupo y cada valor acumula la suma de su grupo.",
+      "No: DISTINCT solo daría las categorías; aquí además se suman los totales.",
+      "No: eso sería un solo total general; aquí hay un total por categoría."
+     ],
+     "explanation": "Un diccionario acumulador con una clave por grupo y una suma por valor es la versión en Python de GROUP BY con SUM.",
+     "hint": "¿Cuántos valores quedan al final: uno en total o uno por categoría?"
+    },
+    {
+     "type": "choice",
+     "prompt": "`agosto` y `setiembre` son conjuntos de ids de clientes. ¿Qué expresión da los clientes que compraron en agosto pero no en setiembre?",
+     "code": "",
+     "options": [
+      "agosto - setiembre",
+      "agosto & setiembre",
+      "agosto | setiembre",
+      "setiembre - agosto"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: la diferencia deja lo que está en el primero y no en el segundo, como EXCEPT.",
+      "No: `&` es la intersección, los que compraron en ambos meses.",
+      "No: `|` es la unión, todos los clientes de los dos meses.",
+      "No: esa diferencia da los que compraron en setiembre y no en agosto, al revés de lo pedido."
+     ],
+     "explanation": "`a - b` es la diferencia de conjuntos, el equivalente de `EXCEPT` en SQL.",
+     "hint": "Piensa en «quitarle» a agosto los de setiembre."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Un diccionario puede tener dos veces la misma clave con valores distintos, por ejemplo dos precios para \"Cajeta de leche\".",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: las claves son únicas; asignar de nuevo a una clave reemplaza su valor.",
+      "Correcto: cada clave aparece una sola vez; el segundo valor sustituye al primero."
+     ],
+     "explanation": "Las claves de un diccionario son únicas, como una clave primaria. Volver a asignar una clave existente cambia su valor.",
+     "hint": "Recuerda qué pasó en el paso «Agrega, cambia y borra claves»."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`set([\"sinpe\", \"tarjeta\", \"sinpe\"])` hace lo mismo que un `SELECT DISTINCT`: queda un conjunto con 2 elementos.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: el conjunto elimina el \"sinpe\" repetido y quedan dos valores distintos.",
+      "No: los conjuntos no admiten repetidos, así que quedan solo 2 elementos."
+     ],
+     "explanation": "Convertir una lista en conjunto quita los duplicados, igual que DISTINCT quita filas repetidas.",
+     "hint": "¿Cuántos métodos de pago distintos hay en la lista?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "conteo = {}\nfor provincia in [\"Heredia\", \"Limón\", \"Heredia\", \"Cartago\", \"Heredia\"]:\n    conteo[provincia] = conteo.get(provincia, 0) + 1\nprint(conteo[\"Heredia\"], len(conteo))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "3 3"
+     ],
+     "optionFeedback": [],
+     "explanation": "Heredia aparece 3 veces, así que su conteo es 3. Hay tres provincias distintas (Heredia, Limón y Cartago), así que el diccionario tiene 3 claves.",
+     "hint": "Cuenta las apariciones de Heredia y luego cuántas claves distintas se crean."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "pedidos = [\n    {\"id\": 1, \"total\": 9500},\n    {\"id\": 2, \"total\": 59800},\n    {\"id\": 3, \"total\": 2450},\n]\ngrandes = [p[\"id\"] for p in pedidos if p[\"total\"] > 5000]\nprint(grandes)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "[1, 2]"
+     ],
+     "optionFeedback": [],
+     "explanation": "La comprensión recorre las filas y se queda con el id de las que tienen total mayor que 5000: los pedidos 1 y 2.",
+     "hint": "Lee la comprensión como `SELECT id FROM pedidos WHERE total > 5000`."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa el método que entrega los pares (clave, valor) del diccionario.",
+     "code": "stock = {\"Cajeta de leche\": 180, \"Tosteles de coco\": 0}\nfor producto, unidades in stock.___():\n    print(producto, unidades)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "items"
+     ],
+     "optionFeedback": [],
+     "explanation": "`items()` devuelve los pares (clave, valor), que el for desempaqueta en `producto` y `unidades`.",
+     "hint": "En inglés, «elementos»."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-03",
+   "kind": "workshop",
+   "title": "Archivos y CSV",
+   "summary": "Tus programas empiezan a guardar y leer datos en archivos: escribes una bitácora de texto, lees y escribes CSV con el módulo csv y calculas totales por categoría a partir de datos copiados del laboratorio.",
+   "objectives": [
+    "Abrir archivos con with y open en los modos \"r\", \"w\" y \"a\", indicando encoding=\"utf-8\".",
+    "Leer un archivo línea por línea, limpiar cada línea con strip() y separarla con split().",
+    "Leer un CSV con csv.DictReader como una lista de diccionarios y convertir sus valores de texto a números.",
+    "Escribir un CSV con csv.DictWriter, con encabezado y columnas en un orden definido.",
+    "Calcular totales por categoría a partir de un CSV y comprobarlos con un GROUP BY en el laboratorio."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Leer y escribir archivos con with",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: csv.DictReader y csv.DictWriter",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: tareas en curso-python/semana-08",
+     "minutes": 60
+    },
+    {
+     "label": "Repaso SQL (2 ejercicios)",
+     "minutes": 20
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 25
+    }
+   ],
+   "topics": [
+    {
+     "title": "Leer y escribir archivos con with",
+     "concept": "Hasta ahora todo lo que tu programa calculaba desaparecía al terminar. Un archivo de texto guarda datos en el disco para leerlos después. Se abre con `open(ruta, modo, encoding=\"utf-8\")`: el modo `\"r\"` lee (y falla si el archivo no existe), `\"w\"` escribe **borrando lo que había** y `\"a\"` agrega al final. El `encoding=\"utf-8\"` hace que las tildes, la ñ y el ₡ se guarden bien en cualquier computador.\n\nSe usa siempre dentro de `with`: `with open(\"ventas.txt\", \"w\", encoding=\"utf-8\") as f:`. Al salir del bloque, Python cierra el archivo aunque haya un error, y lo escrito queda guardado. `f.write(texto)` no agrega el salto de línea: tienes que poner `\"\\n\"` tú.\n\nPara leer, `for linea in f:` entrega una línea por vuelta, con su `\"\\n\"` al final; `linea.strip()` lo quita y `linea.split(\",\")` la parte en columnas. Todo lo que lees de un archivo es **texto**: `\"6500\"` hay que convertirlo con `int()` antes de sumar. Una ruta como `\"ventas.txt\"` se busca en la carpeta desde donde ejecutas el programa en la terminal.",
+     "tip": "Ejecuta tus programas desde la carpeta donde están (`cd curso-python/semana-08` y luego `python ventas.py`). Así los archivos que crean y leen quedan junto al código y no en un lugar inesperado.",
+     "example": "# Crea el archivo de ventas del día (\"w\" empieza de cero)\nwith open(\"ventas_dia.txt\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"Café molido Tarrazú 500 g,2,6500\\n\")\n    f.write(\"Salsa Lizano 700 ml,3,2450\\n\")\n\n# Más tarde llega otra venta (\"a\" agrega al final)\nwith open(\"ventas_dia.txt\", \"a\", encoding=\"utf-8\") as f:\n    f.write(\"Hamaca de algodón,1,32000\\n\")\n\n# Lee línea por línea y calcula el total\ntotal = 0\nwith open(\"ventas_dia.txt\", \"r\", encoding=\"utf-8\") as f:\n    for linea in f:\n        producto, cantidad, precio = linea.strip().split(\",\")\n        subtotal = int(cantidad) * int(precio)\n        total += subtotal\n        print(f\"{producto:<26} {cantidad} x ₡{int(precio):,} = ₡{subtotal:,}\")\nprint(f\"Total del día: ₡{total:,}\")",
+     "language": "python",
+     "exampleOutput": "Café molido Tarrazú 500 g  2 x ₡6,500 = ₡13,000\nSalsa Lizano 700 ml        3 x ₡2,450 = ₡7,350\nHamaca de algodón          1 x ₡32,000 = ₡32,000\nTotal del día: ₡52,350",
+     "steps": [
+      {
+       "title": "Escribe tu primer archivo",
+       "body": "Abre en modo `\"w\"` y escribe tres líneas. Fíjate en el `\"\\n\"` al final de cada una: sin él, todo quedaría pegado en una sola línea. Después de ejecutarlo, abre `notas.txt` en VS Code para ver el resultado.",
+       "code": "with open(\"notas.txt\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"Pedido 410: entregado\\n\")\n    f.write(\"Pedido 411: entregado\\n\")\n    f.write(\"Pedido 412: pendiente de pago\\n\")\nprint(\"Archivo escrito\")",
+       "language": "python"
+      },
+      {
+       "title": "Lee el archivo completo y por líneas",
+       "body": "`read()` devuelve todo el contenido como un solo texto. Con `for linea in f` recorres línea por línea; usa `strip()` para quitar el salto de línea final, o verás líneas en blanco de más al imprimir.",
+       "code": "with open(\"notas.txt\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"Pedido 410: entregado\\nPedido 411: entregado\\n\")\n\nwith open(\"notas.txt\", \"r\", encoding=\"utf-8\") as f:\n    contenido = f.read()\nprint(repr(contenido))\n\nwith open(\"notas.txt\", \"r\", encoding=\"utf-8\") as f:\n    for numero, linea in enumerate(f, start=1):\n        print(numero, linea.strip())",
+       "language": "python"
+      },
+      {
+       "title": "Compara \"w\" con \"a\"",
+       "body": "Ejecuta este código y cuenta las líneas: `\"w\"` reinicia el archivo cada vez y `\"a\"` conserva lo anterior. Confundirlos es la forma más común de perder datos sin darte cuenta.",
+       "code": "with open(\"bitacora.txt\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"Apertura de caja\\n\")\nwith open(\"bitacora.txt\", \"a\", encoding=\"utf-8\") as f:\n    f.write(\"Venta de ₡12,500 por SINPE Móvil\\n\")\n    f.write(\"Cierre de caja\\n\")\nwith open(\"bitacora.txt\", \"r\", encoding=\"utf-8\") as f:\n    lineas = f.readlines()\nprint(len(lineas), \"líneas:\", [l.strip() for l in lineas])",
+       "language": "python"
+      },
+      {
+       "title": "Separa columnas con split",
+       "body": "Una línea con valores separados por comas se convierte en lista con `split(\",\")`. Observa que los números siguen siendo texto: sumarlos sin convertir los pegaría en vez de sumarlos.",
+       "code": "linea = \"Cajeta de leche,4,1200\\n\"\npartes = linea.strip().split(\",\")\nprint(partes)\nprint(partes[1] + partes[2])\nprint(int(partes[1]) * int(partes[2]))",
+       "language": "python"
+      },
+      {
+       "title": "Lee un archivo que no existe",
+       "body": "Intenta abrir en modo lectura un archivo que no está. El error `FileNotFoundError` te dice la ruta que buscó; mañana aprenderás a capturarlo con `try` para mostrar un mensaje amable.",
+       "code": "with open(\"no_existe.txt\", \"r\", encoding=\"utf-8\") as f:\n    print(f.read())",
+       "language": "python",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "FileNotFoundError: [Errno 2] No such file or directory: 'ventas.txt'",
+       "cause": "El archivo no está en la carpeta desde donde ejecutas el programa, o el nombre no coincide (mayúsculas, extensión .txt.txt oculta).",
+       "fix": "En la terminal, `cd` a la carpeta del programa y lista los archivos con `ls` (o `dir` en Windows) para ver el nombre exacto."
+      },
+      {
+       "error": "Mis datos anteriores desaparecieron del archivo",
+       "cause": "Abriste con `\"w\"`, que vacía el archivo antes de escribir.",
+       "fix": "Usa `\"a\"` para agregar al final; deja `\"w\"` para cuando quieras reescribir todo a propósito."
+      },
+      {
+       "error": "Todo el texto queda en una sola línea",
+       "cause": "`write` no agrega saltos de línea por su cuenta.",
+       "fix": "Termina cada línea con `\"\\n\"`: `f.write(f\"{producto},{precio}\\n\")`."
+      },
+      {
+       "error": "Las tildes salen como `CafÃ©` al abrir el archivo",
+       "cause": "El archivo se escribió o se leyó con una codificación distinta de UTF-8 (en Windows el valor por defecto puede ser otro).",
+       "fix": "Pasa siempre `encoding=\"utf-8\"` a `open`, tanto al escribir como al leer."
+      }
+     ]
+    },
+    {
+     "title": "csv.DictReader y csv.DictWriter",
+     "concept": "Un **CSV es una tabla guardada como texto**: la primera línea es el encabezado con los nombres de las columnas y cada línea siguiente es una fila, con los valores separados por comas. Es el formato que exportan Excel, Google Sheets y casi cualquier sistema, y la forma más simple de llevar el resultado de una consulta SQL a Python.\n\nEl módulo `csv` hace el trabajo difícil, como los valores que contienen comas. `csv.DictReader(f)` lee el archivo y entrega cada fila como un diccionario cuyas claves son las columnas del encabezado: `list(csv.DictReader(f))` es **una lista de diccionarios, el mismo resultado que un `SELECT *`**. Cuidado: todos los valores llegan como texto y hay que convertirlos con `int()` o `float()`.\n\nPara escribir, `csv.DictWriter(f, fieldnames=[...])` recibe la lista de columnas en orden; `writeheader()` escribe el encabezado y `writerow(fila)` o `writerows(filas)` las filas. Abre el archivo con `newline=\"\"` tanto al leer como al escribir: así el módulo controla los saltos de línea y no aparecen filas en blanco. Leer un CSV y sumar por categoría con un diccionario es, paso a paso, un `GROUP BY`.",
+     "tip": "Después de leer un CSV, imprime `len(filas)` y `filas[0]` antes de calcular nada. Así confirmas que se leyeron todas las filas y ves los nombres exactos de las claves.",
+     "example": "import csv\n\n# 1. Crea un CSV de ventas como el que copiarías del laboratorio\nfilas = [\n    {\"fecha\": \"2026-09-02\", \"categoria\": \"Ropa\", \"cantidad\": 2, \"precio_unitario\": 9500, \"descuento\": 0.1},\n    {\"fecha\": \"2026-09-05\", \"categoria\": \"Café y bebidas\", \"cantidad\": 3, \"precio_unitario\": 3800, \"descuento\": 0.0},\n    {\"fecha\": \"2026-09-11\", \"categoria\": \"Ropa\", \"cantidad\": 1, \"precio_unitario\": 19500, \"descuento\": 0.0},\n    {\"fecha\": \"2026-09-18\", \"categoria\": \"Tecnología\", \"cantidad\": 1, \"precio_unitario\": 29900, \"descuento\": 0.05},\n]\ncolumnas = [\"fecha\", \"categoria\", \"cantidad\", \"precio_unitario\", \"descuento\"]\nwith open(\"ventas.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as f:\n    escritor = csv.DictWriter(f, fieldnames=columnas)\n    escritor.writeheader()\n    escritor.writerows(filas)\n\n# 2. Léelo como una lista de diccionarios (todo llega como texto)\nwith open(\"ventas.csv\", newline=\"\", encoding=\"utf-8\") as f:\n    leidas = list(csv.DictReader(f))\nprint(len(leidas), \"filas. Primera:\", leidas[0])\n\n# 3. GROUP BY categoria con SUM(cantidad * precio_unitario * (1 - descuento))\ntotales = {}\nfor fila in leidas:\n    monto = int(fila[\"cantidad\"]) * int(fila[\"precio_unitario\"]) * (1 - float(fila[\"descuento\"]))\n    totales[fila[\"categoria\"]] = totales.get(fila[\"categoria\"], 0) + monto\nfor categoria in sorted(totales):\n    print(f\"{categoria:<15} ₡{totales[categoria]:>9,.0f}\")",
+     "language": "python",
+     "exampleOutput": "4 filas. Primera: {'fecha': '2026-09-02', 'categoria': 'Ropa', 'cantidad': '2', 'precio_unitario': '9500', 'descuento': '0.1'}\nCafé y bebidas  ₡   11,400\nRopa            ₡   36,600\nTecnología      ₡   28,405",
+     "steps": [
+      {
+       "title": "Mira un CSV por dentro",
+       "body": "Un CSV es solo texto. Escríbelo a mano con `write` y léelo con `read` para ver su forma: encabezado, filas y comas. Fíjate en las comillas de la última fila: un valor que contiene una coma va entre comillas dobles para no partirse.",
+       "code": "with open(\"productos.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as f:\n    f.write(\"nombre,precio,stock\\n\")\n    f.write(\"Camiseta Pura Vida,9500,200\\n\")\n    f.write(\"Gorra bordada Costa Rica,8500,75\\n\")\n    f.write('\"Taza, edición especial\",6000,12\\n')\nwith open(\"productos.csv\", newline=\"\", encoding=\"utf-8\") as f:\n    print(f.read())",
+       "language": "python"
+      },
+      {
+       "title": "Lee con DictReader",
+       "body": "Cada fila llega como diccionario con las claves del encabezado, y la coma dentro de las comillas no partió el nombre. Comprueba con `type` que el precio es texto: por eso lo convertimos con `int()` antes de multiplicar.",
+       "code": "import csv\n\nwith open(\"productos.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as f:\n    f.write('nombre,precio,stock\\nCamiseta Pura Vida,9500,200\\n\"Taza, edición especial\",6000,12\\n')\n\nwith open(\"productos.csv\", newline=\"\", encoding=\"utf-8\") as f:\n    filas = list(csv.DictReader(f))\nprint(filas[1])\nprint(type(filas[0][\"precio\"]))\nfor fila in filas:\n    valor = int(fila[\"precio\"]) * int(fila[\"stock\"])\n    print(f\"{fila['nombre']}: ₡{valor:,}\")",
+       "language": "python"
+      },
+      {
+       "title": "Escribe con DictWriter",
+       "body": "`fieldnames` fija el nombre y el orden de las columnas; cada diccionario debe tener esas claves. `writeheader()` va una sola vez, antes de las filas. Abre el archivo resultante en VS Code o en una hoja de cálculo.",
+       "code": "import csv\n\nresumen = [\n    {\"categoria\": \"Tecnología\", \"total\": 650055},\n    {\"categoria\": \"Ropa\", \"total\": 348875},\n]\nwith open(\"resumen.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as f:\n    escritor = csv.DictWriter(f, fieldnames=[\"categoria\", \"total\"])\n    escritor.writeheader()\n    for fila in resumen:\n        escritor.writerow(fila)\nwith open(\"resumen.csv\", encoding=\"utf-8\") as f:\n    print(f.read())",
+       "language": "python"
+      },
+      {
+       "title": "Lleva una consulta del laboratorio a un CSV",
+       "body": "En el laboratorio, una consulta puede armar cada fila ya separada por comas con `||`. Ejecútala, copia la columna `linea` y pégala en un archivo `ventas_setiembre.csv` debajo de un encabezado que escribes tú: `fecha,categoria,cantidad,precio_unitario,descuento`.",
+       "code": "SELECT p.fecha || ',' || c.nombre || ',' || d.cantidad || ',' || d.precio_unitario || ',' || d.descuento AS linea\nFROM detalle_pedido AS d\nJOIN pedidos AS p ON p.id = d.pedido_id\nJOIN productos AS pr ON pr.id = d.producto_id\nJOIN categorias AS c ON c.id = pr.categoria_id\nWHERE p.fecha BETWEEN '2026-09-01' AND '2026-09-30'\n  AND p.estado <> 'cancelado'\nORDER BY p.fecha, d.id;",
+       "language": "sql"
+      },
+      {
+       "title": "Compara Python con GROUP BY",
+       "body": "Cuando tu programa calcule los totales por categoría de ese CSV, ejecuta esta consulta en el laboratorio. Los números deben coincidir categoría por categoría; si no, revisa que copiaste las 38 filas y que conviertes el descuento con `float()`.",
+       "code": "SELECT c.nombre AS categoria,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM detalle_pedido AS d\nJOIN pedidos AS p ON p.id = d.pedido_id\nJOIN productos AS pr ON pr.id = d.producto_id\nJOIN categorias AS c ON c.id = pr.categoria_id\nWHERE p.fecha BETWEEN '2026-09-01' AND '2026-09-30'\n  AND p.estado <> 'cancelado'\nGROUP BY c.nombre\nORDER BY total DESC;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "TypeError: can't multiply sequence by non-int of type 'str'",
+       "cause": "Multiplicaste valores leídos del CSV sin convertirlos; `DictReader` entrega todo como texto.",
+       "fix": "Convierte cada columna numérica: `int(fila[\"cantidad\"])`, `float(fila[\"descuento\"])`."
+      },
+      {
+       "error": "KeyError: 'categoria' al leer el CSV",
+       "cause": "El encabezado del archivo no dice exactamente `categoria`: puede tener una mayúscula, un espacio o una tilde distinta, o te faltó escribir la línea de encabezado.",
+       "fix": "Imprime `filas[0].keys()` para ver los nombres reales de las columnas y usa exactamente esos."
+      },
+      {
+       "error": "Aparece una fila en blanco entre cada fila del CSV",
+       "cause": "Abriste el archivo sin `newline=\"\"` (ocurre sobre todo en Windows).",
+       "fix": "Usa siempre `open(ruta, \"w\", newline=\"\", encoding=\"utf-8\")` con el módulo csv."
+      },
+      {
+       "error": "ValueError: dict contains fields not in fieldnames: 'total'",
+       "cause": "Un diccionario que pasaste a `writerow` tiene una clave que no está en `fieldnames`.",
+       "fix": "Agrega esa columna a `fieldnames` o quítala del diccionario antes de escribir."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-03-1",
+     "title": "Repaso SQL: Ventas por mes de 2026",
+     "prompt": "Antes de llevar ventas a un CSV, repasa cómo se resumen por mes. Para los pedidos de 2026 que no están cancelados, muestra el mes como texto de dos dígitos (`'01'`, `'02'`…), la cantidad de pedidos distintos y el total vendido (`cantidad * precio_unitario * (1 - descuento)`) redondeado a colones enteros, en ese orden y ordenado por mes.",
+     "hint": "Une `pedidos` con `detalle_pedido`, usa `strftime('%m', p.fecha)` para el mes, `COUNT(DISTINCT p.id)` para los pedidos y `ROUND(SUM(...))` para el total.",
+     "solution": "SELECT strftime('%m', p.fecha) AS mes,\n       COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM pedidos AS p\nJOIN detalle_pedido AS d ON d.pedido_id = p.id\nWHERE p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\n  AND p.estado <> 'cancelado'\nGROUP BY mes\nORDER BY mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-03-2",
+     "title": "Repaso SQL: Más caros que su categoría",
+     "prompt": "Compras quiere revisar los productos con precio por encima del promedio de su propia categoría. Muestra el nombre del producto, el nombre de la categoría y el precio, en ese orden.",
+     "hint": "Usa una subconsulta correlacionada en el `WHERE`: `p.precio > (SELECT AVG(p2.precio) FROM productos AS p2 WHERE p2.categoria_id = p.categoria_id)`.",
+     "solution": "SELECT p.nombre, c.nombre AS categoria, p.precio\nFROM productos AS p\nJOIN categorias AS c ON c.id = p.categoria_id\nWHERE p.precio > (SELECT AVG(p2.precio)\n                  FROM productos AS p2\n                  WHERE p2.categoria_id = p.categoria_id);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `curso-python/semana-08/bitacora.py` con dos funciones con docstring: `registrar(ruta, mensaje)`, que agregue el mensaje como una línea nueva al final del archivo (modo `\"a\"`), y `mostrar(ruta)`, que lo lea e imprima cada línea numerada. Registra tres eventos de la tienda (apertura, una venta por SINPE Móvil, cierre), ejecuta el programa dos veces y comprueba que la segunda vez hay seis líneas.",
+    "Crea `inventario_csv.py`. En el laboratorio ejecuta `SELECT nombre, precio, stock FROM productos WHERE categoria_id = 7;` y copia las filas como una lista de diccionarios. Escribe `guardar_inventario(ruta, productos)` con `DictWriter` y las columnas nombre, precio, stock y valor (`precio * stock`), y genera `inventario_tecnologia.csv`. Ábrelo en VS Code y en una hoja de cálculo para ver que las columnas están bien.",
+    "En `inventario_csv.py` agrega `cargar_inventario(ruta)`, que lea el CSV con `DictReader` y devuelva una lista de diccionarios con precio, stock y valor convertidos a `int`. Con ella imprime los productos con menos de 30 unidades y el valor total del inventario, y comprueba ese total con `SELECT SUM(precio * stock) FROM productos WHERE categoria_id = 7;` en el laboratorio.",
+    "Crea `ventas_setiembre.csv` con la consulta del paso «Lleva una consulta del laboratorio a un CSV»: escribe primero el encabezado `fecha,categoria,cantidad,precio_unitario,descuento` y pega debajo las 38 líneas. Luego crea `totales_setiembre.py`, que lea ese CSV, imprima cuántas filas leyó y calcule el total por categoría con un diccionario.",
+    "En `totales_setiembre.py` guarda el resultado en `resumen_setiembre.csv` con las columnas categoria y total (redondeado a colones), ordenado de mayor a menor total. Compara cada número con el `GROUP BY` del último paso del tema 2 y escribe en un comentario al final del archivo si coincidieron."
+   ],
+   "taskHints": [
+    "En `registrar`, abre con `open(ruta, \"a\", encoding=\"utf-8\")` y escribe `mensaje + \"\\n\"`. En `mostrar`, `for numero, linea in enumerate(f, start=1): print(numero, linea.strip())`.",
+    "La fila de un producto queda como `{\"nombre\": \"Cable HDMI 2 m\", \"precio\": 4500, \"stock\": 65}`. Calcula `valor` dentro de `guardar_inventario` antes de `writerow`, y no olvides `newline=\"\"` al abrir.",
+    "Convierte en un bucle: `fila[\"precio\"] = int(fila[\"precio\"])` y lo mismo para stock y valor, y agrega cada fila a la lista que devuelves. Si el total no coincide con SQL, revisa que copiaste las 7 filas, incluido el Mouse inalámbrico con stock 0.",
+    "Si al leer obtienes `KeyError`, revisa que la primera línea del archivo sea el encabezado y que no tenga espacios. El programa debe imprimir «38 filas»; si da otra cantidad, te faltó copiar alguna línea.",
+    "Para ordenar las categorías: `sorted(totales, key=totales.get, reverse=True)`. Arma una lista de diccionarios `{\"categoria\": c, \"total\": round(totales[c])}` y pásala a `writerows`. Tecnología debería dar ₡255,470."
+   ],
+   "challenge": {
+    "title": "Del CSV al resumen por categoría",
+    "description": "Escribe `resumir_csv(entrada, salida)`, que lea un CSV de ventas con columnas fecha, categoria, cantidad, precio_unitario y descuento, y escriba en `salida` un CSV con las columnas categoria, lineas, unidades y total (redondeado a colones), ordenado de mayor a menor total y, si empatan, por categoría. Es la versión en Python de `SELECT categoria, COUNT(*), SUM(cantidad), ROUND(SUM(...)) ... GROUP BY categoria ORDER BY total DESC, categoria`. Pruébala con un CSV de al menos 6 filas que tu programa cree primero.",
+    "hint": "Agrupa con `setdefault(categoria, {\"lineas\": 0, \"unidades\": 0, \"total\": 0})`. Para ordenar por total descendente y categoría ascendente, usa una función clave que devuelva `(-total, categoria)`.",
+    "solution": "import csv\n\n\ndef resumir_csv(entrada, salida):\n    \"\"\"Lee ventas de un CSV y escribe el resumen por categoría en otro CSV.\"\"\"\n    grupos = {}\n    with open(entrada, newline=\"\", encoding=\"utf-8\") as f:\n        for fila in csv.DictReader(f):\n            g = grupos.setdefault(fila[\"categoria\"], {\"lineas\": 0, \"unidades\": 0, \"total\": 0})\n            cantidad = int(fila[\"cantidad\"])\n            g[\"lineas\"] += 1\n            g[\"unidades\"] += cantidad\n            g[\"total\"] += cantidad * int(fila[\"precio_unitario\"]) * (1 - float(fila[\"descuento\"]))\n\n    resumen = [{\"categoria\": c, \"lineas\": g[\"lineas\"], \"unidades\": g[\"unidades\"], \"total\": round(g[\"total\"])}\n               for c, g in grupos.items()]\n\n    def orden(fila):\n        return (-fila[\"total\"], fila[\"categoria\"])\n\n    with open(salida, \"w\", newline=\"\", encoding=\"utf-8\") as f:\n        escritor = csv.DictWriter(f, fieldnames=[\"categoria\", \"lineas\", \"unidades\", \"total\"])\n        escritor.writeheader()\n        escritor.writerows(sorted(resumen, key=orden))\n\n\nwith open(\"ventas_prueba.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as f:\n    f.write(\"fecha,categoria,cantidad,precio_unitario,descuento\\n\")\n    f.write(\"2026-09-02,Ropa,2,9500,0.1\\n\")\n    f.write(\"2026-09-03,Café y bebidas,3,3800,0.0\\n\")\n    f.write(\"2026-09-05,Snacks y dulces,4,1200,0.0\\n\")\n    f.write(\"2026-09-08,Ropa,1,19500,0.0\\n\")\n    f.write(\"2026-09-12,Café y bebidas,2,6500,0.15\\n\")\n    f.write(\"2026-09-20,Tecnología,1,29900,0.05\\n\")\n\nresumir_csv(\"ventas_prueba.csv\", \"resumen_prueba.csv\")\nwith open(\"resumen_prueba.csv\", encoding=\"utf-8\") as f:\n    print(f.read())",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "with",
+     "definition": "Bloque que abre un recurso, como un archivo, y lo cierra automáticamente al terminar, aunque ocurra un error."
+    },
+    {
+     "term": "modo de apertura",
+     "definition": "Segundo argumento de open: \"r\" para leer, \"w\" para escribir desde cero y \"a\" para agregar al final."
+    },
+    {
+     "term": "encoding",
+     "definition": "La forma de guardar los caracteres en el archivo; con \"utf-8\" las tildes, la ñ y el ₡ se conservan bien."
+    },
+    {
+     "term": "CSV",
+     "definition": "Archivo de texto con una tabla: la primera línea es el encabezado y cada línea siguiente es una fila con valores separados por comas."
+    },
+    {
+     "term": "DictReader",
+     "definition": "Lector del módulo csv que entrega cada fila como un diccionario cuyas claves son las columnas del encabezado."
+    },
+    {
+     "term": "DictWriter",
+     "definition": "Escritor del módulo csv que recibe diccionarios y los guarda como filas, en el orden de columnas indicado en fieldnames."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: leer y escribir archivos",
+     "url": "https://docs.python.org/es/3/tutorial/inputoutput.html#reading-and-writing-files"
+    },
+    {
+     "title": "Documentación del módulo csv",
+     "url": "https://docs.python.org/es/3/library/csv.html"
+    },
+    {
+     "title": "SQLite: funciones de agregación (para comparar resultados)",
+     "url": "https://www.sqlite.org/lang_aggfunc.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Quieres agregar una venta nueva al final de `ventas.txt` sin borrar las que ya están. ¿Con qué modo abres el archivo?",
+     "code": "",
+     "options": [
+      "\"r\"",
+      "\"w\"",
+      "\"a\"",
+      "\"x\""
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: \"r\" solo permite leer; intentar escribir da error.",
+      "No: \"w\" vacía el archivo antes de escribir y perderías las ventas anteriores.",
+      "Correcto: \"a\" (append) escribe al final y conserva lo que había.",
+      "No: \"x\" crea un archivo nuevo y falla si ya existe."
+     ],
+     "explanation": "El modo \"a\" agrega al final del archivo; \"w\" lo reinicia y \"r\" es solo para leer.",
+     "hint": "Piensa en el método de las listas que agrega al final."
+    },
+    {
+     "type": "choice",
+     "prompt": "Lees un CSV con `filas = list(csv.DictReader(f))`. ¿Qué es `filas`?",
+     "code": "",
+     "options": [
+      "Un solo diccionario con una clave por columna",
+      "Una lista de diccionarios, uno por fila, con las columnas del encabezado como claves",
+      "Una lista de listas con los valores ya convertidos a números",
+      "Un texto con todo el contenido del archivo"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: hay un diccionario por cada fila, no uno solo para toda la tabla.",
+      "Correcto: es una tabla en forma de lista de diccionarios, como el resultado de un SELECT *.",
+      "No: DictReader entrega diccionarios, y nunca convierte los valores a números.",
+      "No: eso es lo que devuelve `f.read()`."
+     ],
+     "explanation": "DictReader convierte cada línea de datos en un diccionario usando el encabezado como claves; `list()` los junta todos en una lista.",
+     "hint": "Recuerda la analogía entre CSV y tabla."
+    },
+    {
+     "type": "choice",
+     "prompt": "Tu programa lee `cantidad` de un CSV y hace `fila[\"cantidad\"] * 2`. La cantidad era 3. ¿Qué obtienes?",
+     "code": "",
+     "options": [
+      "6",
+      "\"33\"",
+      "Un TypeError",
+      "\"6\""
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: daría 6 solo si convirtieras antes con `int()`.",
+      "Correcto: el valor es el texto \"3\", y un texto por 2 se repite: \"33\".",
+      "No: multiplicar un texto por un entero es válido en Python; lo que no funciona es multiplicar dos textos.",
+      "No: Python no hace la cuenta con textos; repite el texto."
+     ],
+     "explanation": "Todo lo que lee el módulo csv es texto. `\"3\" * 2` repite el texto y da `\"33\"`; para operar hay que convertir con `int()`.",
+     "hint": "¿De qué tipo son los valores que entrega DictReader?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Al salir de un bloque `with open(...) as f:`, Python cierra el archivo automáticamente, aunque dentro del bloque haya ocurrido un error.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: esa es la razón de usar `with`: el cierre está garantizado.",
+      "No: `with` garantiza el cierre del archivo en cualquier caso, también si hay un error."
+     ],
+     "explanation": "`with` cierra el archivo al salir del bloque pase lo que pase, y así lo escrito queda guardado en el disco.",
+     "hint": "¿Para qué sirve `with` en vez de llamar a `close()` a mano?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "`f.write(\"Cajeta de leche\")` escrito dos veces deja el archivo con dos líneas, una por cada llamada.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `write` no agrega saltos de línea; el texto quedaría pegado.",
+      "Correcto: sin `\"\\n\"` ambos textos quedan en la misma línea: `Cajeta de lecheCajeta de leche`."
+     ],
+     "explanation": "A diferencia de `print`, `write` escribe exactamente el texto que le das. El salto de línea hay que ponerlo con `\"\\n\"`.",
+     "hint": "Compara `write` con `print`."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "ruta = \"caja.txt\"\nwith open(ruta, \"w\", encoding=\"utf-8\") as f:\n    f.write(\"12500\\n3800\\n\")\nwith open(ruta, \"a\", encoding=\"utf-8\") as f:\n    f.write(\"6500\\n\")\ntotal = 0\nwith open(ruta, encoding=\"utf-8\") as f:\n    for linea in f:\n        total += int(linea)\nprint(total)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "22800"
+     ],
+     "optionFeedback": [],
+     "explanation": "El archivo queda con tres líneas: 12500, 3800 y 6500. `int()` acepta el salto de línea final, así que la suma es 22800.",
+     "hint": "Cuenta cuántas líneas tiene el archivo después del modo \"a\"."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "import csv\n\nwith open(\"mini.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as f:\n    f.write(\"categoria,total\\nRopa,9500\\nTecnología,29900\\nRopa,19500\\n\")\nwith open(\"mini.csv\", newline=\"\", encoding=\"utf-8\") as f:\n    filas = list(csv.DictReader(f))\nropa = sum([int(fila[\"total\"]) for fila in filas if fila[\"categoria\"] == \"Ropa\"])\nprint(len(filas), ropa)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "3 29000"
+     ],
+     "optionFeedback": [],
+     "explanation": "El encabezado no cuenta como fila, así que hay 3 filas. Las de Ropa suman 9500 + 19500 = 29000.",
+     "hint": "¿La línea de encabezado se convierte en una fila?"
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa el método que escribe la línea de encabezado del CSV.",
+     "code": "import csv\n\nwith open(\"resumen.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as f:\n    escritor = csv.DictWriter(f, fieldnames=[\"categoria\", \"total\"])\n    escritor.___()\n    escritor.writerow({\"categoria\": \"Ropa\", \"total\": 29000})",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "writeheader"
+     ],
+     "optionFeedback": [],
+     "explanation": "`writeheader()` escribe la primera línea con los nombres de `fieldnames`; se llama una sola vez, antes de las filas.",
+     "hint": "«Escribir encabezado», en inglés y todo junto."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-04",
+   "kind": "workshop",
+   "title": "Errores y módulos",
+   "summary": "Haces que tus programas sobrevivan a datos malos y archivos que faltan con try y except, validas con raise como lo hace un CHECK en SQL, y ordenas tu código en módulos propios listos para el entregable de mañana.",
+   "objectives": [
+    "Capturar errores concretos (ValueError, ZeroDivisionError, FileNotFoundError, KeyError) con try y except y mostrar mensajes útiles.",
+    "Lanzar errores propios con raise para rechazar datos inválidos, como hace un CHECK en una tabla SQL.",
+    "Procesar un CSV con filas defectuosas sin que el programa se detenga, contando y reportando las filas rechazadas.",
+    "Importar módulos de la biblioteca estándar con import, from e import ... as.",
+    "Separar funciones en un módulo propio y usar if __name__ == \"__main__\" para que sus pruebas no se ejecuten al importarlo."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: try, except y raise",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Módulos propios, import y if __name__ == \"__main__\"",
+     "minutes": 65
+    },
+    {
+     "label": "Práctica: tareas en curso-python/semana-08",
+     "minutes": 65
+    },
+    {
+     "label": "Repaso SQL (2 ejercicios)",
+     "minutes": 20
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 25
+    }
+   ],
+   "topics": [
+    {
+     "title": "try, except y raise",
+     "concept": "Cuando algo sale mal, Python lanza una **excepción** y, si nadie la atiende, el programa se detiene con un mensaje rojo. Ya conoces varias: `ValueError` cuando `int(\"dos\")` no puede convertir, `ZeroDivisionError` al dividir entre cero, `KeyError` con una clave que no existe y `FileNotFoundError` al abrir un archivo que no está.\n\nCon `try` y `except` decides qué hacer en ese caso: el código que puede fallar va en `try`, y la respuesta, en `except ValueError:`. Captura siempre el tipo de error concreto que esperas; un `except:` sin tipo esconde también los errores de tu propio código. Con `except ValueError as e:` guardas el mensaje del error en `e` para mostrarlo.\n\n`raise` hace lo contrario: lanzas tú el error cuando un dato no tiene sentido, por ejemplo `raise ValueError(\"el descuento debe estar entre 0 y 1\")`. Es la versión en Python de la restricción `CHECK (descuento >= 0 AND descuento < 1)` de la tabla `detalle_pedido`: **el dato malo se rechaza en la puerta** con un mensaje claro, en lugar de colarse y arruinar un total más adelante.",
+     "tip": "Deja dentro del `try` solo las líneas que pueden fallar. Si metes veinte líneas, no sabrás cuál produjo el error y podrías capturar uno que no esperabas.",
+     "example": "def subtotal(cantidad_txt, precio_txt, descuento_txt):\n    \"\"\"Convierte una línea de venta y devuelve su subtotal; rechaza datos inválidos.\"\"\"\n    cantidad = int(cantidad_txt)\n    precio = int(precio_txt)\n    descuento = float(descuento_txt)\n    if cantidad <= 0:\n        raise ValueError(f\"cantidad inválida: {cantidad}\")\n    if not 0 <= descuento < 1:\n        raise ValueError(f\"descuento fuera de rango: {descuento}\")\n    return cantidad * precio * (1 - descuento)\n\n\nlineas = [\n    (\"2\", \"6500\", \"0.1\"),\n    (\"dos\", \"2450\", \"0\"),\n    (\"1\", \"32000\", \"1.5\"),\n    (\"0\", \"9500\", \"0\"),\n    (\"3\", \"1200\", \"0\"),\n]\ntotal = 0\nrechazadas = 0\nfor numero, (cantidad, precio, descuento) in enumerate(lineas, start=1):\n    try:\n        total += subtotal(cantidad, precio, descuento)\n    except ValueError as e:\n        rechazadas += 1\n        print(f\"Línea {numero} rechazada: {e}\")\nprint(f\"Total válido: ₡{total:,.0f} ({rechazadas} líneas rechazadas)\")",
+     "language": "python",
+     "exampleOutput": "Línea 2 rechazada: invalid literal for int() with base 10: 'dos'\nLínea 3 rechazada: descuento fuera de rango: 1.5\nLínea 4 rechazada: cantidad inválida: 0\nTotal válido: ₡15,300 (3 líneas rechazadas)",
+     "steps": [
+      {
+       "title": "Provoca y lee un error",
+       "body": "Ejecuta esta línea sin protección y lee el mensaje de abajo hacia arriba: la última línea dice el tipo de error (`ValueError`) y la causa. Aprender a leer ese mensaje es la mitad de la solución.",
+       "code": "cantidad = int(\"dos\")",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Captura el error con try y except",
+       "body": "Ahora el mismo código va dentro de `try`. Si la conversión falla, Python salta al `except` y el programa sigue. `as e` guarda el mensaje original para mostrarlo.",
+       "code": "textos = [\"3\", \"dos\", \"5\"]\nfor texto in textos:\n    try:\n        cantidad = int(texto)\n        print(\"Cantidad:\", cantidad)\n    except ValueError as e:\n        print(\"No es un número:\", texto, \"->\", e)\nprint(\"El programa siguió hasta el final\")",
+       "language": "python"
+      },
+      {
+       "title": "Atiende varios errores distintos",
+       "body": "Un mismo `try` puede tener varios `except`, uno por tipo de error, cada uno con su mensaje. Aquí calculamos el promedio de ventas de una categoría que puede no existir o no tener ventas.",
+       "code": "ventas = {\"Ropa\": [9500, 19500], \"Libros\": []}\nfor categoria in [\"Ropa\", \"Libros\", \"Juguetes\"]:\n    try:\n        lista = ventas[categoria]\n        promedio = sum(lista) / len(lista)\n        print(f\"{categoria}: promedio ₡{promedio:,.0f}\")\n    except KeyError:\n        print(f\"{categoria}: la categoría no existe\")\n    except ZeroDivisionError:\n        print(f\"{categoria}: no tiene ventas todavía\")",
+       "language": "python"
+      },
+      {
+       "title": "Lanza tus propios errores con raise",
+       "body": "Una función de validación revisa el dato y, si no cumple, lanza `ValueError` con un mensaje que explica el problema. Quien la llama decide qué hacer. Compara con los `CHECK` de la tabla `detalle_pedido` en el laboratorio.",
+       "code": "def validar_descuento(descuento):\n    \"\"\"Devuelve el descuento si está entre 0 y 1; si no, lanza ValueError.\"\"\"\n    if not 0 <= descuento < 1:\n        raise ValueError(f\"descuento {descuento} fuera de rango (0 a 0.99)\")\n    return descuento\n\nfor d in [0.1, 0, 1.5]:\n    try:\n        print(\"Aceptado:\", validar_descuento(d))\n    except ValueError as e:\n        print(\"Rechazado:\", e)",
+       "language": "python"
+      },
+      {
+       "title": "Avisa si falta el archivo",
+       "body": "Abrir un CSV que no existe da `FileNotFoundError`. Capturarlo permite mostrar un mensaje con la solución en lugar de un error técnico. Aquí el archivo no existe a propósito.",
+       "code": "import csv\n\ndef cargar(ruta):\n    try:\n        with open(ruta, newline=\"\", encoding=\"utf-8\") as f:\n            return list(csv.DictReader(f))\n    except FileNotFoundError:\n        print(f\"No encontré {ruta}. ¿Lo creaste en la misma carpeta que el programa?\")\n        return []\n\nfilas = cargar(\"ventas_octubre.csv\")\nprint(\"Filas cargadas:\", len(filas))",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Uso `except:` sin tipo y el programa «funciona» pero da resultados raros",
+       "cause": "Un `except` sin tipo atrapa cualquier error, incluso un nombre mal escrito en tu propio código, y lo esconde.",
+       "fix": "Captura solo lo que esperas: `except ValueError:`. Los errores que no esperabas deben verse para poder corregirlos."
+      },
+      {
+       "error": "NameError: name 'cantidad' is not defined después del try",
+       "cause": "La conversión falló dentro del `try`, así que la variable nunca se creó, y la usaste después del bloque.",
+       "fix": "Usa la variable dentro del `try` (o en un `else:`), o dale un valor antes del `try`, o sal del bucle con `continue` en el `except`."
+      },
+      {
+       "error": "El mensaje de mi raise no aparece",
+       "cause": "Capturaste el error con `except ValueError:` pero no guardaste ni imprimiste el mensaje.",
+       "fix": "Escribe `except ValueError as e:` y muestra `e` en el mensaje."
+      },
+      {
+       "error": "TypeError: exceptions must derive from BaseException",
+       "cause": "Escribiste `raise \"descuento inválido\"`; no se puede lanzar un texto solo.",
+       "fix": "Lanza un error con el texto dentro: `raise ValueError(\"descuento inválido\")`."
+      }
+     ]
+    },
+    {
+     "title": "Módulos propios, import y if __name__ == \"__main__\"",
+     "concept": "Un **módulo** es un archivo `.py` cuyas funciones puedes usar desde otro programa. Python trae muchos: ya usaste `csv`. Hay tres formas de importar: `import statistics` (y escribes `statistics.mean(...)`), `from statistics import mean, median` (usas `mean(...)` directo) e `import statistics as st` (un nombre corto).\n\nTus propios archivos también son módulos. Si en `curso-python/semana-08/` tienes `ventas_utils.py` con la función `subtotal`, desde `reporte.py`, en la misma carpeta, escribes `import ventas_utils` y usas `ventas_utils.subtotal(fila)`. Así cada archivo hace una sola cosa y las funciones se reutilizan en vez de copiarse.\n\nAl importar un módulo, Python ejecuta todo su código. Para que las pruebas del módulo no se ejecuten cada vez que alguien lo importa, se ponen debajo de `if __name__ == \"__main__\":`. **`__name__` vale `\"__main__\"` solo en el archivo que ejecutaste con `python`**; en un archivo importado vale el nombre del módulo. Así el mismo archivo sirve como biblioteca y como programa de prueba.",
+     "tip": "No llames a tus archivos igual que un módulo de Python (`csv.py`, `statistics.py`): tu archivo taparía al original y `import csv` cargaría el tuyo, con errores muy confusos.",
+     "example": "import statistics as st\nfrom statistics import median\n\n\ndef subtotal(cantidad, precio, descuento=0.0):\n    \"\"\"Monto de una línea de venta con su descuento.\"\"\"\n    return cantidad * precio * (1 - descuento)\n\n\ndef main():\n    lineas = [(4, 29900, 0.0), (1, 1200, 0.0), (2, 5900, 0.1), (3, 12900, 0.05), (2, 2450, 0.0)]\n    montos = [subtotal(c, p, d) for c, p, d in lineas]\n    print(\"Montos:\", [round(m) for m in montos])\n    print(f\"Promedio: ₡{st.mean(montos):,.0f}\")\n    print(f\"Mediana:  ₡{median(montos):,.0f}\")\n    print(\"Este archivo se está ejecutando como:\", __name__)\n\n\nif __name__ == \"__main__\":\n    main()",
+     "language": "python",
+     "exampleOutput": "Montos: [119600, 1200, 10620, 36765, 4900]\nPromedio: ₡34,617\nMediana:  ₡10,620\nEste archivo se está ejecutando como: __main__",
+     "steps": [
+      {
+       "title": "Importa de tres formas",
+       "body": "Las tres líneas importan del mismo módulo `statistics`. Con `import` completo, el nombre del módulo antecede a la función, y queda claro de dónde viene; con `from` escribes menos. Elige una forma y sé constante. La última línea muestra algo útil para reportes: una venta grande jala el promedio por encima de la mediana.",
+       "code": "import statistics\nfrom statistics import median\nimport statistics as st\n\nventas = [12500, 3800, 45000, 6500, 2100]\nprint(statistics.mean(ventas))\nprint(median(ventas))\nprint(st.mean(ventas) > st.median(ventas))",
+       "language": "python"
+      },
+      {
+       "title": "Crea tu módulo ventas_utils.py",
+       "body": "Guarda este código como `curso-python/semana-08/ventas_utils.py` y ejecútalo con `python ventas_utils.py`: las pruebas con `assert` corren y ves «Pruebas de ventas_utils: OK». Si un `assert` falla, Python te dice cuál.",
+       "code": "\"\"\"Funciones para trabajar con líneas de venta de la Tienda Pura Vida.\"\"\"\n\n\ndef subtotal(cantidad, precio, descuento=0.0):\n    \"\"\"Monto de una línea: cantidad * precio * (1 - descuento).\"\"\"\n    if cantidad <= 0:\n        raise ValueError(\"la cantidad debe ser mayor que 0\")\n    return cantidad * precio * (1 - descuento)\n\n\ndef formato_colones(monto):\n    \"\"\"Devuelve el monto como texto con ₡ y separador de miles.\"\"\"\n    return f\"₡{monto:,.0f}\"\n\n\nif __name__ == \"__main__\":\n    assert subtotal(2, 6100, 0.15) == 10370\n    assert formato_colones(51785) == \"₡51,785\"\n    print(\"Pruebas de ventas_utils: OK\")",
+       "language": "python"
+      },
+      {
+       "title": "Úsalo desde otro archivo",
+       "body": "Crea `reporte.py` en la misma carpeta e importa tu módulo. Al ejecutar `python reporte.py`, las pruebas de `ventas_utils` no aparecen: dentro de un módulo importado, `__name__` no vale `\"__main__\"`.",
+       "code": "import ventas_utils\n\nlineas = [(1, 3300, 0.05), (2, 6100, 0.15), (2, 6100, 0.1), (2, 13650, 0.0)]\ntotal = 0\nfor cantidad, precio, descuento in lineas:\n    total += ventas_utils.subtotal(cantidad, precio, descuento)\nprint(\"Total del pedido 21:\", ventas_utils.formato_colones(total))",
+       "language": "python",
+       "noRun": true
+      },
+      {
+       "title": "Ejecuta cada archivo desde la terminal",
+       "body": "Desde la carpeta de la semana, ejecuta los dos archivos y compara la salida. El primero muestra las pruebas; el segundo, solo el total del pedido 21: ₡51,785, el mismo que calculaste el lunes.",
+       "code": "cd curso-python/semana-08\npython ventas_utils.py\npython reporte.py",
+       "language": "bash"
+      },
+      {
+       "title": "Mira qué vale __name__",
+       "body": "Este programa imprime su propio `__name__` y el de un módulo importado. Te ayuda a ver por qué el `if` del final funciona: solo el archivo que ejecutas se llama `__main__`.",
+       "code": "import statistics\n\nprint(\"Este archivo:\", __name__)\nprint(\"Módulo importado:\", statistics.__name__)\nif __name__ == \"__main__\":\n    print(\"Me ejecutaron directamente\")",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "ModuleNotFoundError: No module named 'ventas_utils'",
+       "cause": "Ejecutaste `reporte.py` desde otra carpeta, o el archivo del módulo tiene otro nombre (por ejemplo `ventas-utils.py` con guion).",
+       "fix": "Pon los dos archivos en la misma carpeta, usa guion bajo en el nombre y ejecuta desde esa carpeta con `cd`."
+      },
+      {
+       "error": "Al importar mi módulo se ejecutan sus pruebas y sus print",
+       "cause": "El código de prueba está suelto al final del archivo, fuera del `if __name__ == \"__main__\":`.",
+       "fix": "Mueve las pruebas y los print dentro de ese `if`, con sangría."
+      },
+      {
+       "error": "AttributeError: module 'csv' has no attribute 'DictReader'",
+       "cause": "Tienes un archivo propio llamado `csv.py` en la carpeta y Python lo importó en lugar del módulo real.",
+       "fix": "Cambia el nombre de tu archivo (por ejemplo `mis_ventas.py`) y borra la carpeta `__pycache__` si aparece."
+      },
+      {
+       "error": "NameError: name 'subtotal' is not defined",
+       "cause": "Importaste con `import ventas_utils` pero llamaste a `subtotal(...)` sin el prefijo.",
+       "fix": "Escribe `ventas_utils.subtotal(...)`, o importa con `from ventas_utils import subtotal`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-04-1",
+     "title": "Repaso SQL: Productos activos por rango de precio",
+     "prompt": "Clasifica los productos activos en tres rangos: «Económico» si cuestan menos de ₡5 000, «Medio» si cuestan desde ₡5 000 hasta menos de ₡15 000, y «Premium» desde ₡15 000. Muestra el rango, cuántos productos tiene, el precio mínimo y el precio máximo, en ese orden, ordenado de menor a mayor precio mínimo.",
+     "hint": "Usa `CASE WHEN precio < 5000 THEN 'Económico' WHEN precio < 15000 THEN 'Medio' ELSE 'Premium' END`, agrupa por ese rango y ordena por `MIN(precio)`.",
+     "solution": "SELECT CASE\n         WHEN precio < 5000 THEN 'Económico'\n         WHEN precio < 15000 THEN 'Medio'\n         ELSE 'Premium'\n       END AS rango,\n       COUNT(*) AS productos,\n       MIN(precio) AS minimo,\n       MAX(precio) AS maximo\nFROM productos\nWHERE activo = 1\nGROUP BY rango\nORDER BY minimo;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-04-2",
+     "title": "Repaso SQL: Ranking de vendedores por año",
+     "prompt": "Para cada año y cada empleado que registró ventas en tienda (pedidos con `empleado_id`, sin contar los cancelados), muestra el año (`'2025'` o `'2026'`), el nombre completo del empleado (nombre, un espacio y apellido), su total vendido redondeado a colones enteros y su posición en el ranking de ese año (1 = el que más vendió), en ese orden.",
+     "hint": "Calcula el total por año y empleado en una CTE con `strftime('%Y', p.fecha)`; luego aplica `RANK() OVER (PARTITION BY anio ORDER BY total DESC)`.",
+     "solution": "WITH ventas AS (\n  SELECT strftime('%Y', p.fecha) AS anio,\n         e.nombre || ' ' || e.apellido AS vendedor,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n  FROM pedidos AS p\n  JOIN detalle_pedido AS d ON d.pedido_id = p.id\n  JOIN empleados AS e ON e.id = p.empleado_id\n  WHERE p.estado <> 'cancelado'\n  GROUP BY anio, e.id\n)\nSELECT anio, vendedor, ROUND(total) AS total,\n       RANK() OVER (PARTITION BY anio ORDER BY total DESC) AS posicion\nFROM ventas;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `curso-python/semana-08/entradas.py` con `pedir_entero(mensaje)`, que use `input` dentro de un `while True` con `try`/`except ValueError` y vuelva a preguntar hasta recibir un entero mayor que 0, y `pedir_descuento(mensaje)`, que acepte solo un número decimal entre 0 y 0.5. Úsalas para pedir cantidad, precio y descuento de una línea de venta e imprimir su subtotal. Prueba con «dos», «-3», «0.7» y valores correctos.",
+    "Crea `validar_ventas.py`. Al inicio, el programa debe escribir `ventas_con_errores.csv` (columnas fecha, categoria, cantidad, precio_unitario, descuento) con 8 filas, tres de ellas malas a propósito: una cantidad «dos», un descuento 1.5 y un precio vacío. Escribe `validar_fila(fila)`, que convierta los valores y lance `ValueError` con un mensaje claro si la cantidad o el precio no son mayores que 0 o si el descuento no está entre 0 y 1, igual que los `CHECK` de `detalle_pedido`.",
+    "En `validar_ventas.py` recorre el CSV con `DictReader` y `enumerate`, llama a `validar_fila` dentro de `try` y, para cada fila mala, imprime el número de línea del archivo y el mensaje del error. Al final imprime cuántas filas fueron válidas, cuántas se rechazaron y el total de las válidas. Envuelve la apertura en un `try` con `except FileNotFoundError` y pruébalo cambiando el nombre del archivo.",
+    "Crea el módulo `ventas_utils.py` con tres funciones con docstring: `leer_ventas(ruta)` (devuelve la lista de diccionarios del CSV, o una lista vacía con un aviso si el archivo no existe), `subtotal(fila)` (convierte y calcula el monto de una fila) y `totales_por_categoria(filas)`. Debajo de `if __name__ == \"__main__\":` escribe al menos dos `assert` que prueben `subtotal` y `totales_por_categoria` con datos pequeños.",
+    "Crea `reporte_setiembre.py`, que importe `ventas_utils` y use el `ventas_setiembre.csv` de ayer para imprimir el total por categoría, el promedio y la mediana de los subtotales de línea (con `statistics.mean` y `statistics.median`) y la línea más grande. Comprueba que al ejecutarlo no aparecen las pruebas del módulo, y compara el promedio con `SELECT AVG(d.cantidad * d.precio_unitario * (1 - d.descuento))` para las mismas ventas en el laboratorio."
+   ],
+   "taskHints": [
+    "Dentro del `while True`, el `try` intenta `valor = int(input(mensaje))`; si `valor > 0`, `return valor`; si no, imprime un aviso. El `except ValueError:` también imprime un aviso y el bucle vuelve a preguntar solo.",
+    "`int(\"\")` también da `ValueError`, así que el precio vacío se rechaza solo al convertir. Para los rangos, usa `if cantidad <= 0: raise ValueError(\"...\")` y `if not 0 <= descuento < 1: raise ValueError(\"...\")`.",
+    "La primera fila de datos está en la línea 2 del archivo (la 1 es el encabezado), así que usa `enumerate(lector, start=2)`. Deberías obtener 5 válidas y 3 rechazadas.",
+    "Puedes copiar `totales_por_categoria` de lo que hiciste ayer en `totales_setiembre.py`. Un `assert` útil: con dos filas de Ropa de 9500 y 19500 sin descuento, el total de Ropa debe ser 29000.",
+    "`import statistics` y luego `statistics.mean(montos)`, donde `montos` es la lista de subtotales. Para setiembre deberías ver un promedio cercano a ₡13,699 y una mediana de ₡4,900: unas pocas ventas grandes suben el promedio. La línea más grande es de ₡119,600."
+   ],
+   "challenge": {
+    "title": "Cargador de ventas a prueba de errores",
+    "description": "Escribe `cargar_ventas(ruta)`, que lea un CSV de ventas y devuelva dos listas: las filas válidas (con cantidad, precio_unitario y descuento ya convertidos a número) y los errores como tuplas `(numero_de_linea, mensaje)`. Una fila es inválida si algún número no se puede convertir, si la cantidad o el precio no son mayores que 0, si el descuento no está entre 0 y 1, o si la categoría viene vacía. Si el archivo no existe, la función debe lanzar `FileNotFoundError` con un mensaje propio que incluya la ruta. Pruébala con un CSV que tu programa cree, con al menos 6 filas y 3 errores distintos, y también con una ruta inexistente.",
+    "hint": "Separa la validación de una fila en su propia función que haga `raise ValueError`. En `cargar_ventas`, captura el `ValueError` de cada fila y agrega `(numero, str(e))` a la lista de errores. Para el archivo inexistente, captura el `FileNotFoundError` original y lanza uno nuevo con tu mensaje.",
+    "solution": "import csv\n\n\ndef validar_fila(fila):\n    \"\"\"Convierte una fila del CSV y lanza ValueError si algún dato es inválido.\"\"\"\n    if not fila[\"categoria\"].strip():\n        raise ValueError(\"categoría vacía\")\n    try:\n        cantidad = int(fila[\"cantidad\"])\n        precio = int(fila[\"precio_unitario\"])\n        descuento = float(fila[\"descuento\"])\n    except ValueError:\n        raise ValueError(\"hay un número que no se puede convertir\")\n    if cantidad <= 0 or precio <= 0:\n        raise ValueError(\"cantidad y precio deben ser mayores que 0\")\n    if not 0 <= descuento < 1:\n        raise ValueError(f\"descuento {descuento} fuera de rango\")\n    return {\"fecha\": fila[\"fecha\"], \"categoria\": fila[\"categoria\"],\n            \"cantidad\": cantidad, \"precio_unitario\": precio, \"descuento\": descuento}\n\n\ndef cargar_ventas(ruta):\n    \"\"\"Devuelve (validas, errores) a partir de un CSV de ventas.\"\"\"\n    validas, errores = [], []\n    try:\n        with open(ruta, newline=\"\", encoding=\"utf-8\") as f:\n            for numero, fila in enumerate(csv.DictReader(f), start=2):\n                try:\n                    validas.append(validar_fila(fila))\n                except ValueError as e:\n                    errores.append((numero, str(e)))\n    except FileNotFoundError:\n        raise FileNotFoundError(f\"no existe el archivo de ventas {ruta}\")\n    return validas, errores\n\n\nwith open(\"ventas_reto.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as f:\n    f.write(\"fecha,categoria,cantidad,precio_unitario,descuento\\n\")\n    f.write(\"2026-09-03,Artesanía,2,2500,0.0\\n\")\n    f.write(\"2026-09-04,Ropa,tres,9500,0.0\\n\")\n    f.write(\"2026-09-06,Tecnología,4,29900,0.0\\n\")\n    f.write(\"2026-09-10,,1,11500,0.0\\n\")\n    f.write(\"2026-09-12,Café y bebidas,1,3800,1.2\\n\")\n    f.write(\"2026-09-15,Snacks y dulces,1,2450,0.05\\n\")\n\nvalidas, errores = cargar_ventas(\"ventas_reto.csv\")\nprint(\"Filas válidas:\", len(validas))\nfor numero, mensaje in errores:\n    print(f\"Línea {numero}: {mensaje}\")\ntotal = sum([v[\"cantidad\"] * v[\"precio_unitario\"] * (1 - v[\"descuento\"]) for v in validas])\nprint(f\"Total válido: ₡{total:,.0f}\")\n\ntry:\n    cargar_ventas(\"no_existe.csv\")\nexcept FileNotFoundError as e:\n    print(\"Error:\", e)",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "excepción",
+     "definition": "Señal de error que Python lanza cuando algo no puede hacerse, como convertir \"dos\" en número; si nadie la captura, el programa se detiene."
+    },
+    {
+     "term": "try / except",
+     "definition": "Bloques que intentan ejecutar un código y, si ocurre un error del tipo indicado, ejecutan otro código en su lugar."
+    },
+    {
+     "term": "raise",
+     "definition": "Instrucción para lanzar una excepción a propósito, por ejemplo cuando un dato no cumple una regla."
+    },
+    {
+     "term": "módulo",
+     "definition": "Archivo .py cuyas funciones se pueden usar desde otros programas con import."
+    },
+    {
+     "term": "import",
+     "definition": "Instrucción que carga un módulo para usar sus funciones: `import csv`, `from statistics import mean`."
+    },
+    {
+     "term": "__name__",
+     "definition": "Variable especial que vale \"__main__\" en el archivo que se ejecuta directamente y el nombre del módulo en un archivo importado."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Tutorial de Python: errores y excepciones",
+     "url": "https://docs.python.org/es/3/tutorial/errors.html"
+    },
+    {
+     "title": "Tutorial de Python: módulos",
+     "url": "https://docs.python.org/es/3/tutorial/modules.html"
+    },
+    {
+     "title": "Tutorial de Python: ejecutar módulos como scripts (__main__)",
+     "url": "https://docs.python.org/es/3/tutorial/modules.html#executing-modules-as-scripts"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué error lanza `int(\"dos\")`?",
+     "code": "",
+     "options": [
+      "TypeError",
+      "ValueError",
+      "KeyError",
+      "SyntaxError"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el tipo (texto) es aceptable para `int`; el problema es el valor concreto.",
+      "Correcto: `int` acepta textos, pero \"dos\" no representa un número, así que el valor es inválido.",
+      "No: KeyError es para claves de diccionario que no existen.",
+      "No: la línea está bien escrita; el error aparece al ejecutarla."
+     ],
+     "explanation": "`int()` acepta textos como \"3\", pero \"dos\" no es un número válido: es un problema de valor, `ValueError`.",
+     "hint": "El tipo es correcto; lo que falla es el contenido."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Por qué se recomienda `except ValueError:` en lugar de un `except:` sin tipo?",
+     "code": "",
+     "options": [
+      "Porque `except:` sin tipo es un error de sintaxis",
+      "Porque `except ValueError:` es más rápido",
+      "Porque `except:` sin tipo solo atrapa errores de archivos",
+      "Porque `except:` sin tipo también esconde errores que no esperabas, como un nombre mal escrito"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `except:` es válido en Python; el problema es lo que esconde.",
+      "No: la diferencia no es de velocidad.",
+      "No: al contrario, atrapa absolutamente todos los errores.",
+      "Correcto: atraparlo todo oculta fallos de tu propio código que deberías ver y corregir."
+     ],
+     "explanation": "Un `except` sin tipo atrapa cualquier error, incluso los de programación, y los esconde. Capturar el tipo concreto deja ver los errores inesperados.",
+     "hint": "Piensa en qué pasa con un error que no tenías previsto."
+    },
+    {
+     "type": "choice",
+     "prompt": "En `ventas_utils.py`, las pruebas están dentro de `if __name__ == \"__main__\":`. ¿Qué pasa cuando `reporte.py` hace `import ventas_utils`?",
+     "code": "",
+     "options": [
+      "Se cargan las funciones del módulo, pero las pruebas no se ejecutan",
+      "Se ejecutan las pruebas y después las funciones",
+      "Da error porque un módulo con pruebas no se puede importar",
+      "No se carga nada hasta llamar a `main()`"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: al importar, `__name__` vale \"ventas_utils\", la condición es falsa y las pruebas se saltan.",
+      "No: las pruebas solo corren cuando ejecutas `python ventas_utils.py` directamente.",
+      "No: precisamente para eso existe el `if`, para que el módulo se pueda importar sin efectos.",
+      "No: las definiciones `def` sí se ejecutan al importar, y las funciones quedan disponibles."
+     ],
+     "explanation": "En un archivo importado, `__name__` es el nombre del módulo, no \"__main__\", así que el bloque protegido no se ejecuta.",
+     "hint": "¿Cuánto vale `__name__` dentro de un módulo importado?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "`raise ValueError(\"descuento inválido\")` dentro de una función detiene la función y envía el error a quien la llamó, que puede capturarlo con `try`/`except`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `raise` corta la función en esa línea y el error sube hasta un `except` que lo atienda.",
+      "No: `raise` sí detiene la función y el error puede capturarse en el código que la llamó."
+     ],
+     "explanation": "`raise` termina la ejecución de la función en ese punto y propaga el error; el código que llamó a la función decide qué hacer con él.",
+     "hint": "Recuerda el paso «Lanza tus propios errores con raise»."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si guardas tu programa como `csv.py` en la misma carpeta, `import csv` seguirá cargando el módulo csv de Python sin problemas.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: Python busca primero en la carpeta del programa, así que cargaría tu archivo.",
+      "Correcto: tu `csv.py` tapa al módulo real y aparecen errores como «module 'csv' has no attribute 'DictReader'»."
+     ],
+     "explanation": "Python busca los módulos primero en la carpeta del programa que ejecutas; un archivo con el mismo nombre que un módulo estándar lo reemplaza.",
+     "hint": "¿Dónde busca Python primero al importar?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "total = 0\nfor texto in [\"2500\", \"tres\", \"1200\", \"\"]:\n    try:\n        total += int(texto)\n    except ValueError:\n        total += 0\nprint(total)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "3700"
+     ],
+     "optionFeedback": [],
+     "explanation": "\"tres\" y el texto vacío no se pueden convertir y caen en el `except`; solo se suman 2500 y 1200, que dan 3700.",
+     "hint": "¿Cuáles de los cuatro textos se pueden convertir con `int`?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código?",
+     "code": "def precio_final(precio, descuento):\n    if not 0 <= descuento < 1:\n        raise ValueError(\"fuera de rango\")\n    return round(precio * (1 - descuento))\n\nfor d in [0.1, 1.5]:\n    try:\n        print(precio_final(9500, d))\n    except ValueError as e:\n        print(\"Error:\", e)",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "8550\nError: fuera de rango",
+      "8550 Error: fuera de rango"
+     ],
+     "optionFeedback": [],
+     "explanation": "Con 0.1 el precio queda en 9500 × 0.9 = 8550. Con 1.5 la función lanza `ValueError` y el `except` imprime su mensaje.",
+     "hint": "Evalúa la condición del `if` para cada descuento."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la línea para importar solo la función `mean` del módulo `statistics`.",
+     "code": "___ statistics import mean\n\nprint(mean([12500, 3800, 6500]))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "from"
+     ],
+     "optionFeedback": [],
+     "explanation": "`from modulo import funcion` trae una función concreta, que luego se usa sin el prefijo del módulo.",
+     "hint": "Es la palabra que en inglés significa «desde»."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-12-05",
+  "kind": "weekly",
+  "path": "curso-python/semana-08/reporte_ventas.py",
+  "description": "Un programa que lee las ventas del tercer trimestre de 2026 (julio a setiembre) desde un CSV, descarta las filas inválidas, calcula por categoría las líneas, las unidades y el total vendido, lo imprime como un reporte y lo guarda en otro CSV. Al final compruebas que tus números coinciden exactamente con una consulta GROUP BY en el laboratorio: la misma pregunta respondida con Python y con SQL.",
+  "criteria": [
+   "El programa lee `ventas_t3_2026.csv` con `csv.DictReader` e informa cuántas filas leyó: deben ser 124.",
+   "Las filas con datos inválidos (número que no se convierte, cantidad o precio no positivos, descuento fuera de 0 a 1) se rechazan con `try`/`except` y se informan con su número de línea, sin que el programa se detenga; si el archivo no existe, muestra un mensaje claro.",
+   "Los totales por categoría (líneas, unidades y total con descuento, redondeado a colones) coinciden con el resultado de la consulta del ejercicio s08-1 en el laboratorio, y se muestran de mayor a menor total.",
+   "El resumen se guarda en `resumen_categorias.csv` con `csv.DictWriter`, con las columnas categoria, lineas, unidades y total.",
+   "El código está organizado en funciones con docstring dentro de un módulo `ventas_utils.py` que `reporte_ventas.py` importa, y las pruebas del módulo están bajo `if __name__ == \"__main__\":`.",
+   "Al final de `reporte_ventas.py` hay un comentario de 3 a 5 líneas con la comparación contra SQL y lo que descubriste en los datos."
+  ],
+  "steps": [
+   "Obtén el CSV. En el laboratorio SQL ejecuta esta consulta, que arma cada fila ya separada por comas: `SELECT p.id || ',' || p.fecha || ',' || c.nombre || ',' || pr.nombre || ',' || d.cantidad || ',' || d.precio_unitario || ',' || d.descuento AS linea FROM detalle_pedido AS d JOIN pedidos AS p ON p.id = d.pedido_id JOIN productos AS pr ON pr.id = d.producto_id JOIN categorias AS c ON c.id = pr.categoria_id WHERE p.fecha BETWEEN '2026-07-01' AND '2026-09-30' AND p.estado <> 'cancelado' ORDER BY p.fecha, d.id;`. Debe devolver 124 filas.",
+   "Crea en VS Code el archivo `curso-python/semana-08/ventas_t3_2026.csv`. En la primera línea escribe el encabezado `pedido_id,fecha,categoria,producto,cantidad,precio_unitario,descuento` y debajo pega las 124 líneas de la columna `linea`, sin comillas ni líneas en blanco. Guárdalo con codificación UTF-8 (la que VS Code usa por defecto).",
+   "Mientras construyes el programa, si todavía no tienes el CSV del laboratorio, agrega a `ventas_utils.py` una función `crear_csv_de_prueba(ruta)` que escriba con `DictWriter` unas 8 filas inventadas con las mismas columnas, incluidas dos inválidas. Así puedes probar cada función desde el primer momento; la comparación final, eso sí, se hace con el CSV del laboratorio.",
+   "En `ventas_utils.py` escribe `leer_ventas(ruta)`: abre el CSV con `newline=\"\"` y `encoding=\"utf-8\"`, valida y convierte cada fila con una función `validar_fila(fila)` que haga `raise ValueError` si algo está mal, y devuelve las filas válidas y una lista de errores `(numero_de_linea, mensaje)`. Captura `FileNotFoundError` para avisar si el archivo no está.",
+   "Escribe `totales_por_categoria(filas)`, que devuelva un diccionario categoría: {\"lineas\", \"unidades\", \"total\"}, sumando `cantidad * precio_unitario * (1 - descuento)`. Es tu `GROUP BY categoria` con `COUNT(*)`, `SUM(cantidad)` y `SUM(...)`. Debajo de `if __name__ == \"__main__\":` prueba la función con `assert` y tres filas inventadas.",
+   "Crea `reporte_ventas.py` con una función `main()` que importe `ventas_utils`, lea el CSV, muestre cuántas filas leyó y cuántas rechazó, e imprima una tabla alineada con f-strings: categoría, líneas, unidades y total con `₡` y separador de miles, de mayor a menor total, más una fila final con el total general.",
+   "Agrega `guardar_resumen(ruta, totales)` y genera `resumen_categorias.csv` con `DictWriter`. Ábrelo en VS Code o en una hoja de cálculo para ver que las columnas y los números están bien.",
+   "Resuelve en el laboratorio el ejercicio s08-1 y compara categoría por categoría con tu reporte. Si algo no coincide, busca la causa (filas sin copiar, descuento sin convertir con `float`, una categoría escrita distinto) antes de entregar, y escribe el comentario final con la comparación y lo que observaste."
+  ],
+  "tips": [
+   "Comprueba primero lo más simple: si tu programa no dice «124 filas leídas», el problema está en el archivo, no en los cálculos. Revisa que la primera línea sea el encabezado y que no haya líneas vacías al final.",
+   "Escribe la consulta SQL equivalente en un comentario encima de cada función (WHERE, GROUP BY, ORDER BY). Te obliga a pensar qué hace cada parte y al revisor le deja claro tu razonamiento.",
+   "Para ordenar las categorías de mayor a menor total usa `sorted(totales, key=..., reverse=True)` con una función que devuelva el total de cada categoría; no ordenes a mano.",
+   "Redondea solo al mostrar o guardar (`round(total)` o `:,.0f`), nunca durante la suma. Así tus totales coinciden con `ROUND(SUM(...))` de SQL."
+  ],
+  "stretch": "Agrega al reporte el «producto estrella» de cada categoría (el de mayor total vendido en el trimestre) usando un diccionario de diccionarios, y compáralo con el resultado del ejercicio s08-2, que resuelve lo mismo en SQL con una función de ventana. Si te sobra tiempo, agrega también el total por mes (julio, agosto y setiembre) tomando el mes de la columna fecha con slicing: `fila[\"fecha\"][5:7]`.",
+  "checklist": [
+   "`ventas_t3_2026.csv` tiene el encabezado y 124 filas, y el programa lo confirma al ejecutarse.",
+   "`python ventas_utils.py` ejecuta sus pruebas sin errores, y `python reporte_ventas.py` no las muestra.",
+   "El reporte muestra 7 categorías de mayor a menor total, y cada número coincide con el ejercicio s08-1 del laboratorio.",
+   "Si cambias el nombre del CSV, el programa avisa que no lo encuentra en lugar de detenerse con un error.",
+   "Si pones a propósito una cantidad «dos» en una fila, el programa la rechaza, dice en qué línea está y sigue con las demás.",
+   "`resumen_categorias.csv` existe y se abre bien en una hoja de cálculo.",
+   "Todas las funciones tienen docstring y el comentario final con la comparación contra SQL está escrito."
+  ],
+  "exercises": [
+   {
+    "id": "s08-1",
+    "title": "Ventas del tercer trimestre por categoría",
+    "prompt": "Esta es la consulta con la que comparas tu programa. Para los pedidos no cancelados entre el 1 de julio y el 30 de setiembre de 2026, muestra por categoría: el nombre de la categoría, la cantidad de líneas de detalle, las unidades vendidas (suma de `cantidad`) y el total vendido (`cantidad * precio_unitario * (1 - descuento)`) redondeado a colones enteros, en ese orden. Ordena de mayor a menor total y, si empatan, por nombre de categoría.",
+    "hint": "Une `detalle_pedido`, `pedidos`, `productos` y `categorias`; filtra fechas y estado en el `WHERE`, agrupa por categoría y usa `COUNT(*)`, `SUM(d.cantidad)` y `ROUND(SUM(...))`.",
+    "solution": "SELECT c.nombre AS categoria,\n       COUNT(*) AS lineas,\n       SUM(d.cantidad) AS unidades,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS total\nFROM detalle_pedido AS d\nJOIN pedidos AS p ON p.id = d.pedido_id\nJOIN productos AS pr ON pr.id = d.producto_id\nJOIN categorias AS c ON c.id = pr.categoria_id\nWHERE p.fecha BETWEEN '2026-07-01' AND '2026-09-30'\n  AND p.estado <> 'cancelado'\nGROUP BY c.nombre\nORDER BY total DESC, categoria;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s08-2",
+    "title": "Producto estrella de cada categoría",
+    "prompt": "Para las mismas ventas (pedidos no cancelados del 1 de julio al 30 de setiembre de 2026), muestra para cada categoría el producto con mayor total vendido (`cantidad * precio_unitario * (1 - descuento)`): el nombre de la categoría, el nombre del producto y su total redondeado a colones enteros, en ese orden. Si dos productos de una categoría empataran, elige el de nombre alfabéticamente primero.",
+    "hint": "Primero calcula el total por producto en una CTE (con su categoría); después numera los productos de cada categoría con `ROW_NUMBER() OVER (PARTITION BY categoria ORDER BY total DESC, producto)` y quédate con el número 1.",
+    "solution": "WITH por_producto AS (\n  SELECT c.nombre AS categoria,\n         pr.nombre AS producto,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n  FROM detalle_pedido AS d\n  JOIN pedidos AS p ON p.id = d.pedido_id\n  JOIN productos AS pr ON pr.id = d.producto_id\n  JOIN categorias AS c ON c.id = pr.categoria_id\n  WHERE p.fecha BETWEEN '2026-07-01' AND '2026-09-30'\n    AND p.estado <> 'cancelado'\n  GROUP BY pr.id\n),\nnumerados AS (\n  SELECT categoria, producto, total,\n         ROW_NUMBER() OVER (PARTITION BY categoria ORDER BY total DESC, producto) AS n\n  FROM por_producto\n)\nSELECT categoria, producto, ROUND(total) AS total\nFROM numerados\nWHERE n = 1;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   }
+  ]
+ }
+}

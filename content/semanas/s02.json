@@ -1,0 +1,2217 @@
+{
+ "id": "s02",
+ "number": 2,
+ "phaseId": 1,
+ "title": "Calcular y resumir",
+ "rangeLabel": "19 oct – 24 oct",
+ "days": [
+  {
+   "date": "2026-10-19",
+   "kind": "workshop",
+   "title": "Expresiones y funciones",
+   "summary": "Calcular columnas nuevas (ganancia, margen, precio con IVA) sin caer en la división entera, y transformar texto con las funciones de SQLite.",
+   "objectives": [
+    "Crear columnas calculadas con `+`, `-`, `*`, `/` y paréntesis, y darles nombre con `AS`.",
+    "Explicar por qué `(precio - costo) / precio` da 0 en SQLite y corregirlo con `100.0` o `CAST`.",
+    "Redondear resultados con `ROUND` y convertirlos a entero con `CAST` cuando haga falta.",
+    "Transformar texto con `||`, `UPPER`, `LOWER`, `LENGTH`, `SUBSTR`, `REPLACE`, `TRIM` e `INSTR`.",
+    "Extraer partes de un texto, como el dominio de un correo, combinando `SUBSTR` e `INSTR`."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Aritmética y columnas calculadas",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Funciones de texto",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Aritmética y columnas calculadas",
+     "concept": "En el `SELECT` no solo puedes pedir columnas: también puedes pedir **cálculos que se hacen fila por fila**. SQLite tiene los operadores `+`, `-`, `*`, `/` y `%` (el resto de una división), y respeta la precedencia de la escuela: primero `*` y `/`, después `+` y `-`, salvo que uses paréntesis. `precio - costo AS ganancia` crea una columna nueva que no existe en la tabla: el café Tarrazú se vende en ₡6500, cuesta ₡3600 y deja ₡2900 por unidad.\n\nAquí está la trampa más famosa de SQLite: **si divides un entero entre un entero, el resultado es entero y se pierden los decimales**. `7 / 2` da `3`, no `3.5`. Como `precio` y `costo` son enteros, `(precio - costo) / precio` da `0` para todos los productos. La solución es que uno de los dos números sea decimal antes de dividir: `(precio - costo) * 100.0 / precio` da 44.6 para el Tarrazú. También sirve `CAST(x AS REAL)` o multiplicar por `1.0`.\n\nPara presentar resultados se usa `ROUND(valor, decimales)`: `ROUND(precio * 1.13)` redondea el precio con IVA a colones enteros y `ROUND(x, 1)` deja un decimal. Ojo: `ROUND` siempre devuelve un número real, así que `ROUND(7345.5)` se muestra como `7346.0`.",
+     "tip": "Cuando un porcentaje te dé 0 o un número redondo sospechoso, revisa si estás dividiendo dos enteros. Acostúmbrate a escribir `100.0` y no `100` en todos los porcentajes, aunque a veces no haga falta: es un hábito barato que evita errores caros.",
+     "example": "SELECT nombre, precio, costo,\n       precio - costo AS ganancia,\n       (precio - costo) / precio AS margen_mal,\n       ROUND((precio - costo) * 100.0 / precio, 1) AS margen_pct\nFROM productos\nWHERE categoria_id = 1;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Usa SQL como calculadora",
+       "body": "Un `SELECT` sin `FROM` evalúa expresiones sueltas. Compara `7 / 2` con `7 / 2.0`: el primero es división entera y da 3; el segundo da 3.5. Fíjate también en la precedencia: `2 + 3 * 4` da 14 y `(2 + 3) * 4` da 20. `%` devuelve el resto: `10 % 3` es 1.",
+       "code": "SELECT 7 / 2, 7 / 2.0, 10 % 3, 2 + 3 * 4, (2 + 3) * 4;",
+       "language": "sql"
+      },
+      {
+       "title": "Calcula la ganancia por unidad",
+       "body": "Resta el costo al precio y dale un nombre con `AS`. Ordenar por el alias funciona porque `ORDER BY` ya conoce las columnas del `SELECT`. La máscara boruca es la que más colones deja por unidad.",
+       "code": "SELECT nombre, precio, costo, precio - costo AS ganancia\nFROM productos\nORDER BY ganancia DESC, nombre\nLIMIT 5;",
+       "language": "sql"
+      },
+      {
+       "title": "Cae en la trampa y sal de ella",
+       "body": "Ejecuta las tres columnas y compáralas. La primera divide enteros y da 0. La segunda multiplica primero por `100.0`, así el resultado ya es real. La tercera usa `CAST` para convertir a real antes de dividir; da la fracción (0.446 para el Tarrazú) en vez del porcentaje.",
+       "code": "SELECT nombre,\n       (precio - costo) / precio AS mal,\n       (precio - costo) * 100.0 / precio AS bien_pct,\n       CAST(precio - costo AS REAL) / precio AS bien_fraccion\nFROM productos\nWHERE id IN (1, 7, 16);",
+       "language": "sql"
+      },
+      {
+       "title": "Redondea para presentar",
+       "body": "El IVA en Costa Rica es del 13 %, así que el precio final es `precio * 1.13`. Sin redondear verás decimales que no existen en colones; `ROUND(x)` deja el entero y `ROUND(x, 2)` dos decimales. Si quieres el número sin el `.0`, envuélvelo en `CAST(... AS INTEGER)`.",
+       "code": "SELECT nombre, precio,\n       precio * 1.13 AS con_iva,\n       ROUND(precio * 1.13) AS con_iva_redondeado,\n       CAST(ROUND(precio * 1.13) AS INTEGER) AS con_iva_entero\nFROM productos\nWHERE categoria_id = 4;",
+       "language": "sql"
+      },
+      {
+       "title": "Calcula el total de una línea de pedido",
+       "body": "En `detalle_pedido` el descuento es una fracción: 0.1 significa 10 %. El total de una línea es `cantidad * precio_unitario * (1 - descuento)`. Los paréntesis son obligatorios: sin ellos se restaría el descuento al final y el resultado sería absurdo.",
+       "code": "SELECT pedido_id, cantidad, precio_unitario, descuento,\n       cantidad * precio_unitario AS bruto,\n       cantidad * precio_unitario * (1 - descuento) AS neto\nFROM detalle_pedido\nWHERE pedido_id = 2;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "El margen sale 0 en todas las filas",
+       "cause": "Dividiste dos enteros (`(precio - costo) / precio`) y SQLite descartó los decimales.",
+       "fix": "Multiplica primero por `100.0` o convierte con `CAST(x AS REAL)` antes de dividir."
+      },
+      {
+       "error": "El «porcentaje» del Tarrazú da 6444.6",
+       "cause": "Faltan paréntesis: en `precio - costo * 100.0 / precio` se hace primero la multiplicación y la división, y al final la resta.",
+       "fix": "Encierra la resta: `(precio - costo) * 100.0 / precio`."
+      },
+      {
+       "error": "near \"con\": syntax error",
+       "cause": "Pusiste un alias con espacios sin comillas: `AS precio con iva`.",
+       "fix": "Usa guion bajo (`AS precio_con_iva`) o comillas dobles (`AS \"precio con iva\"`)."
+      }
+     ]
+    },
+    {
+     "title": "Funciones de texto",
+     "concept": "SQLite trae funciones para transformar texto sin tocar los datos guardados. El operador `||` concatena: `nombre || ' ' || apellido` arma el nombre completo y `'₡' || precio` pega el símbolo de colones al número. `UPPER` y `LOWER` pasan a mayúsculas o minúsculas, `LENGTH` cuenta caracteres, `TRIM` quita espacios al inicio y al final (y `LTRIM` y `RTRIM` de un solo lado), y `REPLACE(texto, 'busca', 'pon')` sustituye: `REPLACE(telefono, '-', '')` convierte `6905-3658` en `69053658`.\n\n`SUBSTR(texto, inicio, largo)` recorta un pedazo; **las posiciones empiezan en 1**, no en 0: `SUBSTR('Tarrazú', 1, 3)` da `Tar`. `INSTR(texto, 'buscado')` dice en qué posición aparece algo, o 0 si no está. Juntas sirven para cortar en un separador: el dominio del correo es `SUBSTR(email, INSTR(email, '@') + 1)`, todo lo que viene después de la arroba.\n\nDos advertencias. Primera: **`UPPER` y `LOWER` de SQLite solo convierten letras sin tilde**, así que `UPPER('Limón')` da `LIMóN`. Segunda: si cualquier parte de una concatenación es `NULL`, el resultado completo es `NULL`; mañana verás cómo evitarlo con `COALESCE`.",
+     "tip": "Cuando armes una expresión de texto larga, constrúyela por partes: primero muestra `INSTR(email, '@')` sola, verifica el número y solo entonces métela dentro del `SUBSTR`.",
+     "example": "SELECT nombre || ' ' || apellido AS cliente,\n       email,\n       SUBSTR(email, INSTR(email, '@') + 1) AS dominio,\n       REPLACE(telefono, '-', '') AS telefono_limpio\nFROM clientes\nWHERE provincia_id = 4;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Concatena con ||",
+       "body": "Arma el nombre completo con un espacio en medio y una etiqueta de precio para la vitrina. Fíjate en que el espacio es un texto más (`' '`) y en que el número se convierte solo a texto al concatenarlo.",
+       "code": "SELECT nombre || ' ' || apellido AS cliente\nFROM clientes\nWHERE provincia_id = 7;\n\nSELECT nombre || ': ₡' || precio AS etiqueta\nFROM productos\nWHERE categoria_id = 2;",
+       "language": "sql"
+      },
+      {
+       "title": "Mayúsculas, minúsculas y largo",
+       "body": "Mira cómo trata SQLite las tildes: `UPPER` deja la `é` de San José en minúscula. `LENGTH` sí cuenta bien los caracteres con tilde: `Limón` tiene 5. Usa `LENGTH` para detectar nombres de producto demasiado largos para una etiqueta.",
+       "code": "SELECT nombre, UPPER(nombre), LOWER(nombre), LENGTH(nombre)\nFROM provincias;\n\nSELECT nombre, LENGTH(nombre) AS caracteres\nFROM productos\nWHERE LENGTH(nombre) > 30;",
+       "language": "sql"
+      },
+      {
+       "title": "Recorta con SUBSTR",
+       "body": "Las iniciales son la primera letra del nombre y la del apellido. El prefijo del teléfono (6, 7 u 8) dice si es un celular de cierto operador. Recuerda que el inicio es 1; si omites el largo, `SUBSTR` llega hasta el final.",
+       "code": "SELECT nombre, apellido,\n       SUBSTR(nombre, 1, 1) || SUBSTR(apellido, 1, 1) AS iniciales,\n       SUBSTR(telefono, 1, 4) AS primeros_digitos\nFROM clientes\nWHERE provincia_id = 6;",
+       "language": "sql"
+      },
+      {
+       "title": "Corta el correo en la arroba",
+       "body": "Primero mira la posición de la arroba con `INSTR`. Lo que está antes es el usuario: `SUBSTR(email, 1, INSTR(email, '@') - 1)`. Lo que está después es el dominio. Los clientes sin correo devuelven `NULL` en las tres columnas.",
+       "code": "SELECT email,\n       INSTR(email, '@') AS posicion,\n       SUBSTR(email, 1, INSTR(email, '@') - 1) AS usuario,\n       SUBSTR(email, INSTR(email, '@') + 1) AS dominio\nFROM clientes\nWHERE provincia_id = 1;",
+       "language": "sql"
+      },
+      {
+       "title": "Limpia con REPLACE y TRIM",
+       "body": "`TRIM` quita los espacios de los extremos pero no los del medio; con un segundo argumento quita otros caracteres. `REPLACE` cambia todas las apariciones. Son las herramientas que usarás en la semana 6 para limpiar datos mal digitados.",
+       "code": "SELECT TRIM('   Heredia  ') AS sin_espacios,\n       TRIM('--Cartago--', '-') AS sin_guiones,\n       REPLACE('Café molido', 'molido', 'en grano') AS reemplazado;\n\nSELECT telefono, REPLACE(telefono, '-', '') AS solo_numeros\nFROM clientes\nWHERE provincia_id = 2;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "La columna concatenada sale 0",
+       "cause": "Usaste `+` para unir textos, como en Python. En SQL `+` es solo suma: convierte los textos a número y da 0.",
+       "fix": "Concatena con `||`: `nombre || ' ' || apellido`."
+      },
+      {
+       "error": "El nombre completo sale NULL en algunas filas",
+       "cause": "Una de las partes de la concatenación era `NULL`, y cualquier cosa `|| NULL` es `NULL`.",
+       "fix": "Revisa qué columna tiene `NULL`; mañana aprenderás a reemplazarlo con `COALESCE`."
+      },
+      {
+       "error": "UPPER('San José') devuelve SAN JOSé",
+       "cause": "Las funciones de mayúsculas de SQLite solo conocen las letras del inglés.",
+       "fix": "No dependas de `UPPER` o `LOWER` para comparar textos con tildes; compara el texto tal como está guardado."
+      },
+      {
+       "error": "SUBSTR deja fuera la primera letra o agarra una de más",
+       "cause": "Contaste las posiciones desde 0, como en Python.",
+       "fix": "En SQL la primera posición es 1: `SUBSTR(nombre, 1, 3)` toma las tres primeras letras."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-19-1",
+     "title": "Ganancia en tecnología",
+     "prompt": "El encargado de tecnología quiere ver cuánto deja cada producto. Muestra el `nombre`, el `precio`, el `costo` y la ganancia por unidad (`precio - costo`), en ese orden, de los productos de la categoría 7.",
+     "hint": "Una resta entre dos columnas en el `SELECT` y un `WHERE` por `categoria_id`.",
+     "solution": "SELECT nombre, precio, costo, precio - costo AS ganancia\nFROM productos\nWHERE categoria_id = 7;",
+     "check": "",
+     "setup": "",
+     "starter": "SELECT nombre, precio, costo, \nFROM productos\nWHERE categoria_id = 7;",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-19-2",
+     "title": "Precios con IVA",
+     "prompt": "Para la nueva vitrina de dulces se necesita el precio final con el IVA del 13 %. Muestra el `nombre`, el `precio` y el precio con IVA redondeado a colones enteros (0 decimales), en ese orden, de los productos de la categoría 2.",
+     "hint": "Multiplicar por 1.13 suma el 13 %. `ROUND` con un solo argumento redondea a entero.",
+     "solution": "SELECT nombre, precio, ROUND(precio * 1.13) AS con_iva\nFROM productos\nWHERE categoria_id = 2;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-19-3",
+     "title": "Lista de llamadas en Limón",
+     "prompt": "Servicio al cliente va a llamar a los clientes de Limón (`provincia_id` 7) desde un sistema que no acepta guiones. Muestra el nombre completo (nombre, un espacio y apellido, en una sola columna) y el teléfono sin el guion, en ese orden.",
+     "hint": "Une con `||` y quita el guion con `REPLACE(telefono, '-', '')`.",
+     "solution": "SELECT nombre || ' ' || apellido AS cliente,\n       REPLACE(telefono, '-', '') AS telefono\nFROM clientes\nWHERE provincia_id = 7;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-19-4",
+     "title": "Dominios de correo de 2026",
+     "prompt": "Mercadeo quiere saber qué proveedores de correo usan los clientes que se registraron desde el 1 de enero de 2026. Muestra el `email` y el dominio (todo lo que está después de la arroba), en ese orden, solo de esos clientes que sí tienen correo.",
+     "hint": "Combina `SUBSTR` con `INSTR(email, '@') + 1`. Filtra por `fecha_registro` y descarta los correos `NULL` con `IS NOT NULL`.",
+     "solution": "SELECT email, SUBSTR(email, INSTR(email, '@') + 1) AS dominio\nFROM clientes\nWHERE fecha_registro >= '2026-01-01'\n  AND email IS NOT NULL;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-19-5",
+     "title": "Productos de alto margen",
+     "prompt": "La gerente quiere destacar los productos activos (`activo = 1`) cuyo margen sea de al menos 50 %. El margen porcentual es `(precio - costo) * 100 / precio`. Muestra el `nombre`, el `precio` y el margen redondeado a 1 decimal, ordenados de mayor a menor por ese margen ya redondeado (usa su alias en el `ORDER BY`) y, si empatan, por nombre.",
+     "hint": "Cuidado con la división entera: usa `100.0`. Puedes repetir la expresión en el `WHERE` o comparar con el número sin redondear.",
+     "solution": "SELECT nombre, precio,\n       ROUND((precio - costo) * 100.0 / precio, 1) AS margen\nFROM productos\nWHERE activo = 1\n  AND (precio - costo) * 100.0 / precio >= 50\nORDER BY margen DESC, nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-19-6",
+     "title": "Orden de compra al proveedor",
+     "prompt": "Bodega va a reponer 20 unidades de cada producto activo que está agotado (`stock = 0`). Muestra un código formado por las tres primeras letras del nombre en mayúsculas, un guion y el `id` (por ejemplo `CAF-4`), el `nombre` y lo que costará la reposición (`costo * 20`), en ese orden.",
+     "hint": "El código es `UPPER(SUBSTR(nombre, 1, 3)) || '-' || id`. Recuerda filtrar por `activo = 1` y `stock = 0`.",
+     "solution": "SELECT UPPER(SUBSTR(nombre, 1, 3)) || '-' || id AS codigo,\n       nombre,\n       costo * 20 AS costo_reposicion\nFROM productos\nWHERE activo = 1 AND stock = 0;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Línea de catálogo para Artesanía",
+    "description": "Arma en una sola columna llamada `linea` el texto que irá en el catálogo impreso de cada producto activo de Artesanía (categoría 3), con este formato exacto: `Hamaca de algodón | ₡32000 | con IVA ₡36160 | margen 33 %`. El precio con IVA va redondeado y sin `.0`, y el margen redondeado a entero y también sin `.0`. Ordena del producto más caro al más barato.",
+    "hint": "`ROUND` devuelve un real y al concatenarlo aparece `.0`; envuélvelo en `CAST(... AS INTEGER)`. El margen necesita `100.0` para no caer en la división entera.",
+    "solution": "SELECT nombre || ' | ₡' || precio\n       || ' | con IVA ₡' || CAST(ROUND(precio * 1.13) AS INTEGER)\n       || ' | margen ' || CAST(ROUND((precio - costo) * 100.0 / precio) AS INTEGER) || ' %' AS linea\nFROM productos\nWHERE categoria_id = 3 AND activo = 1\nORDER BY precio DESC;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "columna calculada",
+     "definition": "Columna del resultado que no existe en la tabla: se calcula fila por fila con una expresión, como `precio - costo`."
+    },
+    {
+     "term": "división entera",
+     "definition": "En SQLite, dividir un entero entre otro entero da un entero sin decimales: `7 / 2` es 3."
+    },
+    {
+     "term": "ROUND",
+     "definition": "Función que redondea un número: `ROUND(x)` a entero y `ROUND(x, 2)` a dos decimales. Siempre devuelve un real."
+    },
+    {
+     "term": "CAST",
+     "definition": "Convierte un valor a otro tipo, por ejemplo `CAST(x AS REAL)` o `CAST(x AS INTEGER)`."
+    },
+    {
+     "term": "concatenar",
+     "definition": "Unir textos uno detrás del otro. En SQL se hace con `||`."
+    },
+    {
+     "term": "SUBSTR",
+     "definition": "Función que extrae un pedazo de texto: `SUBSTR(texto, inicio, largo)`, con la primera posición en 1."
+    },
+    {
+     "term": "INSTR",
+     "definition": "Función que devuelve la posición en que aparece un texto dentro de otro, o 0 si no aparece."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: funciones básicas (ROUND, SUBSTR, INSTR, REPLACE…)",
+     "url": "https://www.sqlite.org/lang_corefunc.html"
+    },
+    {
+     "title": "SQLite: expresiones y operadores",
+     "url": "https://www.sqlite.org/lang_expr.html"
+    },
+    {
+     "title": "SQLBolt: consultas con expresiones",
+     "url": "https://sqlbolt.com/lesson/select_queries_with_expressions"
+    },
+    {
+     "title": "SQLite Tutorial: funciones de texto",
+     "url": "https://www.sqlitetutorial.net/sqlite-string-functions/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué devuelve `SELECT 9 / 2;` en SQLite?",
+     "code": "",
+     "options": [
+      "4.5",
+      "4",
+      "5",
+      "Un error, porque falta FROM"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: los dos números son enteros, así que SQLite hace división entera.",
+      "Correcto: entero entre entero da entero; la parte decimal se descarta.",
+      "No: SQLite no redondea en la división entera, simplemente corta los decimales.",
+      "No: un `SELECT` sin `FROM` es válido y sirve como calculadora."
+     ],
+     "explanation": "Cuando los dos operandos son enteros, `/` hace división entera y descarta los decimales: 9 / 2 da 4. Para obtener 4.5 hay que escribir `9 / 2.0` o `9 * 1.0 / 2`.",
+     "hint": "Fíjate en el tipo de los dos números."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT (precio - costo) / precio FROM productos WHERE id = 1;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "0"
+     ],
+     "optionFeedback": [],
+     "explanation": "El café Tarrazú tiene precio 6500 y costo 3600: `2900 / 6500` es una división entre enteros y da 0. Es la trampa de la división entera.",
+     "hint": "Los dos números de la división son enteros."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál expresión calcula correctamente el margen porcentual de un producto?",
+     "code": "",
+     "options": [
+      "(precio - costo) / precio * 100",
+      "precio - costo * 100.0 / precio",
+      "(precio - costo) * 100.0 / precio",
+      "ROUND(precio - costo / precio, 2)"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la división entera ocurre primero y da 0; multiplicar 0 por 100 sigue siendo 0.",
+      "No: sin paréntesis se multiplica y divide el costo antes de restar.",
+      "Correcto: los paréntesis agrupan la resta y `100.0` hace que la división sea decimal.",
+      "No: además de la precedencia equivocada, sigue siendo división entera."
+     ],
+     "explanation": "Hay que agrupar la resta con paréntesis y asegurarse de que la división no sea entre enteros; multiplicar por `100.0` antes de dividir resuelve las dos cosas.",
+     "hint": "Revisa dos cosas: el orden de las operaciones y si la división es entera."
+    },
+    {
+     "type": "boolean",
+     "prompt": "En SQLite, `'Pura' + 'Vida'` devuelve el texto `PuraVida`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `+` siempre es suma numérica en SQL; los textos se convierten a número y el resultado es 0.",
+      "Correcto: para concatenar se usa `||`; con `+` el resultado es 0."
+     ],
+     "explanation": "En SQL el operador de concatenación es `||`. El `+` intenta sumar, convierte cada texto en número (0 si no empieza con dígitos) y devuelve 0.",
+     "hint": "En Python sí funcionaría; en SQL hay otro operador para esto."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT LENGTH('Pura Vida');",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "9"
+     ],
+     "optionFeedback": [],
+     "explanation": "`LENGTH` cuenta todos los caracteres, incluido el espacio: 4 + 1 + 4 = 9.",
+     "hint": "El espacio también es un carácter."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué devuelve `SUBSTR('Tarrazú', 2, 3)`?",
+     "code": "",
+     "options": [
+      "Tar",
+      "arr",
+      "rra",
+      "arra"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso sería empezar en la posición 1.",
+      "Correcto: empieza en la posición 2 (la `a`) y toma 3 caracteres.",
+      "No: eso sería empezar en la posición 3.",
+      "No: el tercer argumento es la cantidad de caracteres, no la posición final."
+     ],
+     "explanation": "El segundo argumento es la posición inicial, contando desde 1, y el tercero la cantidad de caracteres: desde la `a` se toman `a`, `r`, `r`.",
+     "hint": "La primera letra está en la posición 1."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`SELECT UPPER('Limón');` devuelve `LIMÓN` en SQLite.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: SQLite solo convierte letras sin tilde; la ó queda en minúscula.",
+      "Correcto: devuelve `LIMóN`, porque `UPPER` solo conoce las letras del inglés."
+     ],
+     "explanation": "Las funciones `UPPER` y `LOWER` de SQLite solo transforman las letras ASCII. Las vocales con tilde y la ñ se quedan como están.",
+     "hint": "Piensa en las letras con tilde."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para mostrar el nombre completo de cada cliente, con un espacio entre nombre y apellido.",
+     "code": "SELECT nombre ___ ' ' || apellido AS cliente\nFROM clientes;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "||"
+     ],
+     "optionFeedback": [],
+     "explanation": "`||` es el operador de concatenación de SQL; une el nombre, el espacio y el apellido en un solo texto.",
+     "hint": "Es el mismo operador que ya aparece entre el espacio y el apellido."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-20",
+   "kind": "workshop",
+   "title": "Decidir dentro de una consulta",
+   "summary": "Clasificar filas en categorías con CASE WHEN y manejar los NULL con COALESCE, IFNULL y NULLIF para que los reportes no tengan huecos.",
+   "objectives": [
+    "Escribir un `CASE WHEN … THEN … ELSE … END` que clasifique filas en categorías con nombre.",
+    "Ordenar las condiciones de un `CASE` sabiendo que gana la primera que se cumple.",
+    "Usar `CASE` dentro de `ORDER BY` para definir un orden propio.",
+    "Reemplazar valores `NULL` con `COALESCE` e `IFNULL`, también dentro de una concatenación.",
+    "Convertir un valor en `NULL` con `NULLIF` y explicar para qué sirve."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: CASE WHEN",
+     "minutes": 75
+    },
+    {
+     "label": "Tema 2: COALESCE, IFNULL y NULLIF",
+     "minutes": 60
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "CASE WHEN: clasificar filas",
+     "concept": "`CASE` es el «si… entonces…» de SQL: evalúa condiciones en cada fila y devuelve un valor distinto según cuál se cumpla. Se escribe `CASE WHEN condición THEN valor WHEN otra THEN otro ELSE valor_por_defecto END`, y todo ese bloque es **una sola columna** a la que le das nombre con `AS`. Sirve para convertir datos en categorías que entiende cualquier persona: «Agotado», «Bajo», «Suficiente» en vez de un número de stock.\n\n**Las condiciones se revisan en orden y gana la primera que se cumple**; las siguientes ya no se miran. Por eso, al clasificar por rangos, empieza por el extremo: si preguntas primero `precio >= 5000` y después `precio >= 15000`, la máscara de ₡45000 caerá en el primer caso y nunca llegará a «Premium». Si ninguna condición se cumple y no hay `ELSE`, el resultado es `NULL`.\n\nExiste una forma corta cuando comparas una sola columna contra valores fijos: `CASE estado WHEN 'pendiente' THEN 'Por cobrar' WHEN 'cancelado' THEN 'Anulado' END`. Esa forma usa `=` por dentro, así que `WHEN NULL` nunca coincide; para preguntar por nulos usa la forma larga con `IS NULL`. `CASE` también puede ir en `ORDER BY` para inventar un orden propio.",
+     "tip": "Escribe cada `WHEN` en su propia línea y el `END` alineado con el `CASE`. Así ves de un vistazo el orden de las condiciones y es difícil olvidar el `END`, que es el error más común.",
+     "example": "SELECT nombre, stock,\n       CASE\n         WHEN stock = 0 THEN 'Agotado'\n         WHEN stock < 30 THEN 'Reponer pronto'\n         ELSE 'Suficiente'\n       END AS situacion\nFROM productos\nWHERE categoria_id = 3;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Clasifica por rangos de precio",
+       "body": "Tres rangos para el catálogo: menos de ₡5000 es «Económico», de ₡5000 a ₡14 999 «Medio» y desde ₡15 000 «Premium». Como el primer `WHEN` que se cumple gana, no hace falta escribir `precio >= 5000 AND precio < 15000` en el segundo.",
+       "code": "SELECT nombre, precio,\n       CASE\n         WHEN precio < 5000 THEN 'Económico'\n         WHEN precio < 15000 THEN 'Medio'\n         ELSE 'Premium'\n       END AS rango\nFROM productos\nWHERE categoria_id IN (3, 5);",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba que el orden importa",
+       "body": "Aquí los `WHEN` están en mal orden: la máscara boruca (₡45000) cumple `precio >= 5000` y se queda en «Medio». Ejecuta, mira el error de lógica y luego invierte el orden de los dos `WHEN` para corregirlo.",
+       "code": "SELECT nombre, precio,\n       CASE\n         WHEN precio >= 5000 THEN 'Medio'\n         WHEN precio >= 15000 THEN 'Premium'\n         ELSE 'Económico'\n       END AS rango_mal\nFROM productos\nWHERE categoria_id = 3;",
+       "language": "sql"
+      },
+      {
+       "title": "Traduce códigos con la forma corta",
+       "body": "Todavía no sabes unir tablas, pero puedes traducir el `provincia_id` a su nombre con un `CASE` simple. Es útil para reportes pequeños; la semana que viene lo harás con `JOIN`.",
+       "code": "SELECT nombre, apellido,\n       CASE provincia_id\n         WHEN 1 THEN 'San José'\n         WHEN 2 THEN 'Alajuela'\n         WHEN 3 THEN 'Cartago'\n         WHEN 4 THEN 'Heredia'\n         WHEN 5 THEN 'Guanacaste'\n         WHEN 6 THEN 'Puntarenas'\n         ELSE 'Limón'\n       END AS provincia\nFROM clientes\nWHERE fecha_registro >= '2026-08-01';",
+       "language": "sql"
+      },
+      {
+       "title": "Pregunta por NULL dentro de un CASE",
+       "body": "Un pedido sin `empleado_id` se hizo en línea. Con la forma larga y `IS NULL` funciona; con `CASE empleado_id WHEN NULL` nunca coincidiría, por la misma razón que `= NULL` no funciona en el `WHERE`.",
+       "code": "SELECT id, fecha, empleado_id,\n       CASE WHEN empleado_id IS NULL THEN 'En línea' ELSE 'Tienda física' END AS canal\nFROM pedidos\nWHERE fecha >= '2026-09-20';",
+       "language": "sql"
+      },
+      {
+       "title": "Inventa un orden con CASE en ORDER BY",
+       "body": "Bodega quiere ver primero lo urgente: pedidos pendientes, luego pagados, luego enviados. Alfabéticamente saldrían «enviado, pagado, pendiente», así que se asigna un número a cada estado y se ordena por él.",
+       "code": "SELECT id, fecha, estado\nFROM pedidos\nWHERE estado IN ('pendiente', 'pagado', 'enviado')\nORDER BY CASE estado\n           WHEN 'pendiente' THEN 1\n           WHEN 'pagado' THEN 2\n           ELSE 3\n         END,\n         fecha, id;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "near \"FROM\": syntax error",
+       "cause": "Olvidaste cerrar el `CASE` con `END`, así que SQLite sigue esperando más `WHEN` cuando llega al `FROM`.",
+       "fix": "Cada `CASE` termina en `END`, antes del `AS` y de la coma."
+      },
+      {
+       "error": "Algunas filas salen con NULL en la columna clasificada",
+       "cause": "Ninguna condición se cumplió para esas filas y el `CASE` no tiene `ELSE`.",
+       "fix": "Agrega un `ELSE` que cubra el resto de casos, aunque sea `ELSE 'Revisar'`."
+      },
+      {
+       "error": "Un producto caro aparece en la categoría intermedia",
+       "cause": "Los `WHEN` están en un orden en el que una condición más amplia se cumple antes que la específica.",
+       "fix": "Ordena las condiciones de la más restrictiva a la más amplia, o de un extremo al otro del rango."
+      },
+      {
+       "error": "CASE empleado_id WHEN NULL THEN … nunca se cumple",
+       "cause": "La forma corta compara con `=`, y nada es igual a `NULL`.",
+       "fix": "Usa la forma larga: `CASE WHEN empleado_id IS NULL THEN …`."
+      }
+     ]
+    },
+    {
+     "title": "COALESCE, IFNULL y NULLIF",
+     "concept": "La semana pasada aprendiste a encontrar los `NULL` con `IS NULL`. Hoy aprendes a **reemplazarlos**. `COALESCE(a, b, c, …)` recorre sus argumentos de izquierda a derecha y devuelve el primero que no sea `NULL`. `COALESCE(telefono, 'sin teléfono')` muestra el teléfono si existe y el texto si no; `COALESCE(telefono, email, 'sin contacto')` intenta primero el teléfono, después el correo y al final se rinde. Necesita al menos dos argumentos.\n\n`IFNULL(a, b)` hace lo mismo que `COALESCE` pero solo con dos argumentos; es propio de SQLite y MySQL, mientras que `COALESCE` existe en todos los motores, por eso conviene preferirlo. Ambos resuelven el problema de ayer: `'Correo: ' || COALESCE(email, 'no tiene')` ya nunca sale `NULL`.\n\n`NULLIF(a, b)` hace lo contrario: **devuelve `NULL` si `a` es igual a `b`**, y si no, devuelve `a`. Sirve para decir «este valor en realidad significa que no hay dato»: `NULLIF(costo_envio, 0)` convierte los envíos de ₡0 en `NULL`. El jueves verás que eso cambia un promedio. También se usa para evitar dividir entre cero: en SQLite `10 / 0` da `NULL` sin avisar, pero en otros motores es un error, y `x / NULLIF(y, 0)` deja claro qué quieres que pase.",
+     "tip": "Reemplaza los `NULL` solo al mostrar resultados. Para filtrar sigue usando `IS NULL`: `WHERE COALESCE(email, '') = ''` funciona, pero es más difícil de leer que `WHERE email IS NULL`.",
+     "example": "SELECT nombre || ' ' || apellido AS cliente,\n       COALESCE(email, 'sin correo') AS correo,\n       COALESCE(telefono, 'sin teléfono') AS telefono\nFROM clientes\nWHERE email IS NULL OR telefono IS NULL;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Reemplaza un NULL por un texto",
+       "body": "En Cartago, tres clientes no tienen teléfono. Compara la columna original con la reemplazada: donde había `NULL` ahora aparece el texto que elegiste; donde había dato, no cambia nada.",
+       "code": "SELECT id, telefono, COALESCE(telefono, 'sin teléfono') AS telefono_visible\nFROM clientes\nWHERE provincia_id = 3;",
+       "language": "sql"
+      },
+      {
+       "title": "Elige el primer dato disponible",
+       "body": "Con varios argumentos, `COALESCE` funciona como una lista de preferencias. Daniela Jiménez no tiene ni teléfono ni correo y es la única que llega hasta el último argumento.",
+       "code": "SELECT nombre, apellido,\n       COALESCE(telefono, email, 'sin contacto') AS contacto\nFROM clientes\nWHERE telefono IS NULL;",
+       "language": "sql"
+      },
+      {
+       "title": "Arregla la concatenación de ayer",
+       "body": "Sin `COALESCE`, el mensaje de Rodrigo Castro (sin correo) sale `NULL` completo. Con `IFNULL` o `COALESCE` dentro de la concatenación, el texto siempre se arma.",
+       "code": "SELECT nombre || ': ' || email AS sin_arreglo,\n       nombre || ': ' || IFNULL(email, 'no tiene correo') AS con_ifnull,\n       nombre || ': ' || COALESCE(email, 'no tiene correo') AS con_coalesce\nFROM clientes\nWHERE id IN (31, 32, 33);",
+       "language": "sql"
+      },
+      {
+       "title": "Convierte un cero en NULL con NULLIF",
+       "body": "Los pedidos de tienda física y algunos en línea tienen envío 0. `NULLIF(costo_envio, 0)` los convierte en `NULL` y deja los demás montos iguales. Es el paso previo para calcular el envío promedio solo de los pedidos que sí pagaron envío.",
+       "code": "SELECT id, empleado_id, costo_envio,\n       NULLIF(costo_envio, 0) AS envio_cobrado\nFROM pedidos\nWHERE fecha >= '2026-09-20';",
+       "language": "sql"
+      },
+      {
+       "title": "Divide sin miedo al cero",
+       "body": "En SQLite dividir entre cero no da error: devuelve `NULL`. `NULLIF` hace explícita esa intención y funciona igual en cualquier motor. Aquí se calcula cuántos colones de precio hay por unidad en bodega; los agotados quedan en `NULL` en vez de romper la consulta.",
+       "code": "SELECT 10 / 0 AS division_por_cero, 10 / NULLIF(0, 0) AS con_nullif;\n\nSELECT nombre, precio, stock,\n       ROUND(precio * 1.0 / NULLIF(stock, 0), 1) AS precio_por_unidad_en_bodega\nFROM productos\nWHERE categoria_id = 6;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "wrong number of arguments to function COALESCE()",
+       "cause": "Le pasaste un solo argumento, como `COALESCE(email)`; necesita al menos dos.",
+       "fix": "Agrega el valor de respaldo: `COALESCE(email, 'sin correo')`."
+      },
+      {
+       "error": "wrong number of arguments to function IFNULL()",
+       "cause": "`IFNULL` acepta exactamente dos argumentos y le pasaste tres.",
+       "fix": "Para más de dos opciones usa `COALESCE(a, b, c)`."
+      },
+      {
+       "error": "Esperaba que NULLIF llenara los vacíos y aparecieron más NULL",
+       "cause": "Confundiste `NULLIF` con `IFNULL`: `NULLIF` crea `NULL`, no los reemplaza.",
+       "fix": "Para reemplazar un `NULL` usa `COALESCE` o `IFNULL`; `NULLIF` es para convertir un valor concreto en `NULL`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-20-1",
+     "title": "Rangos de precio en Hogar",
+     "prompt": "Para el nuevo catálogo de Hogar y cocina (`categoria_id` 5) hay que etiquetar cada producto: menos de ₡5000 es `Económico`, de ₡5000 a ₡14 999 es `Medio` y desde ₡15 000 es `Premium`. Muestra el `nombre`, el `precio` y la etiqueta, en ese orden.",
+     "hint": "Un `CASE` con dos `WHEN` y un `ELSE`, empezando por el rango más bajo.",
+     "solution": "SELECT nombre, precio,\n       CASE\n         WHEN precio < 5000 THEN 'Económico'\n         WHEN precio < 15000 THEN 'Medio'\n         ELSE 'Premium'\n       END AS rango\nFROM productos\nWHERE categoria_id = 5;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-20-2",
+     "title": "Canal de los pedidos de septiembre",
+     "prompt": "El jefe de ventas quiere saber por qué canal entró cada pedido de septiembre de 2026. Muestra el `id`, la `fecha` y el canal: `En línea` si el pedido no tiene `empleado_id` y `Tienda` si lo tiene, en ese orden.",
+     "hint": "Usa `CASE WHEN empleado_id IS NULL THEN …`. Para el mes, un `BETWEEN` con las fechas del 1 y el 30 de septiembre.",
+     "solution": "SELECT id, fecha,\n       CASE WHEN empleado_id IS NULL THEN 'En línea' ELSE 'Tienda' END AS canal\nFROM pedidos\nWHERE fecha BETWEEN '2026-09-01' AND '2026-09-30';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-20-3",
+     "title": "Contacto preferido en Cartago",
+     "prompt": "Servicio al cliente va a contactar a los clientes de Cartago (`provincia_id` 3). Prefieren llamar; si no hay teléfono, escriben al correo, y si no hay ninguno de los dos anotan `Sin contacto`. Muestra el `nombre`, el `apellido` y ese dato de contacto, en ese orden.",
+     "hint": "`COALESCE` acepta más de dos argumentos y devuelve el primero que no sea `NULL`.",
+     "solution": "SELECT nombre, apellido, COALESCE(telefono, email, 'Sin contacto') AS contacto\nFROM clientes\nWHERE provincia_id = 3;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-20-4",
+     "title": "Envíos de los pedidos abiertos",
+     "prompt": "Contabilidad revisa los pedidos que todavía no se han entregado ni cancelado (estado `pendiente`, `pagado` o `enviado`). Muestra el `id`, el `metodo_pago` y el costo de envío, pero con `NULL` en lugar de 0 cuando no se cobró envío, en ese orden.",
+     "hint": "`NULLIF(costo_envio, 0)` convierte el 0 en `NULL`. Para los estados, `IN` con la lista de tres textos.",
+     "solution": "SELECT id, metodo_pago, NULLIF(costo_envio, 0) AS envio\nFROM pedidos\nWHERE estado IN ('pendiente', 'pagado', 'enviado');",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-20-5",
+     "title": "Semáforo de inventario",
+     "prompt": "Bodega necesita un semáforo de los productos activos con menos de 50 unidades. La situación es `Agotado` si el stock es 0, `Bajo` si es menor que 20 y `Atención` en los demás casos. Muestra el `nombre`, el `stock` y la situación, ordenados de menor a mayor stock y, si empatan, por nombre.",
+     "hint": "Filtra con `activo = 1 AND stock < 50`; el `CASE` va de la condición más estricta a la más amplia.",
+     "solution": "SELECT nombre, stock,\n       CASE\n         WHEN stock = 0 THEN 'Agotado'\n         WHEN stock < 20 THEN 'Bajo'\n         ELSE 'Atención'\n       END AS situacion\nFROM productos\nWHERE activo = 1 AND stock < 50\nORDER BY stock, nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-20-6",
+     "title": "Fichas incompletas en San José",
+     "prompt": "Mercadeo quiere completar las fichas de los clientes de San José (`provincia_id` 1). Muestra el nombre completo (nombre, espacio y apellido), el correo o el texto `pedir correo` si no tiene, y la columna `nacimiento` con `Falta` si no hay `fecha_nacimiento` o `Completo` si la hay, en ese orden.",
+     "hint": "Combina `||` de ayer con `COALESCE` y un `CASE WHEN fecha_nacimiento IS NULL …`.",
+     "solution": "SELECT nombre || ' ' || apellido AS cliente,\n       COALESCE(email, 'pedir correo') AS correo,\n       CASE WHEN fecha_nacimiento IS NULL THEN 'Falta' ELSE 'Completo' END AS nacimiento\nFROM clientes\nWHERE provincia_id = 1;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Tablero de pedidos abiertos",
+    "description": "Arma el tablero que bodega revisa cada mañana con los pedidos en estado `pendiente`, `pagado` o `enviado`. Columnas: `id`, `fecha`, el estado en palabras para el cliente (`Esperando pago`, `Listo para despachar`, `En camino`), el canal (`En línea` o `Tienda`) y el envío como texto: `Sin costo` si es 0 o `₡` seguido del monto si no. Ordena primero los pendientes, luego los pagados y al final los enviados; dentro de cada estado, del más antiguo al más reciente y por `id`.",
+    "hint": "Necesitas cuatro `CASE`: tres en el `SELECT` y uno en el `ORDER BY`. Para el envío, `CASE WHEN costo_envio = 0 THEN 'Sin costo' ELSE '₡' || costo_envio END`.",
+    "solution": "SELECT id, fecha,\n       CASE estado\n         WHEN 'pendiente' THEN 'Esperando pago'\n         WHEN 'pagado' THEN 'Listo para despachar'\n         ELSE 'En camino'\n       END AS estado_cliente,\n       CASE WHEN empleado_id IS NULL THEN 'En línea' ELSE 'Tienda' END AS canal,\n       CASE WHEN costo_envio = 0 THEN 'Sin costo' ELSE '₡' || costo_envio END AS envio\nFROM pedidos\nWHERE estado IN ('pendiente', 'pagado', 'enviado')\nORDER BY CASE estado WHEN 'pendiente' THEN 1 WHEN 'pagado' THEN 2 ELSE 3 END,\n         fecha, id;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "CASE",
+     "definition": "Expresión que evalúa condiciones en orden y devuelve el valor de la primera que se cumple; termina siempre en `END`."
+    },
+    {
+     "term": "ELSE",
+     "definition": "Parte opcional de un `CASE` con el valor que se usa cuando ninguna condición se cumple; si falta, el resultado es `NULL`."
+    },
+    {
+     "term": "COALESCE",
+     "definition": "Función que devuelve el primero de sus argumentos que no es `NULL`."
+    },
+    {
+     "term": "IFNULL",
+     "definition": "Versión de `COALESCE` con exactamente dos argumentos, propia de SQLite y MySQL."
+    },
+    {
+     "term": "NULLIF",
+     "definition": "Función que devuelve `NULL` si sus dos argumentos son iguales; si no, devuelve el primero."
+    },
+    {
+     "term": "valor por defecto",
+     "definition": "Valor que se muestra en lugar de un dato que falta, como `'sin correo'`."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: la expresión CASE",
+     "url": "https://www.sqlite.org/lang_expr.html"
+    },
+    {
+     "title": "SQLite: coalesce, ifnull y nullif",
+     "url": "https://www.sqlite.org/lang_corefunc.html"
+    },
+    {
+     "title": "SQLite Tutorial: CASE",
+     "url": "https://www.sqlitetutorial.net/sqlite-case/"
+    },
+    {
+     "title": "SQLite Tutorial: NULLIF",
+     "url": "https://www.sqlitetutorial.net/sqlite-functions/sqlite-nullif/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué devuelve un `CASE` cuando ninguna condición se cumple y no tiene `ELSE`?",
+     "code": "",
+     "options": [
+      "Un texto vacío",
+      "El valor del último `THEN`",
+      "Un error de sintaxis",
+      "NULL"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: SQLite no inventa un texto vacío.",
+      "No: los `THEN` solo se usan si su `WHEN` se cumple.",
+      "No: el `ELSE` es opcional; la consulta corre sin problema.",
+      "Correcto: sin `ELSE`, el valor por defecto es `NULL`."
+     ],
+     "explanation": "El `ELSE` es opcional. Si se omite y ninguna condición se cumple, el `CASE` devuelve `NULL`, lo que suele aparecer como huecos en el reporte.",
+     "hint": "Piensa en qué hace SQL cuando no tiene un valor que dar."
+    },
+    {
+     "type": "output",
+     "prompt": "La máscara boruca (`id` 16) cuesta ₡45000. ¿Qué devuelve esta consulta?",
+     "code": "SELECT CASE\n         WHEN precio >= 5000 THEN 'Medio'\n         WHEN precio >= 15000 THEN 'Premium'\n         ELSE 'Económico'\n       END AS rango\nFROM productos\nWHERE id = 16;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Medio"
+     ],
+     "optionFeedback": [],
+     "explanation": "Las condiciones se evalúan en orden y gana la primera verdadera: 45000 >= 5000 ya se cumple, así que el segundo `WHEN` nunca se revisa.",
+     "hint": "¿Cuál es la primera condición que se cumple?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT COALESCE(NULL, NULL, 'sin dato', 'otro');",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "sin dato"
+     ],
+     "optionFeedback": [],
+     "explanation": "`COALESCE` devuelve el primer argumento que no es `NULL`, leyendo de izquierda a derecha. Los dos primeros son `NULL`; el tercero es `'sin dato'`.",
+     "hint": "Lee los argumentos de izquierda a derecha."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`NULLIF(costo_envio, 0)` reemplaza los `NULL` de `costo_envio` por 0.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: hace lo contrario. Convierte los 0 en `NULL`.",
+      "Correcto: `NULLIF(a, b)` devuelve `NULL` cuando `a` es igual a `b`; si no, devuelve `a`."
+     ],
+     "explanation": "`NULLIF` crea nulos: si los dos argumentos son iguales devuelve `NULL`. Para reemplazar un `NULL` por otro valor se usa `COALESCE` o `IFNULL`.",
+     "hint": "Lee el nombre: «null if…»."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál expresión muestra `En línea` para los pedidos sin vendedor?",
+     "code": "",
+     "options": [
+      "CASE empleado_id WHEN NULL THEN 'En línea' ELSE 'Tienda' END",
+      "CASE WHEN empleado_id IS NULL THEN 'En línea' ELSE 'Tienda' END",
+      "CASE WHEN empleado_id = NULL THEN 'En línea' ELSE 'Tienda' END",
+      "IF empleado_id IS NULL THEN 'En línea' ELSE 'Tienda'"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: la forma corta compara con `=` y nada es igual a `NULL`; todos saldrían «Tienda».",
+      "Correcto: la forma larga permite usar `IS NULL`.",
+      "No: `= NULL` nunca es verdadero, por eso todos saldrían «Tienda».",
+      "No: SQL no tiene `IF … THEN` dentro de un `SELECT`; se usa `CASE`."
+     ],
+     "explanation": "Para preguntar por nulos dentro de un `CASE` hay que usar la forma larga con `IS NULL`, igual que en el `WHERE`.",
+     "hint": "Recuerda por qué `= NULL` no funciona."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`IFNULL(email, 'sin correo')` y `COALESCE(email, 'sin correo')` devuelven lo mismo.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: con dos argumentos hacen exactamente lo mismo; `COALESCE` además acepta más argumentos.",
+      "No: con dos argumentos ambas funciones devuelven el primero que no sea `NULL`."
+     ],
+     "explanation": "`IFNULL` es la versión de dos argumentos de `COALESCE`. La diferencia es que `COALESCE` acepta una lista más larga y existe en todos los motores.",
+     "hint": "Compara qué hace cada una con dos argumentos."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué devuelve `SELECT 10 / 0;` en SQLite?",
+     "code": "",
+     "options": [
+      "0",
+      "Infinito",
+      "NULL",
+      "Error: division by zero"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: SQLite no devuelve cero.",
+      "No: SQLite no tiene un valor infinito para enteros.",
+      "Correcto: SQLite devuelve `NULL` en silencio cuando se divide entre cero.",
+      "No: otros motores sí dan error, pero SQLite no."
+     ],
+     "explanation": "SQLite no lanza error al dividir entre cero, devuelve `NULL`. Por eso conviene escribir `x / NULLIF(y, 0)` para dejar clara la intención y que la consulta funcione igual en otros motores.",
+     "hint": "SQLite es tolerante; no se detiene."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para mostrar `sin teléfono` cuando el cliente no tenga teléfono.",
+     "code": "SELECT nombre, ___(telefono, 'sin teléfono') AS telefono\nFROM clientes;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "COALESCE",
+      "IFNULL"
+     ],
+     "optionFeedback": [],
+     "explanation": "`COALESCE(telefono, 'sin teléfono')` (o `IFNULL`) devuelve el teléfono si existe y el texto si es `NULL`.",
+     "hint": "Es la función que devuelve el primer valor que no es nulo."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "kind": "workshop",
+   "title": "Fechas en SQLite",
+   "summary": "Extraer año, mes y día de la semana con strftime, sumar plazos con date() y medir edades y antigüedades con julianday y la fecha de referencia del curso.",
+   "objectives": [
+    "Explicar por qué las fechas se guardan como texto ISO y por qué así se pueden comparar y ordenar.",
+    "Extraer partes de una fecha con `strftime` (`%Y`, `%m`, `%d`, `%w`) y compararlas correctamente como texto.",
+    "Sumar y restar plazos con `date(fecha, '+7 days')` y otros modificadores.",
+    "Calcular días transcurridos, edades y antigüedades con `julianday` y la fecha de referencia `'2026-09-30'`."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Fechas ISO, date() y strftime()",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: Cálculos con fechas",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Fechas ISO, date() y strftime()",
+     "concept": "SQLite no tiene un tipo especial para fechas: las guarda como **texto en formato ISO, `'AAAA-MM-DD'`**. Ese formato no es un capricho: como va del año al día, ordenar o comparar los textos da el mismo resultado que ordenar las fechas. Por eso en la semana 1 funcionaron `fecha >= '2026-01-01'` y `BETWEEN`. Con `'30/09/2026'` nada de eso funcionaría, y además las funciones de fecha devuelven `NULL`.\n\n`strftime(formato, fecha)` extrae o reformatea partes de una fecha. Los códigos más usados son `%Y` (año), `%m` (mes con dos dígitos), `%d` (día), `%w` (día de la semana, **0 es domingo** y 6 sábado) y `%j` (día del año). `strftime('%Y-%m', fecha)` da `'2025-12'`, ideal para filtrar o agrupar por mes. `date(x)` devuelve la fecha en formato ISO, y con modificadores sirve para calcular, que es el tema 2.\n\nUn detalle que confunde a todo el mundo: **`strftime` devuelve texto**. `strftime('%m', fecha) = 9` nunca se cumple, porque compara el texto `'09'` con el número 9. Compara con `'09'` o convierte con `CAST(strftime('%m', fecha) AS INTEGER)`.",
+     "tip": "Cuando dudes de un formato, pruébalo sobre una fecha fija antes de usarlo en la tabla: `SELECT strftime('%w', '2026-09-30');`. Ver el resultado sobre un caso conocido aclara más que la documentación.",
+     "example": "SELECT id, fecha,\n       strftime('%Y', fecha) AS anio,\n       strftime('%m', fecha) AS mes,\n       strftime('%d', fecha) AS dia,\n       strftime('%w', fecha) AS dia_semana\nFROM pedidos\nWHERE fecha >= '2026-09-24';",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Desarma la fecha de referencia",
+       "body": "En este curso «hoy» es el 30 de septiembre de 2026, el día en que se congelaron los datos. Desármala con `strftime`: es miércoles (`%w` = 3) y es el día 273 del año. Mira también cómo se convierte al formato que usamos en Costa Rica, solo para mostrarla.",
+       "code": "SELECT strftime('%Y', '2026-09-30') AS anio,\n       strftime('%m', '2026-09-30') AS mes,\n       strftime('%d', '2026-09-30') AS dia,\n       strftime('%w', '2026-09-30') AS dia_semana,\n       strftime('%j', '2026-09-30') AS dia_del_anio,\n       strftime('%d/%m/%Y', '2026-09-30') AS formato_tico;",
+       "language": "sql"
+      },
+      {
+       "title": "Filtra por año y por mes",
+       "body": "`strftime('%Y-%m', fecha) = '2025-12'` deja los pedidos de diciembre de 2025, el mes de más movimiento por la temporada navideña. Compara con la versión por rango de la semana 1: dan lo mismo, y el rango suele ser más rápido en tablas grandes.",
+       "code": "SELECT id, fecha, metodo_pago\nFROM pedidos\nWHERE strftime('%Y-%m', fecha) = '2025-12'\nLIMIT 8;\n\nSELECT id, fecha, metodo_pago\nFROM pedidos\nWHERE fecha BETWEEN '2025-12-01' AND '2025-12-31'\nLIMIT 8;",
+       "language": "sql"
+      },
+      {
+       "title": "Texto contra número",
+       "body": "La primera consulta no devuelve nada porque compara `'09'` con 9. Las otras dos sí funcionan: una compara texto con texto y la otra convierte el texto a entero antes de comparar.",
+       "code": "SELECT id, fecha FROM pedidos WHERE strftime('%m', fecha) = 9 AND fecha >= '2026-09-25';\n\nSELECT id, fecha FROM pedidos WHERE strftime('%m', fecha) = '09' AND fecha >= '2026-09-25';\n\nSELECT id, fecha FROM pedidos WHERE CAST(strftime('%m', fecha) AS INTEGER) = 9 AND fecha >= '2026-09-25';",
+       "language": "sql"
+      },
+      {
+       "title": "Nombra el día de la semana con CASE",
+       "body": "`%w` da un número; con el `CASE` de ayer lo conviertes en el nombre del día. Recuerda que el resultado de `strftime` es texto, así que los `WHEN` comparan con `'0'`, `'1'`… entre comillas.",
+       "code": "SELECT id, fecha,\n       CASE strftime('%w', fecha)\n         WHEN '0' THEN 'domingo'\n         WHEN '1' THEN 'lunes'\n         WHEN '2' THEN 'martes'\n         WHEN '3' THEN 'miércoles'\n         WHEN '4' THEN 'jueves'\n         WHEN '5' THEN 'viernes'\n         ELSE 'sábado'\n       END AS dia\nFROM pedidos\nWHERE fecha >= '2026-09-20';",
+       "language": "sql"
+      },
+      {
+       "title": "Detecta una fecha mal escrita",
+       "body": "`date()` devuelve `NULL` cuando no reconoce el texto como fecha. Es una forma rápida de comprobar si un dato que alguien digitó a mano tiene el formato correcto.",
+       "code": "SELECT date('2026-10-21') AS iso,\n       date('21/10/2026') AS tica,\n       date('2026-13-01') AS mes_invalido;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "WHERE strftime('%m', fecha) = 9 devuelve 0 filas",
+       "cause": "`strftime` devuelve texto (`'09'`) y lo comparaste con el número 9.",
+       "fix": "Compara con `'09'` entre comillas o usa `CAST(strftime('%m', fecha) AS INTEGER) = 9`."
+      },
+      {
+       "error": "El mes sale siempre 00",
+       "cause": "Escribiste `%M` (mayúscula), que son los minutos; las fechas sin hora tienen 00 minutos.",
+       "fix": "El mes es `%m` en minúscula. Las mayúsculas y minúsculas importan en los formatos."
+      },
+      {
+       "error": "date('30/09/2026') devuelve NULL",
+       "cause": "SQLite solo entiende fechas en formato ISO (`AAAA-MM-DD`).",
+       "fix": "Guarda y escribe las fechas como `'2026-09-30'`; usa `strftime('%d/%m/%Y', …)` solo para mostrarlas."
+      },
+      {
+       "error": "Los pedidos del domingo aparecen como día 0 y los cuento mal",
+       "cause": "`%w` empieza la semana en domingo con 0, no en lunes con 1.",
+       "fix": "Recuerda: 0 domingo, 1 lunes … 6 sábado. Para el fin de semana usa `IN ('0', '6')`."
+      }
+     ]
+    },
+    {
+     "title": "Cálculos con fechas",
+     "concept": "Para sumar o restar tiempo se le pasan **modificadores** a `date()`: `date('2026-09-30', '+7 days')` da `'2026-10-07'`, y también existen `'-1 month'`, `'+1 year'` o `'start of month'`. Se pueden encadenar: `date(fecha, 'start of month', '+1 month', '-1 day')` es el último día del mes de esa fecha. Cuidado con los meses: `date('2026-01-31', '+1 month')` da `'2026-03-03'`, porque el 31 de febrero no existe y SQLite se pasa a marzo.\n\nPara saber **cuántos días hay entre dos fechas** se usa `julianday`, que convierte una fecha en un número de días: `julianday('2026-09-30') - julianday(fecha)` da los días transcurridos. Restar los textos directamente (`'2026-09-30' - fecha`) da 0, porque SQLite convierte cada texto en el número 2026 y los resta.\n\nEn este curso **«hoy» siempre es `'2026-09-30'`**. Nunca uses `date('now')`: los datos están congelados en esa fecha y, con `'now'`, tus resultados cambiarían cada día. Con esa referencia, la antigüedad de un empleado en años completos es `CAST((julianday('2026-09-30') - julianday(fecha_ingreso)) / 365.25 AS INTEGER)`; dividir entre 365.25 compensa los años bisiestos y `CAST` descarta la fracción.",
+     "tip": "Escribe la fecha de referencia una sola vez al principio de tus apuntes y cópiala siempre igual: `'2026-09-30'`. Un error de un día en la referencia cambia edades y antigüedades de forma difícil de detectar.",
+     "example": "SELECT nombre, apellido, fecha_ingreso,\n       CAST(julianday('2026-09-30') - julianday(fecha_ingreso) AS INTEGER) AS dias,\n       CAST((julianday('2026-09-30') - julianday(fecha_ingreso)) / 365.25 AS INTEGER) AS anios\nFROM empleados\nWHERE departamento = 'Ventas';",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Suma y resta tiempo con modificadores",
+       "body": "Prueba los modificadores sobre la fecha de referencia. El último encadena tres para obtener el fin de mes, y el de enero muestra qué pasa al sumar un mes a un día que no existe en febrero.",
+       "code": "SELECT date('2026-09-30', '+7 days') AS en_una_semana,\n       date('2026-09-30', '-30 days') AS hace_30_dias,\n       date('2026-09-30', '-1 year') AS hace_un_anio,\n       date('2026-09-30', 'start of month') AS inicio_de_mes,\n       date('2026-02-10', 'start of month', '+1 month', '-1 day') AS fin_de_febrero,\n       date('2026-01-31', '+1 month') AS sorpresa;",
+       "language": "sql"
+      },
+      {
+       "title": "Calcula una fecha de entrega",
+       "body": "La tienda promete entregar en 5 días los pedidos pagados o enviados. Suma el plazo a la fecha de cada pedido y compáralo con la referencia: los que tienen fecha de entrega antes del 30 de septiembre ya deberían haber llegado.",
+       "code": "SELECT id, fecha, estado,\n       date(fecha, '+5 days') AS entrega_estimada\nFROM pedidos\nWHERE estado IN ('pagado', 'enviado');",
+       "language": "sql"
+      },
+      {
+       "title": "Cuenta los días transcurridos",
+       "body": "`julianday` convierte cada fecha en un número de días, y la resta da la distancia. Compara con la columna que resta los textos directamente: siempre da 0, porque ambos textos empiezan con 2026.",
+       "code": "SELECT id, fecha,\n       julianday('2026-09-30') - julianday(fecha) AS dias,\n       '2026-09-30' - fecha AS resta_de_textos\nFROM pedidos\nWHERE estado = 'pendiente';",
+       "language": "sql"
+      },
+      {
+       "title": "Calcula edades",
+       "body": "La edad en años completos al 30 de septiembre sale de dividir los días entre 365.25. Si alguien cumple años después del 30 de septiembre, todavía no los ha cumplido en 2026, y la fórmula lo respeta. Los clientes sin fecha de nacimiento dan `NULL`.",
+       "code": "SELECT nombre, apellido, fecha_nacimiento,\n       CAST((julianday('2026-09-30') - julianday(fecha_nacimiento)) / 365.25 AS INTEGER) AS edad\nFROM clientes\nWHERE provincia_id = 4;",
+       "language": "sql"
+      },
+      {
+       "title": "Filtra los últimos 30 días",
+       "body": "Un filtro relativo a la referencia: todo lo que pasó desde 30 días antes del 30 de septiembre. Escribirlo con `date('2026-09-30', '-30 days')` deja claro de dónde sale la fecha límite.",
+       "code": "SELECT id, fecha, estado\nFROM pedidos\nWHERE fecha >= date('2026-09-30', '-30 days')\nORDER BY fecha, id;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "La diferencia entre dos fechas da 0",
+       "cause": "Restaste los textos (`'2026-09-30' - fecha`); SQLite toma solo el número del principio (2026) de cada uno.",
+       "fix": "Convierte primero: `julianday('2026-09-30') - julianday(fecha)`."
+      },
+      {
+       "error": "La edad sale con decimales, como 37.6",
+       "cause": "Dividiste los días entre 365.25 y el resultado es un real.",
+       "fix": "Envuélvelo en `CAST(… AS INTEGER)` para quedarte con los años completos."
+      },
+      {
+       "error": "Mis resultados cambian de un día para otro",
+       "cause": "Usaste `date('now')` o `CURRENT_DATE`, que dependen del día en que corres la consulta.",
+       "fix": "Usa siempre la fecha de referencia del curso: `'2026-09-30'`."
+      },
+      {
+       "error": "date(fecha, '+1 month') da un día raro a inicio del mes siguiente",
+       "cause": "Sumaste un mes a un 29, 30 o 31 y ese día no existe en el mes siguiente.",
+       "fix": "Si te interesa el mes y no el día, trabaja con `'start of month'` antes de sumar."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-21-1",
+     "title": "Pedidos de diciembre",
+     "prompt": "El jefe de ventas quiere revisar uno por uno los pedidos de diciembre de 2025, el mes más fuerte del año. Muestra el `id`, la `fecha` y el `metodo_pago` de esos pedidos, en ese orden.",
+     "hint": "`strftime('%Y-%m', fecha)` devuelve el año y el mes juntos, como texto.",
+     "solution": "SELECT id, fecha, metodo_pago\nFROM pedidos\nWHERE strftime('%Y-%m', fecha) = '2025-12';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-21-2",
+     "title": "Ventas de fin de semana",
+     "prompt": "La gerente quiere ver qué pedidos de septiembre de 2026 se hicieron en sábado o domingo. Muestra el `id`, la `fecha` y el número de día de la semana que da `strftime('%w', …)`, en ese orden.",
+     "hint": "`%w` devuelve texto: el domingo es `'0'` y el sábado `'6'`.",
+     "solution": "SELECT id, fecha, strftime('%w', fecha) AS dia_semana\nFROM pedidos\nWHERE fecha BETWEEN '2026-09-01' AND '2026-09-30'\n  AND strftime('%w', fecha) IN ('0', '6');",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-21-3",
+     "title": "Antigüedad del equipo",
+     "prompt": "Recursos humanos prepara reconocimientos por antigüedad. Muestra el `nombre`, el `apellido` y los años completos que lleva cada empleado en la empresa al 30 de septiembre de 2026, en ese orden.",
+     "hint": "Días entre `fecha_ingreso` y `'2026-09-30'` con `julianday`, divididos entre 365.25 y convertidos con `CAST(… AS INTEGER)`.",
+     "solution": "SELECT nombre, apellido,\n       CAST((julianday('2026-09-30') - julianday(fecha_ingreso)) / 365.25 AS INTEGER) AS anios\nFROM empleados;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-21-4",
+     "title": "Entregas estimadas",
+     "prompt": "La tienda promete entregar 5 días después de la fecha del pedido. Para los pedidos en estado `pagado` o `enviado`, muestra el `id`, la `fecha` y la fecha de entrega estimada, en ese orden.",
+     "hint": "`date(fecha, '+5 days')`.",
+     "solution": "SELECT id, fecha, date(fecha, '+5 days') AS entrega\nFROM pedidos\nWHERE estado IN ('pagado', 'enviado');",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-21-5",
+     "title": "Cumpleañeros de octubre",
+     "prompt": "Mercadeo va a enviar un cupón a los clientes que cumplen años en octubre. Muestra el nombre completo (nombre, espacio y apellido), el día del mes en que cumplen (como lo da `strftime('%d', …)`) y los años que cumplen en 2026 (2026 menos el año de nacimiento), ordenados por día y, si empatan, por nombre completo.",
+     "hint": "Filtra con `strftime('%m', fecha_nacimiento) = '10'`. Para restar, convierte el año: `2026 - CAST(strftime('%Y', fecha_nacimiento) AS INTEGER)`.",
+     "solution": "SELECT nombre || ' ' || apellido AS cliente,\n       strftime('%d', fecha_nacimiento) AS dia,\n       2026 - CAST(strftime('%Y', fecha_nacimiento) AS INTEGER) AS cumple\nFROM clientes\nWHERE strftime('%m', fecha_nacimiento) = '10'\nORDER BY dia, cliente;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-21-6",
+     "title": "Clientes recién llegados",
+     "prompt": "Servicio al cliente quiere dar la bienvenida a los clientes que se registraron en los 90 días anteriores al 30 de septiembre de 2026 (desde `date('2026-09-30', '-90 days')`, inclusive). Muestra el nombre completo, la `fecha_registro`, los días que llevan registrados (entero) y el correo o `sin correo` si no tienen, en ese orden.",
+     "hint": "Los días son `CAST(julianday('2026-09-30') - julianday(fecha_registro) AS INTEGER)`; el correo, con `COALESCE`.",
+     "solution": "SELECT nombre || ' ' || apellido AS cliente,\n       fecha_registro,\n       CAST(julianday('2026-09-30') - julianday(fecha_registro) AS INTEGER) AS dias,\n       COALESCE(email, 'sin correo') AS correo\nFROM clientes\nWHERE fecha_registro >= date('2026-09-30', '-90 days');",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Pedidos que se están atrasando",
+    "description": "Para cada pedido que no está `entregado` ni `cancelado`, muestra el `id`, la `fecha`, el nombre del día de la semana en español, los días transcurridos hasta el 30 de septiembre de 2026 (entero) y una alerta: `Revisar` si pasaron más de 5 días y `En plazo` si no. Ordena del más antiguo al más reciente y, si empatan, por `id`.",
+    "hint": "Combina tres herramientas: un `CASE strftime('%w', fecha) WHEN '0' …` para el día, `julianday` para los días y otro `CASE` que compare esos días con 5. Puedes repetir la expresión de los días dentro del segundo `CASE`.",
+    "solution": "SELECT id, fecha,\n       CASE strftime('%w', fecha)\n         WHEN '0' THEN 'domingo' WHEN '1' THEN 'lunes' WHEN '2' THEN 'martes'\n         WHEN '3' THEN 'miércoles' WHEN '4' THEN 'jueves' WHEN '5' THEN 'viernes'\n         ELSE 'sábado'\n       END AS dia,\n       CAST(julianday('2026-09-30') - julianday(fecha) AS INTEGER) AS dias,\n       CASE\n         WHEN julianday('2026-09-30') - julianday(fecha) > 5 THEN 'Revisar'\n         ELSE 'En plazo'\n       END AS alerta\nFROM pedidos\nWHERE estado NOT IN ('entregado', 'cancelado')\nORDER BY fecha, id;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "formato ISO",
+     "definition": "Forma estándar de escribir fechas como `'AAAA-MM-DD'`; permite ordenarlas y compararlas como texto."
+    },
+    {
+     "term": "strftime",
+     "definition": "Función que extrae o reformatea partes de una fecha según un formato, como `strftime('%Y', fecha)`; devuelve texto."
+    },
+    {
+     "term": "modificador",
+     "definition": "Texto que se pasa a `date()` para transformar una fecha, como `'+7 days'` o `'start of month'`."
+    },
+    {
+     "term": "julianday",
+     "definition": "Función que convierte una fecha en un número de días; la resta de dos `julianday` da los días entre ellas."
+    },
+    {
+     "term": "fecha de referencia",
+     "definition": "La fecha que el curso usa como «hoy»: `'2026-09-30'`, el último día de los datos de la Tienda."
+    },
+    {
+     "term": "%w",
+     "definition": "Código de `strftime` para el día de la semana: 0 es domingo y 6 es sábado."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: funciones de fecha y hora",
+     "url": "https://www.sqlite.org/lang_datefunc.html"
+    },
+    {
+     "title": "SQLite Tutorial: funciones de fecha",
+     "url": "https://www.sqlitetutorial.net/sqlite-date-functions/"
+    },
+    {
+     "title": "SQLite Tutorial: strftime",
+     "url": "https://www.sqlitetutorial.net/sqlite-date-functions/sqlite-strftime-function/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT strftime('%w', '2026-09-30');",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "3"
+     ],
+     "optionFeedback": [],
+     "explanation": "El 30 de septiembre de 2026 es miércoles. Con `%w` el domingo es 0, así que el miércoles es 3.",
+     "hint": "Cuenta desde el domingo, que es 0."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT date('2026-09-30', '+7 days');",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "2026-10-07"
+     ],
+     "optionFeedback": [],
+     "explanation": "Siete días después del 30 de septiembre es el 7 de octubre; `date` devuelve el resultado en formato ISO.",
+     "hint": "Septiembre tiene 30 días."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Por qué `WHERE strftime('%m', fecha) = 9` no devuelve ninguna fila?",
+     "code": "",
+     "options": [
+      "Porque `%m` devuelve los minutos",
+      "Porque `strftime` devuelve el texto `'09'` y se compara con el número 9",
+      "Porque no hay pedidos en septiembre",
+      "Porque falta convertir `fecha` con `date()`"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: los minutos son `%M` en mayúscula; `%m` es el mes.",
+      "Correcto: el texto `'09'` no es igual al número 9. Hay que comparar con `'09'` o usar `CAST`.",
+      "No: hay 21 pedidos en septiembre de 2026 y 16 en septiembre de 2025.",
+      "No: `fecha` ya está en formato ISO; el problema es el tipo del resultado."
+     ],
+     "explanation": "`strftime` siempre devuelve texto. Para compararlo con un número hay que convertirlo con `CAST(… AS INTEGER)`, o comparar con el texto `'09'`.",
+     "hint": "Piensa en el tipo de dato que devuelve `strftime`."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`SELECT '2026-09-30' - '2026-09-01';` devuelve 29.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: SQLite convierte cada texto en el número del principio (2026) y la resta da 0.",
+      "Correcto: da 0. Para contar días hay que usar `julianday`."
+     ],
+     "explanation": "Al restar dos textos, SQLite los convierte en números tomando solo los dígitos iniciales: 2026 - 2026 = 0. Para la diferencia en días se usa `julianday(b) - julianday(a)`.",
+     "hint": "¿Qué número «ve» SQLite al convertir `'2026-09-30'`?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál expresión da los días entre la fecha de un pedido y el 30 de septiembre de 2026?",
+     "code": "",
+     "options": [
+      "'2026-09-30' - fecha",
+      "date('2026-09-30') - date(fecha)",
+      "strftime('%d', '2026-09-30') - strftime('%d', fecha)",
+      "julianday('2026-09-30') - julianday(fecha)"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: restar textos da 0.",
+      "No: `date` devuelve texto, así que es la misma resta de textos.",
+      "No: solo resta los días del mes e ignora meses y años.",
+      "Correcto: `julianday` convierte cada fecha en un número de días y la resta da la distancia."
+     ],
+     "explanation": "`julianday` es la función para medir distancias entre fechas: convierte la fecha en un número continuo de días.",
+     "hint": "Necesitas convertir las fechas en números antes de restar."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Comparar fechas en formato `'AAAA-MM-DD'` con `<` o `>` da el orden cronológico correcto.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: el formato ISO va del año al día, así que el orden de los textos coincide con el de las fechas.",
+      "No: en formato ISO la comparación de textos sí respeta el orden cronológico; el problema aparece con formatos como `DD/MM/AAAA`."
+     ],
+     "explanation": "Como el formato ISO pone primero el año, luego el mes y luego el día, comparar los textos carácter por carácter da el mismo orden que comparar las fechas.",
+     "hint": "Compara `'2025-12-31'` con `'2026-01-01'` carácter por carácter."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Por qué en este curso se usa `'2026-09-30'` en vez de `date('now')`?",
+     "code": "",
+     "options": [
+      "Porque `date('now')` no existe en SQLite",
+      "Porque los datos están congelados en esa fecha y así los resultados son siempre los mismos",
+      "Porque `date('now')` devuelve la hora y no la fecha",
+      "Porque es más rápido"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `date('now')` existe y devuelve la fecha actual.",
+      "Correcto: con una fecha fija, una edad o una antigüedad da lo mismo hoy que dentro de un mes.",
+      "No: `date('now')` devuelve solo la fecha; `datetime('now')` incluye la hora.",
+      "No: la velocidad es la misma; la razón es que el resultado no cambie."
+     ],
+     "explanation": "Los datos de la Tienda terminan el 30 de septiembre de 2026. Usar esa fecha como «hoy» hace que los cálculos tengan sentido y que los ejercicios se puedan calificar.",
+     "hint": "¿Qué pasaría con una edad calculada hoy y la misma calculada el mes que viene?"
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para obtener el año de cada pedido.",
+     "code": "SELECT id, ___('%Y', fecha) AS anio\nFROM pedidos;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "strftime"
+     ],
+     "optionFeedback": [],
+     "explanation": "`strftime('%Y', fecha)` extrae el año de una fecha ISO como texto.",
+     "hint": "Es la función que recibe primero un formato."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "kind": "workshop",
+   "title": "Funciones de agregación",
+   "summary": "Resumir tablas enteras en un número: cuántos, cuánto suman, el promedio, el mínimo y el máximo, sabiendo qué hacen los agregados con los NULL.",
+   "objectives": [
+    "Contar filas, valores no nulos y valores distintos con `COUNT(*)`, `COUNT(columna)` y `COUNT(DISTINCT columna)`.",
+    "Sumar columnas y expresiones con `SUM`, y contar con condición con `SUM(CASE …)`.",
+    "Calcular promedios, mínimos y máximos con `AVG`, `MIN` y `MAX`, también sobre fechas y texto.",
+    "Explicar cómo los `NULL` y los ceros cambian un promedio, y redondear agregados con `ROUND`."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: COUNT y SUM",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: AVG, MIN, MAX y redondeo",
+     "minutes": 65
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "COUNT y SUM",
+     "concept": "Hasta ahora cada consulta devolvía una fila por cada fila de la tabla. Las **funciones de agregación** hacen lo contrario: toman muchas filas y las resumen en un solo valor. Sin `GROUP BY` (que llega mañana), el resultado es **una sola fila** con el resumen de todas las filas que pasaron el `WHERE`. El filtro se aplica primero y el resumen después.\n\n`COUNT(*)` cuenta filas: la tienda tiene 80 clientes y 420 pedidos. `COUNT(columna)` cuenta solo las filas donde esa columna **no es `NULL`**: `COUNT(email)` da 78 y `COUNT(telefono)` 73, así que la resta te dice cuántos datos faltan. `COUNT(DISTINCT columna)` cuenta valores distintos: `COUNT(DISTINCT cliente_id)` en `pedidos` da 60, es decir, 20 clientes registrados nunca compraron.\n\n`SUM(expresión)` suma, y la expresión puede ser un cálculo fila por fila: `SUM(cantidad * precio_unitario * (1 - descuento))` son las ventas netas de toda la tienda. Un truco muy usado combina `SUM` con el `CASE` del martes para **contar solo lo que cumple una condición**: `SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END)` da 33 pedidos cancelados. Si no hay filas que sumar, `SUM` devuelve `NULL`, no 0.",
+     "tip": "Antes de confiar en un `SUM`, ejecuta un `COUNT(*)` con el mismo `WHERE`. Si el conteo no es el que esperabas, el problema está en el filtro, no en la suma.",
+     "example": "SELECT COUNT(*) AS clientes,\n       COUNT(email) AS con_correo,\n       COUNT(telefono) AS con_telefono,\n       COUNT(fecha_nacimiento) AS con_nacimiento,\n       COUNT(DISTINCT provincia_id) AS provincias\nFROM clientes;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Cuenta las filas de cada tabla",
+       "body": "Un `COUNT(*)` por tabla te da el tamaño de la base: es lo primero que conviene saber de cualquier base nueva. Cada consulta devuelve una sola fila con un solo número.",
+       "code": "SELECT COUNT(*) AS productos FROM productos;\nSELECT COUNT(*) AS pedidos FROM pedidos;\nSELECT COUNT(*) AS lineas FROM detalle_pedido;\nSELECT COUNT(*) AS resenas FROM resenas;",
+       "language": "sql"
+      },
+      {
+       "title": "COUNT(*) frente a COUNT(columna)",
+       "body": "En `pedidos` hay 420 filas, pero solo 243 tienen `empleado_id`: los otros 177 son compras en línea. La diferencia `COUNT(*) - COUNT(empleado_id)` da justamente las filas con `NULL`, lo mismo que contar con `WHERE empleado_id IS NULL`.",
+       "code": "SELECT COUNT(*) AS pedidos,\n       COUNT(empleado_id) AS con_vendedor,\n       COUNT(*) - COUNT(empleado_id) AS en_linea\nFROM pedidos;\n\nSELECT COUNT(*) FROM pedidos WHERE empleado_id IS NULL;",
+       "language": "sql"
+      },
+      {
+       "title": "Cuenta valores distintos",
+       "body": "`COUNT(DISTINCT …)` responde preguntas como cuántos clientes distintos compraron o cuántos productos distintos se vendieron. Compara con el `DISTINCT` de la semana 1: aquí no ves la lista, solo cuántos son.",
+       "code": "SELECT COUNT(DISTINCT cliente_id) AS clientes_que_compraron,\n       COUNT(DISTINCT empleado_id) AS vendedores,\n       COUNT(DISTINCT metodo_pago) AS metodos\nFROM pedidos;\n\nSELECT COUNT(DISTINCT producto_id) AS productos_vendidos FROM detalle_pedido;",
+       "language": "sql"
+      },
+      {
+       "title": "Suma columnas y expresiones",
+       "body": "`SUM(cantidad)` da las unidades vendidas. La suma de la expresión con descuento da las ventas netas de toda la historia de la tienda, y la diferencia con el bruto es lo que se regaló en descuentos. El `WHERE` limita la suma a un solo producto.",
+       "code": "SELECT SUM(cantidad) AS unidades,\n       SUM(cantidad * precio_unitario) AS bruto,\n       SUM(cantidad * precio_unitario * (1 - descuento)) AS neto\nFROM detalle_pedido;\n\nSELECT SUM(cantidad) AS tarrazu_vendido\nFROM detalle_pedido\nWHERE producto_id = 1;",
+       "language": "sql"
+      },
+      {
+       "title": "Cuenta con condición usando SUM y CASE",
+       "body": "Cada `CASE` vale 1 si la fila cumple y 0 si no; sumarlos cuenta las que cumplen. Así se obtienen varios conteos distintos en una sola consulta, algo que con `WHERE` necesitaría una consulta por cada condición.",
+       "code": "SELECT COUNT(*) AS pedidos,\n       SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados,\n       SUM(CASE WHEN empleado_id IS NULL THEN 1 ELSE 0 END) AS en_linea,\n       SUM(CASE WHEN metodo_pago = 'sinpe' THEN 1 ELSE 0 END) AS por_sinpe\nFROM pedidos;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "COUNT(estado = 'cancelado') da 420 en vez de 33",
+       "cause": "`COUNT` cuenta los valores que no son `NULL`, y la comparación da 0 o 1, que no son `NULL`: cuenta todas las filas.",
+       "fix": "Usa `SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END)` o `COUNT(*)` con `WHERE estado = 'cancelado'`."
+      },
+      {
+       "error": "wrong number of arguments to function COUNT()",
+       "cause": "Escribiste `COUNT(DISTINCT cliente_id, empleado_id)`; `COUNT(DISTINCT …)` acepta una sola columna.",
+       "fix": "Cuenta una columna a la vez, o espera a mañana para agrupar por las dos."
+      },
+      {
+       "error": "SUM devuelve NULL y esperaba 0",
+       "cause": "Ninguna fila pasó el `WHERE`, y la suma de nada en SQL es `NULL`.",
+       "fix": "Revisa el filtro con `COUNT(*)`; si necesitas un 0, usa `COALESCE(SUM(x), 0)`."
+      },
+      {
+       "error": "SELECT nombre, COUNT(*) FROM productos muestra un solo nombre",
+       "cause": "Mezclaste una columna normal con un agregado sin `GROUP BY`; SQLite muestra un nombre cualquiera junto al conteo.",
+       "fix": "Sin `GROUP BY` deja solo agregados en el `SELECT`. Mañana verás cómo obtener un conteo por grupo."
+      }
+     ]
+    },
+    {
+     "title": "AVG, MIN, MAX y redondeo",
+     "concept": "`AVG` calcula el promedio, `MIN` el valor más pequeño y `MAX` el más grande. El precio promedio de los 42 productos del catálogo es ₡10 145.24; el más barato cuesta ₡1200 y el más caro ₡45 000. `MIN` y `MAX` también funcionan con texto (orden alfabético) y con fechas ISO: `MIN(fecha)` en `pedidos` es el primer pedido de la tienda, el 3 de enero de 2025.\n\n**Todas las funciones de agregación ignoran los `NULL`**, salvo `COUNT(*)`. Eso cambia los promedios: `AVG(costo_envio)` da ₡1005.95 porque cuenta los 274 pedidos con envío 0, mientras que `AVG(NULLIF(costo_envio, 0))` da ₡2893.84, el envío promedio de quienes sí pagaron. Las dos respuestas son correctas; responden preguntas distintas, y tú decides cuál te están haciendo.\n\nVuelve la trampa del lunes: `SUM(costo_envio) / COUNT(*)` da 1005, sin decimales, porque divide dos enteros. `AVG` no tiene ese problema, siempre devuelve un real. Para presentar, **redondea el agregado, no cada fila**: `ROUND(AVG(precio), 2)`. Y puedes meter cualquier expresión dentro: `AVG((precio - costo) * 100.0 / precio)` es el margen promedio del catálogo.",
+     "tip": "Cuando reportes un promedio, di siempre sobre qué filas se calculó: «envío promedio de los pedidos que pagaron envío» no es lo mismo que «envío promedio por pedido». La mitad de las discusiones sobre datos son por esto.",
+     "example": "SELECT COUNT(*) AS productos,\n       MIN(precio) AS mas_barato,\n       MAX(precio) AS mas_caro,\n       ROUND(AVG(precio), 2) AS precio_promedio,\n       ROUND(AVG((precio - costo) * 100.0 / precio), 1) AS margen_promedio\nFROM productos\nWHERE activo = 1;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Mínimo, máximo y promedio de precios",
+       "body": "Primero todo el catálogo y después solo Tecnología. Fíjate en los decimales de `AVG` sin redondear y en cómo `ROUND` los deja presentables.",
+       "code": "SELECT MIN(precio), MAX(precio), AVG(precio), ROUND(AVG(precio), 2)\nFROM productos;\n\nSELECT MIN(precio), MAX(precio), ROUND(AVG(precio)) AS promedio\nFROM productos\nWHERE categoria_id = 7;",
+       "language": "sql"
+      },
+      {
+       "title": "MIN y MAX con fechas y textos",
+       "body": "Con fechas ISO, `MIN` es la más antigua y `MAX` la más reciente. Con texto, el orden alfabético. Es la forma rápida de ver el rango de una columna.",
+       "code": "SELECT MIN(fecha) AS primer_pedido, MAX(fecha) AS ultimo_pedido FROM pedidos;\n\nSELECT MIN(fecha_ingreso) AS mas_antiguo, MAX(fecha_ingreso) AS mas_reciente FROM empleados;\n\nSELECT MIN(nombre), MAX(nombre) FROM productos;",
+       "language": "sql"
+      },
+      {
+       "title": "Promedios con y sin ceros",
+       "body": "Los dos promedios de envío son correctos, pero responden preguntas distintas. `NULLIF` convierte los 0 en `NULL` y `AVG` los ignora. Mira también qué hace `COUNT` con cada versión.",
+       "code": "SELECT ROUND(AVG(costo_envio), 2) AS promedio_por_pedido,\n       ROUND(AVG(NULLIF(costo_envio, 0)), 2) AS promedio_cuando_se_cobra,\n       COUNT(costo_envio) AS todos,\n       COUNT(NULLIF(costo_envio, 0)) AS con_envio\nFROM pedidos;",
+       "language": "sql"
+      },
+      {
+       "title": "La división entera regresa",
+       "body": "Calcular el promedio a mano con `SUM / COUNT` cae en la división entera. Multiplicar por `1.0` lo arregla, pero `AVG` es más claro y ya maneja los `NULL` por ti.",
+       "code": "SELECT SUM(costo_envio) / COUNT(*) AS a_mano_mal,\n       SUM(costo_envio) * 1.0 / COUNT(*) AS a_mano_bien,\n       AVG(costo_envio) AS con_avg\nFROM pedidos;",
+       "language": "sql"
+      },
+      {
+       "title": "Agrega sobre expresiones de días anteriores",
+       "body": "Dentro de un agregado cabe cualquier expresión de esta semana. Aquí, la edad promedio de los clientes que tienen fecha de nacimiento y la calificación promedio de las reseñas de 2025.",
+       "code": "SELECT ROUND(AVG((julianday('2026-09-30') - julianday(fecha_nacimiento)) / 365.25), 1) AS edad_promedio,\n       COUNT(fecha_nacimiento) AS clientes_con_dato\nFROM clientes;\n\nSELECT COUNT(*) AS resenas, ROUND(AVG(calificacion), 2) AS promedio\nFROM resenas\nWHERE strftime('%Y', fecha) = '2025';",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "El promedio sale con 13 decimales",
+       "cause": "`AVG` devuelve el resultado exacto de la división.",
+       "fix": "Redondea el resultado: `ROUND(AVG(precio), 2)`."
+      },
+      {
+       "error": "SUM(x) / COUNT(*) da un número sin decimales",
+       "cause": "Los dos son enteros y la división es entera, la misma trampa del lunes.",
+       "fix": "Usa `AVG(x)` o multiplica por `1.0` antes de dividir."
+      },
+      {
+       "error": "Mi promedio no coincide con el de mi compañero",
+       "cause": "Uno incluyó los ceros o los `NULL` y el otro no: `AVG` ignora los `NULL` pero sí cuenta los 0.",
+       "fix": "Decide qué filas deben entrar en el promedio y usa `NULLIF` o `WHERE` para dejarlo explícito."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-22-1",
+     "title": "Calidad de la base de clientes",
+     "prompt": "La gerente quiere saber qué tan completa está la base de clientes. Muestra en una sola fila la cantidad total de clientes, cuántos tienen correo y cuántos tienen teléfono, en ese orden.",
+     "hint": "`COUNT(*)` cuenta todas las filas; `COUNT(columna)` solo las que no son `NULL`.",
+     "solution": "SELECT COUNT(*) AS clientes, COUNT(email) AS con_correo, COUNT(telefono) AS con_telefono\nFROM clientes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-22-2",
+     "title": "Unidades del café estrella",
+     "prompt": "Bodega necesita saber cuánto se ha vendido del café molido Tarrazú 500 g (`producto_id` 1). Muestra el total de unidades vendidas y en cuántas líneas de pedido aparece, en ese orden.",
+     "hint": "Trabaja sobre `detalle_pedido`: `SUM(cantidad)` y `COUNT(*)` con un `WHERE` por producto.",
+     "solution": "SELECT SUM(cantidad) AS unidades, COUNT(*) AS lineas\nFROM detalle_pedido\nWHERE producto_id = 1;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-22-3",
+     "title": "Salarios del departamento de Ventas",
+     "prompt": "Recursos humanos revisa la escala salarial de Ventas. Muestra el salario mínimo, el máximo y el promedio redondeado a colones enteros (0 decimales) de los empleados del departamento `Ventas`, en ese orden.",
+     "hint": "`MIN`, `MAX` y `ROUND(AVG(salario))` con un `WHERE` por `departamento`.",
+     "solution": "SELECT MIN(salario), MAX(salario), ROUND(AVG(salario)) AS promedio\nFROM empleados\nWHERE departamento = 'Ventas';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-22-4",
+     "title": "Reseñas de 2025",
+     "prompt": "El equipo de producto quiere un resumen de las reseñas escritas en 2025. Muestra la cantidad de reseñas, la calificación promedio redondeada a 2 decimales, la mínima y la máxima, en ese orden.",
+     "hint": "Filtra con `strftime('%Y', fecha) = '2025'` o con un rango de fechas, y usa cuatro agregados.",
+     "solution": "SELECT COUNT(*) AS resenas, ROUND(AVG(calificacion), 2) AS promedio,\n       MIN(calificacion), MAX(calificacion)\nFROM resenas\nWHERE fecha BETWEEN '2025-01-01' AND '2025-12-31';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-22-5",
+     "title": "Tienda en línea en 2026",
+     "prompt": "Para la reunión del canal digital, muestra en una sola fila datos de los pedidos en línea (sin `empleado_id`) hechos en 2026: cantidad de pedidos, cantidad de clientes distintos, total cobrado por envíos y envío promedio por pedido redondeado a 2 decimales, en ese orden.",
+     "hint": "`empleado_id IS NULL` y `fecha >= '2026-01-01'` en el `WHERE`; en el `SELECT`, `COUNT(*)`, `COUNT(DISTINCT cliente_id)`, `SUM` y `ROUND(AVG(…), 2)`.",
+     "solution": "SELECT COUNT(*) AS pedidos,\n       COUNT(DISTINCT cliente_id) AS clientes,\n       SUM(costo_envio) AS envios,\n       ROUND(AVG(costo_envio), 2) AS envio_promedio\nFROM pedidos\nWHERE empleado_id IS NULL AND fecha >= '2026-01-01';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-22-6",
+     "title": "Cuánto se regala en descuentos",
+     "prompt": "Contabilidad quiere medir los descuentos. Sobre todas las líneas de `detalle_pedido`, muestra en una sola fila: la cantidad total de líneas, cuántas tienen descuento (mayor que 0) y el monto total descontado en colones (`cantidad * precio_unitario * descuento`) redondeado a entero, en ese orden.",
+     "hint": "Para contar con condición usa `SUM(CASE WHEN descuento > 0 THEN 1 ELSE 0 END)`.",
+     "solution": "SELECT COUNT(*) AS lineas,\n       SUM(CASE WHEN descuento > 0 THEN 1 ELSE 0 END) AS con_descuento,\n       ROUND(SUM(cantidad * precio_unitario * descuento)) AS descontado\nFROM detalle_pedido;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Indicadores de la tienda en una fila",
+    "description": "Arma una consulta que devuelva en una sola fila los indicadores generales de `pedidos`: total de pedidos, pedidos cancelados, porcentaje de cancelados con 1 decimal, clientes distintos que han comprado, fecha del primer pedido, fecha del último pedido y envío promedio de los pedidos que sí pagaron envío (redondeado a entero). Después escribe en un comentario una frase que interprete el porcentaje de cancelados.",
+    "hint": "El porcentaje es `SUM(CASE …) * 100.0 / COUNT(*)`; sin el `100.0` cae en la división entera. Para el envío promedio, `AVG(NULLIF(costo_envio, 0))`.",
+    "solution": "SELECT COUNT(*) AS pedidos,\n       SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados,\n       ROUND(SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS pct_cancelados,\n       COUNT(DISTINCT cliente_id) AS clientes,\n       MIN(fecha) AS primer_pedido,\n       MAX(fecha) AS ultimo_pedido,\n       ROUND(AVG(NULLIF(costo_envio, 0))) AS envio_promedio\nFROM pedidos;\n-- Cerca de 8 de cada 100 pedidos se cancelan.",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "función de agregación",
+     "definition": "Función que resume muchas filas en un solo valor: `COUNT`, `SUM`, `AVG`, `MIN` y `MAX`."
+    },
+    {
+     "term": "COUNT(*)",
+     "definition": "Cuenta todas las filas, tengan o no valores `NULL`."
+    },
+    {
+     "term": "COUNT(columna)",
+     "definition": "Cuenta solo las filas en que esa columna no es `NULL`."
+    },
+    {
+     "term": "COUNT(DISTINCT columna)",
+     "definition": "Cuenta cuántos valores distintos, no nulos, tiene una columna."
+    },
+    {
+     "term": "conteo condicional",
+     "definition": "Técnica de sumar un `CASE` que vale 1 o 0 para contar solo las filas que cumplen una condición."
+    },
+    {
+     "term": "AVG",
+     "definition": "Función que calcula el promedio de los valores no nulos; siempre devuelve un número real."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: funciones de agregación",
+     "url": "https://www.sqlite.org/lang_aggfunc.html"
+    },
+    {
+     "title": "SQLBolt: consultas con agregados",
+     "url": "https://sqlbolt.com/lesson/select_queries_with_aggregates"
+    },
+    {
+     "title": "SQLite Tutorial: COUNT",
+     "url": "https://www.sqlitetutorial.net/sqlite-count-function/"
+    },
+    {
+     "title": "SQLite Tutorial: AVG",
+     "url": "https://www.sqlitetutorial.net/sqlite-avg/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT COUNT(*) - COUNT(telefono) FROM clientes;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "7"
+     ],
+     "optionFeedback": [],
+     "explanation": "`COUNT(*)` da 80 clientes y `COUNT(telefono)` 73, porque ignora los `NULL`. La diferencia, 7, es la cantidad de clientes sin teléfono.",
+     "hint": "`COUNT(columna)` no cuenta los `NULL`."
+    },
+    {
+     "type": "choice",
+     "prompt": "`SELECT COUNT(estado = 'cancelado') FROM pedidos;` devuelve 420 y no 33. ¿Por qué?",
+     "code": "",
+     "options": [
+      "Porque hay un error en los datos",
+      "Porque `COUNT` cuenta los valores que no son NULL, y la comparación da 0 o 1 en todas las filas",
+      "Porque `COUNT` no acepta comparaciones y las ignora",
+      "Porque falta un `GROUP BY`"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: los datos tienen 33 pedidos cancelados; el problema es la consulta.",
+      "Correcto: 0 y 1 son valores, así que `COUNT` los cuenta todos. Hay que usar `SUM(CASE …)` o un `WHERE`.",
+      "No: sí la acepta; la evalúa y cuenta el resultado.",
+      "No: sin `GROUP BY` igual se puede contar con condición, pero con `SUM(CASE …)`."
+     ],
+     "explanation": "Una comparación devuelve 1 o 0, nunca `NULL` (salvo que la columna sea `NULL`). `COUNT` cuenta todo lo que no es `NULL`, así que cuenta las 420 filas.",
+     "hint": "¿Qué valores produce `estado = 'cancelado'` en cada fila?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT COUNT(DISTINCT metodo_pago) FROM pedidos;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "4"
+     ],
+     "optionFeedback": [],
+     "explanation": "La tienda acepta cuatro métodos de pago: tarjeta, SINPE, efectivo y transferencia. `COUNT(DISTINCT …)` cuenta cuántos valores distintos hay.",
+     "hint": "Cuenta cuántos métodos de pago existen, no cuántos pedidos."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`AVG(costo_envio)` incluye en el promedio los pedidos con envío 0.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: 0 es un valor, no un `NULL`, así que entra en el promedio.",
+      "No: `AVG` solo ignora los `NULL`; un 0 sí cuenta."
+     ],
+     "explanation": "`AVG` ignora los `NULL`, pero un 0 es un dato. Para excluir los ceros hay que convertirlos en `NULL` con `NULLIF(costo_envio, 0)`.",
+     "hint": "¿Es 0 lo mismo que `NULL`?"
+    },
+    {
+     "type": "choice",
+     "prompt": "La suma de `costo_envio` es 422500 y hay 420 pedidos. ¿Qué devuelve `SELECT SUM(costo_envio) / COUNT(*) FROM pedidos;`?",
+     "code": "",
+     "options": [
+      "1005.95",
+      "1006",
+      "1005",
+      "NULL"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ese es el resultado de `AVG`, que devuelve real.",
+      "No: la división entera no redondea, corta.",
+      "Correcto: los dos son enteros y la división descarta los decimales.",
+      "No: no hay ningún `NULL` en la operación."
+     ],
+     "explanation": "`SUM` de una columna entera da un entero y `COUNT(*)` también; la división entre enteros corta los decimales. `AVG(costo_envio)` sí da 1005.95.",
+     "hint": "Recuerda la trampa del lunes."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`MIN` y `MAX` solo funcionan con columnas numéricas.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: también funcionan con texto (orden alfabético) y con fechas ISO.",
+      "Correcto: con fechas ISO, `MIN` da la más antigua y `MAX` la más reciente; con texto, el orden alfabético."
+     ],
+     "explanation": "`MIN` y `MAX` usan el mismo orden que `ORDER BY`, así que funcionan con cualquier tipo que se pueda ordenar, incluidos textos y fechas ISO.",
+     "hint": "Piensa en `MIN(fecha)`."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál consulta da el precio promedio de los productos redondeado a 2 decimales?",
+     "code": "",
+     "options": [
+      "SELECT AVG(ROUND(precio, 2)) FROM productos;",
+      "SELECT ROUND(AVG(precio), 2) FROM productos;",
+      "SELECT ROUND(precio, 2) FROM productos WHERE AVG(precio);",
+      "SELECT AVG(precio, 2) FROM productos;"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: redondea cada precio (que ya son enteros) y el promedio queda sin redondear.",
+      "Correcto: primero se calcula el promedio y después se redondea el resultado.",
+      "No: un agregado no puede ir en el `WHERE`.",
+      "No: `AVG` recibe un solo argumento; el redondeo es otra función."
+     ],
+     "explanation": "Se redondea el resultado final: `ROUND(AVG(precio), 2)`. Redondear antes de agregar no sirve aquí y en otros casos acumula errores.",
+     "hint": "¿Qué quieres redondear, cada precio o el promedio?"
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para saber cuántos clientes distintos han hecho pedidos.",
+     "code": "SELECT ___(DISTINCT cliente_id) AS clientes\nFROM pedidos;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "COUNT"
+     ],
+     "optionFeedback": [],
+     "explanation": "`COUNT(DISTINCT cliente_id)` cuenta cuántos clientes diferentes aparecen en `pedidos`: 60.",
+     "hint": "Es la función que cuenta."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-23",
+   "kind": "workshop",
+   "title": "Agrupar con GROUP BY",
+   "summary": "Pasar de un resumen de toda la tabla a un resumen por grupo, filtrar grupos con HAVING y entender el orden lógico en que SQL ejecuta una consulta.",
+   "objectives": [
+    "Agrupar filas con `GROUP BY` por una columna, por varias y por una expresión (mes, `CASE`).",
+    "Aplicar la regla de que el `SELECT` de una consulta agrupada solo lleva columnas agrupadas y agregados.",
+    "Filtrar grupos con `HAVING` y decidir si una condición va en `WHERE` o en `HAVING`.",
+    "Explicar el orden lógico FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT y usarlo para depurar."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: GROUP BY con una y varias columnas",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: HAVING frente a WHERE y orden lógico",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "GROUP BY con una y varias columnas",
+     "concept": "Ayer cada agregado resumía toda la tabla en una fila. `GROUP BY` **parte las filas en grupos, uno por cada valor distinto, y calcula los agregados de cada grupo por separado**. `SELECT metodo_pago, COUNT(*) FROM pedidos GROUP BY metodo_pago` devuelve una fila por método: 189 pedidos con tarjeta, 165 por SINPE, 38 por transferencia y 28 en efectivo. Es el corazón de casi cualquier reporte.\n\nLa regla de oro: en el `SELECT` solo deben ir **las columnas del `GROUP BY` y agregados**. Si pides otra columna, un grupo tiene muchos valores distintos para ella y SQLite muestra uno cualquiera sin avisarte; otros motores directamente dan error. Los `NULL` forman su propio grupo: al agrupar `pedidos` por `empleado_id` aparece una fila con `NULL`, que son los 177 pedidos en línea.\n\nPuedes agrupar por varias columnas, y entonces se forma un grupo por cada **combinación**: `GROUP BY strftime('%Y', fecha), metodo_pago` da 8 filas, cuatro métodos por cada uno de los dos años. También puedes agrupar por una expresión, como el mes de una fecha o el resultado de un `CASE`, que es como se construyen rangos de precio o de edad.",
+     "tip": "Antes de escribir un `GROUP BY`, completa la frase «quiero una fila por cada…». Lo que termine la frase (provincia, mes, método de pago) es lo que va en el `GROUP BY`, y debe aparecer también en el `SELECT`.",
+     "example": "SELECT metodo_pago,\n       COUNT(*) AS pedidos,\n       SUM(costo_envio) AS envios_cobrados\nFROM pedidos\nGROUP BY metodo_pago\nORDER BY pedidos DESC;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Una fila por grupo",
+       "body": "Clientes por provincia y pedidos por estado. Sin `ORDER BY`, SQLite suele devolver los grupos ordenados por la columna agrupada, pero no lo garantiza: si el orden te importa, escríbelo.",
+       "code": "SELECT provincia_id, COUNT(*) AS clientes\nFROM clientes\nGROUP BY provincia_id\nORDER BY provincia_id;\n\nSELECT estado, COUNT(*) AS pedidos\nFROM pedidos\nGROUP BY estado\nORDER BY pedidos DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Varios agregados por grupo",
+       "body": "Cada grupo puede tener tantos resúmenes como quieras. Por categoría: cuántos productos hay, el precio promedio y las unidades en bodega. La categoría 8 (Libros) no aparece porque no tiene productos: un grupo solo existe si tiene filas.",
+       "code": "SELECT categoria_id,\n       COUNT(*) AS productos,\n       ROUND(AVG(precio)) AS precio_promedio,\n       SUM(stock) AS unidades_en_bodega\nFROM productos\nGROUP BY categoria_id\nORDER BY categoria_id;",
+       "language": "sql"
+      },
+      {
+       "title": "Agrupa por una expresión de fecha",
+       "body": "Agrupar por `strftime('%Y-%m', fecha)` da una fila por mes: la serie mensual de pedidos de 2026. Puedes repetir la expresión en el `GROUP BY` o usar su alias; SQLite acepta las dos.",
+       "code": "SELECT strftime('%Y-%m', fecha) AS mes, COUNT(*) AS pedidos\nFROM pedidos\nWHERE fecha >= '2026-01-01'\nGROUP BY mes\nORDER BY mes;",
+       "language": "sql"
+      },
+      {
+       "title": "Agrupa por dos columnas",
+       "body": "Cada combinación de año y canal forma un grupo. El `CASE` convierte el `NULL` de `empleado_id` en un nombre legible y el `GROUP BY` usa esa expresión.",
+       "code": "SELECT strftime('%Y', fecha) AS anio,\n       CASE WHEN empleado_id IS NULL THEN 'En línea' ELSE 'Tienda' END AS canal,\n       COUNT(*) AS pedidos\nFROM pedidos\nGROUP BY anio, canal\nORDER BY anio, canal;",
+       "language": "sql"
+      },
+      {
+       "title": "Agrupa por un CASE",
+       "body": "Los rangos de precio del martes se convierten en grupos. Es la forma de responder «¿cuántos productos tenemos en cada rango?» sin contar a mano.",
+       "code": "SELECT CASE\n         WHEN precio < 5000 THEN '1. Económico'\n         WHEN precio < 15000 THEN '2. Medio'\n         ELSE '3. Premium'\n       END AS rango,\n       COUNT(*) AS productos,\n       MIN(precio) AS desde,\n       MAX(precio) AS hasta\nFROM productos\nGROUP BY rango\nORDER BY rango;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Una columna del SELECT muestra un valor que no corresponde al grupo",
+       "cause": "Pusiste en el `SELECT` una columna que no está en el `GROUP BY` ni dentro de un agregado; SQLite elige un valor cualquiera del grupo.",
+       "fix": "Deja en el `SELECT` solo las columnas agrupadas y los agregados."
+      },
+      {
+       "error": "Me sale una fila por cada fila de la tabla",
+       "cause": "Agrupaste por una columna que es distinta en cada fila, como `id` o `fecha`.",
+       "fix": "Agrupa por la categoría que quieres resumir (`provincia_id`, el mes, el estado), no por un identificador."
+      },
+      {
+       "error": "Me sale una sola fila en vez de una por grupo",
+       "cause": "Olvidaste el `GROUP BY` y SQLite resumió toda la tabla.",
+       "fix": "Agrega `GROUP BY` con la columna que pusiste junto al agregado en el `SELECT`."
+      }
+     ]
+    },
+    {
+     "title": "HAVING, WHERE y el orden lógico de ejecución",
+     "concept": "SQL se escribe en un orden, pero **se ejecuta en otro**: `FROM` (de qué tabla) → `WHERE` (qué filas entran) → `GROUP BY` (cómo se agrupan) → `HAVING` (qué grupos se quedan) → `SELECT` (qué columnas se calculan) → `ORDER BY` (cómo se ordena) → `LIMIT` (cuántas se muestran). Este orden explica casi todos los errores con agregados.\n\n`WHERE` filtra **filas antes de agrupar**; por eso no puede usar `COUNT` ni `SUM`, que todavía no existen en ese momento: SQLite responde `misuse of aggregate`. `HAVING` filtra **grupos después de agrupar**, así que sí puede: `HAVING SUM(cantidad) >= 80` deja los productos que vendieron al menos 80 unidades. Si la condición habla de una fila (el estado de un pedido), va en `WHERE`; si habla del resumen de un grupo (cuántos pedidos tiene un cliente), va en `HAVING`. Pueden convivir: `WHERE estado <> 'cancelado' … HAVING COUNT(*) >= 15`.\n\nComo `ORDER BY` se ejecuta después del `SELECT`, puede usar los alias que definiste ahí. En el estándar, `WHERE` y `HAVING` no los conocen porque van antes; SQLite es permisivo y a veces los acepta, pero no te acostumbres: en otros motores falla. En `HAVING`, repite el agregado.",
+     "tip": "Cuando una consulta con `GROUP BY` dé algo raro, léela en el orden de ejecución y pregunta en cada paso cuántas filas o grupos quedan. Casi siempre descubrirás un filtro en el lugar equivocado.",
+     "example": "SELECT cliente_id,\n       COUNT(*) AS pedidos\nFROM pedidos\nWHERE estado <> 'cancelado'\nGROUP BY cliente_id\nHAVING COUNT(*) >= 15\nORDER BY pedidos DESC, cliente_id;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Filtra grupos con HAVING",
+       "body": "Productos con al menos 80 unidades vendidas. La condición habla del total de cada producto, así que va en `HAVING`. Cambia el 80 por 100 y mira cómo se reduce la lista.",
+       "code": "SELECT producto_id, SUM(cantidad) AS unidades\nFROM detalle_pedido\nGROUP BY producto_id\nHAVING SUM(cantidad) >= 80\nORDER BY unidades DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba que WHERE no admite agregados",
+       "body": "Esta consulta está mal a propósito: pone `SUM` en el `WHERE`. Ejecútala en el laboratorio y lee el mensaje `misuse of aggregate function SUM()`. Luego muévela a un `HAVING` después del `GROUP BY`.",
+       "code": "SELECT producto_id, SUM(cantidad) AS unidades\nFROM detalle_pedido\nWHERE SUM(cantidad) >= 80\nGROUP BY producto_id;",
+       "language": "sql",
+       "noRun": true
+      },
+      {
+       "title": "WHERE y HAVING juntos",
+       "body": "Primero `WHERE` descarta los pedidos cancelados (filas); luego se agrupan por cliente; por último `HAVING` deja los clientes con 15 o más pedidos válidos. Quita el `WHERE` y compara: los conteos suben porque ahora también entran los pedidos cancelados.",
+       "code": "SELECT cliente_id, COUNT(*) AS pedidos\nFROM pedidos\nWHERE estado <> 'cancelado'\nGROUP BY cliente_id\nHAVING COUNT(*) >= 15\nORDER BY pedidos DESC, cliente_id;\n\nSELECT cliente_id, COUNT(*) AS pedidos\nFROM pedidos\nGROUP BY cliente_id\nHAVING COUNT(*) >= 15\nORDER BY pedidos DESC, cliente_id;",
+       "language": "sql"
+      },
+      {
+       "title": "Sigue el orden lógico paso a paso",
+       "body": "Los comentarios numeran cada cláusula en el orden en que SQLite la ejecuta. Lee la consulta en ese orden: de 420 pedidos, el `WHERE` deja los de 2025 que no se cancelaron, se agrupan por mes, `HAVING` deja los meses con 15 o más, se calculan las columnas, se ordenan y se muestran los primeros 3.",
+       "code": "SELECT strftime('%m', fecha) AS mes,      -- 5. calcular columnas\n       COUNT(*) AS pedidos\nFROM pedidos                               -- 1. tabla\nWHERE estado <> 'cancelado'                -- 2. filtrar filas\n  AND fecha BETWEEN '2025-01-01' AND '2025-12-31'\nGROUP BY mes                               -- 3. agrupar\nHAVING COUNT(*) >= 15                      -- 4. filtrar grupos\nORDER BY pedidos DESC, mes                 -- 6. ordenar\nLIMIT 3;                                   -- 7. limitar",
+       "language": "sql"
+      },
+      {
+       "title": "Top N con desempate",
+       "body": "Para un ranking, ordena por el agregado y agrega una segunda columna de desempate; así el `LIMIT` no corta un empate al azar. Aquí, los cinco productos con más reseñas.",
+       "code": "SELECT producto_id, COUNT(*) AS resenas, ROUND(AVG(calificacion), 2) AS promedio\nFROM resenas\nGROUP BY producto_id\nORDER BY resenas DESC, producto_id\nLIMIT 5;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "misuse of aggregate function COUNT()",
+       "cause": "Pusiste un agregado en el `WHERE`, que se ejecuta antes de agrupar.",
+       "fix": "Mueve esa condición a `HAVING`, después del `GROUP BY`."
+      },
+      {
+       "error": "near \"GROUP\": syntax error",
+       "cause": "Escribiste `GROUP BY` después de `HAVING` u `ORDER BY`, o antes del `WHERE`.",
+       "fix": "El orden de escritura es `SELECT`, `FROM`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `LIMIT`."
+      },
+      {
+       "error": "El conteo de cada cliente incluye pedidos cancelados",
+       "cause": "Pusiste `estado <> 'cancelado'` en el `HAVING` o lo olvidaste; en `HAVING` solo tiene sentido hablar del grupo.",
+       "fix": "Las condiciones sobre filas van en `WHERE`, antes de agrupar."
+      },
+      {
+       "error": "La consulta funciona en SQLite pero falla en otro motor",
+       "cause": "Usaste un alias del `SELECT` en el `WHERE` o el `HAVING`, algo que SQLite tolera pero el estándar no.",
+       "fix": "Repite la expresión completa en `WHERE` y `HAVING`; usa el alias solo en `ORDER BY`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-23-1",
+     "title": "Clientes por provincia",
+     "prompt": "Mercadeo quiere saber dónde están sus clientes. Muestra el `provincia_id` y la cantidad de clientes de cada provincia, en ese orden.",
+     "hint": "Una fila por provincia: `GROUP BY provincia_id` con `COUNT(*)`.",
+     "solution": "SELECT provincia_id, COUNT(*) AS clientes\nFROM clientes\nGROUP BY provincia_id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-23-2",
+     "title": "Métodos de pago por año",
+     "prompt": "Finanzas compara cómo pagan los clientes en 2025 y en 2026. Muestra el año (como lo da `strftime('%Y', fecha)`), el `metodo_pago` y la cantidad de pedidos de cada combinación, en ese orden.",
+     "hint": "Agrupa por dos expresiones: el año y el método de pago.",
+     "solution": "SELECT strftime('%Y', fecha) AS anio, metodo_pago, COUNT(*) AS pedidos\nFROM pedidos\nGROUP BY anio, metodo_pago;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-23-3",
+     "title": "Productos estrella",
+     "prompt": "Bodega quiere asegurar inventario de los productos que más se venden. Muestra el `producto_id` y el total de unidades vendidas de los productos que han vendido al menos 80 unidades, en ese orden.",
+     "hint": "Agrupa `detalle_pedido` por producto y filtra el grupo con `HAVING SUM(cantidad) >= 80`.",
+     "solution": "SELECT producto_id, SUM(cantidad) AS unidades\nFROM detalle_pedido\nGROUP BY producto_id\nHAVING SUM(cantidad) >= 80;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-23-4",
+     "title": "Clientes frecuentes",
+     "prompt": "El programa de lealtad premiará a los clientes con al menos 12 pedidos no cancelados. Muestra el `cliente_id` y la cantidad de esos pedidos, ordenados de mayor a menor cantidad y, si empatan, por `cliente_id`.",
+     "hint": "La condición sobre el estado va en `WHERE`; la condición sobre la cantidad, en `HAVING`.",
+     "solution": "SELECT cliente_id, COUNT(*) AS pedidos\nFROM pedidos\nWHERE estado <> 'cancelado'\nGROUP BY cliente_id\nHAVING COUNT(*) >= 12\nORDER BY pedidos DESC, cliente_id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-23-5",
+     "title": "Margen por categoría",
+     "prompt": "La gerente quiere comparar la rentabilidad de cada categoría considerando solo los productos activos. Muestra el `categoria_id`, la cantidad de productos activos y el margen porcentual promedio (`(precio - costo) * 100.0 / precio`) redondeado a 1 decimal, solo de las categorías con al menos 5 productos activos, ordenadas de mayor a menor margen.",
+     "hint": "`WHERE activo = 1`, `GROUP BY categoria_id`, `HAVING COUNT(*) >= 5`. Dentro del `AVG` va la expresión del margen con `100.0`.",
+     "solution": "SELECT categoria_id,\n       COUNT(*) AS productos,\n       ROUND(AVG((precio - costo) * 100.0 / precio), 1) AS margen\nFROM productos\nWHERE activo = 1\nGROUP BY categoria_id\nHAVING COUNT(*) >= 5\nORDER BY margen DESC;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-23-6",
+     "title": "Meses fuertes de 2025",
+     "prompt": "Para planear la temporada, el jefe de ventas quiere los meses de 2025 con al menos 15 pedidos no cancelados. Muestra el mes (como lo da `strftime('%m', fecha)`) y la cantidad de pedidos, ordenados de mayor a menor cantidad y, si empatan, por mes.",
+     "hint": "En `WHERE` van dos condiciones sobre las filas (año y estado); en `HAVING`, la del conteo.",
+     "solution": "SELECT strftime('%m', fecha) AS mes, COUNT(*) AS pedidos\nFROM pedidos\nWHERE estado <> 'cancelado'\n  AND fecha BETWEEN '2025-01-01' AND '2025-12-31'\nGROUP BY mes\nHAVING COUNT(*) >= 15\nORDER BY pedidos DESC, mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Los productos mejor y peor calificados",
+    "description": "Con las reseñas escritas hasta el 30 de septiembre de 2026, arma un reporte por producto con: `producto_id`, cantidad de reseñas, calificación promedio redondeada a 2 decimales y porcentaje de reseñas de 4 o 5 estrellas con 1 decimal. Incluye solo los productos con al menos 10 reseñas y ordénalos del mejor al peor promedio (desempate por `producto_id`). Escribe en un comentario qué producto revisarías primero y por qué.",
+    "hint": "El porcentaje es un conteo condicional dividido entre el total del grupo: `SUM(CASE WHEN calificacion >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*)`. La fecha va en `WHERE`; el mínimo de reseñas, en `HAVING`.",
+    "solution": "SELECT producto_id,\n       COUNT(*) AS resenas,\n       ROUND(AVG(calificacion), 2) AS promedio,\n       ROUND(SUM(CASE WHEN calificacion >= 4 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS pct_buenas\nFROM resenas\nWHERE fecha <= '2026-09-30'\nGROUP BY producto_id\nHAVING COUNT(*) >= 10\nORDER BY promedio DESC, producto_id;\n-- El producto 22 tiene 20 reseñas y un promedio de 1.9: es el primero que hay que revisar.",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "GROUP BY",
+     "definition": "Cláusula que divide las filas en grupos según los valores de una o varias columnas y calcula los agregados de cada grupo."
+    },
+    {
+     "term": "HAVING",
+     "definition": "Cláusula que filtra grupos después del `GROUP BY`; puede usar agregados como `COUNT(*)`."
+    },
+    {
+     "term": "orden lógico de ejecución",
+     "definition": "El orden en que SQL procesa una consulta: FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY, LIMIT."
+    },
+    {
+     "term": "columna suelta",
+     "definition": "Columna del `SELECT` que no está en el `GROUP BY` ni dentro de un agregado; su valor en cada grupo es arbitrario."
+    },
+    {
+     "term": "misuse of aggregate",
+     "definition": "Error de SQLite que aparece al usar una función de agregación donde no se permite, como en el `WHERE`."
+    },
+    {
+     "term": "desempate",
+     "definition": "Segunda columna en el `ORDER BY` que decide el orden cuando la primera tiene valores iguales."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: la sentencia SELECT (GROUP BY y HAVING)",
+     "url": "https://www.sqlite.org/lang_select.html"
+    },
+    {
+     "title": "SQLBolt: orden de ejecución de una consulta",
+     "url": "https://sqlbolt.com/lesson/select_queries_order_of_execution"
+    },
+    {
+     "title": "SQLite Tutorial: GROUP BY",
+     "url": "https://www.sqlitetutorial.net/sqlite-group-by/"
+    },
+    {
+     "title": "SQLite Tutorial: HAVING",
+     "url": "https://www.sqlitetutorial.net/sqlite-having/"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿En qué orden ejecuta SQLite estas cláusulas?",
+     "code": "",
+     "options": [
+      "SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY",
+      "FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY",
+      "FROM → GROUP BY → WHERE → SELECT → HAVING → ORDER BY",
+      "FROM → SELECT → WHERE → GROUP BY → ORDER BY → HAVING"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ese es el orden en que se escribe, no en el que se ejecuta.",
+      "Correcto: primero se eligen y filtran las filas, después se agrupan y filtran los grupos, luego se calculan las columnas y al final se ordena.",
+      "No: el `WHERE` va antes de agrupar; por eso no puede usar agregados.",
+      "No: el `SELECT` se calcula después de agrupar, y `HAVING` va antes del `ORDER BY`."
+     ],
+     "explanation": "El orden lógico es FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. De ahí salen las reglas: `WHERE` no ve agregados y `ORDER BY` sí ve los alias del `SELECT`.",
+     "hint": "Piensa en qué necesita existir antes de cada paso."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta? Escribe el estado y el número separados por coma.",
+     "code": "SELECT estado, COUNT(*)\nFROM pedidos\nGROUP BY estado\nHAVING COUNT(*) > 100;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "entregado, 376",
+      "entregado 376",
+      "entregado | 376"
+     ],
+     "optionFeedback": [],
+     "explanation": "Solo el grupo de pedidos entregados supera los 100: tiene 376. Los demás estados tienen 33 o menos.",
+     "hint": "La gran mayoría de los pedidos ya llegaron a su destino."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT COUNT(*) AS clientes\nFROM clientes\nGROUP BY provincia_id\nORDER BY clientes DESC\nLIMIT 1;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "22"
+     ],
+     "optionFeedback": [],
+     "explanation": "Se cuenta cuántos clientes hay por provincia, se ordenan de mayor a menor y se muestra el primero: San José, con 22 clientes.",
+     "hint": "Es la provincia más poblada del país."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Esta consulta es válida: `SELECT cliente_id FROM pedidos WHERE COUNT(*) > 10 GROUP BY cliente_id;`",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `WHERE` se ejecuta antes de agrupar y no puede usar `COUNT`; SQLite responde `misuse of aggregate`.",
+      "Correcto: la condición sobre el conteo debe ir en `HAVING COUNT(*) > 10`, después del `GROUP BY`."
+     ],
+     "explanation": "Los agregados se calculan al agrupar, y `WHERE` ocurre antes. Las condiciones sobre agregados van en `HAVING`.",
+     "hint": "Recuerda el orden lógico de ejecución."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Por qué `ORDER BY pedidos DESC` puede usar el alias `pedidos` definido en el `SELECT`?",
+     "code": "",
+     "options": [
+      "Porque los alias valen en cualquier cláusula",
+      "Porque `ORDER BY` se ejecuta después del `SELECT`",
+      "Porque `pedidos` también es el nombre de la tabla",
+      "Porque SQLite ordena antes de calcular las columnas"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: en el estándar, `WHERE` y `HAVING` no conocen los alias porque van antes del `SELECT`.",
+      "Correcto: cuando se ordena, las columnas del `SELECT` ya existen con sus nombres.",
+      "No: es una coincidencia; con cualquier otro alias funcionaría igual.",
+      "No: es al revés, primero se calculan las columnas y después se ordena."
+     ],
+     "explanation": "En el orden lógico, `SELECT` va antes de `ORDER BY`, así que el alias ya existe cuando se ordena.",
+     "hint": "¿Qué se ejecuta primero, el `SELECT` o el `ORDER BY`?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Al agrupar `pedidos` por `empleado_id`, los pedidos en línea (con `empleado_id` NULL) forman su propio grupo.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `GROUP BY` junta todos los `NULL` en un grupo; aquí son los 177 pedidos en línea.",
+      "No: los `NULL` no se descartan al agrupar; forman un grupo propio."
+     ],
+     "explanation": "Aunque `NULL = NULL` no es verdadero en un `WHERE`, `GROUP BY` trata todos los `NULL` como un mismo grupo.",
+     "hint": "Recuerda el paso del tema 1 donde agrupaste por canal."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál consulta da los productos con más de 100 unidades vendidas, contando solo líneas sin descuento?",
+     "code": "",
+     "options": [
+      "SELECT producto_id, SUM(cantidad) FROM detalle_pedido GROUP BY producto_id HAVING descuento = 0 AND SUM(cantidad) > 100;",
+      "SELECT producto_id, SUM(cantidad) FROM detalle_pedido WHERE SUM(cantidad) > 100 AND descuento = 0 GROUP BY producto_id;",
+      "SELECT producto_id, SUM(cantidad) FROM detalle_pedido WHERE descuento = 0 GROUP BY producto_id HAVING SUM(cantidad) > 100;",
+      "SELECT producto_id, SUM(cantidad) FROM detalle_pedido WHERE descuento = 0 HAVING SUM(cantidad) > 100;"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el descuento es de cada línea, no del grupo; en `HAVING` no tiene un valor único por producto.",
+      "No: `WHERE` no admite agregados.",
+      "Correcto: la condición de fila va en `WHERE` y la del total del grupo en `HAVING`.",
+      "No: falta el `GROUP BY`, así que no hay un total por producto."
+     ],
+     "explanation": "Cada condición va donde corresponde: `descuento = 0` describe una fila y va en `WHERE`; `SUM(cantidad) > 100` describe un grupo y va en `HAVING`.",
+     "hint": "Separa la condición que habla de una línea de la que habla del total."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para mostrar solo las provincias con más de 10 clientes.",
+     "code": "SELECT provincia_id, COUNT(*) AS clientes\nFROM clientes\nGROUP BY provincia_id\n___ COUNT(*) > 10;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "HAVING"
+     ],
+     "optionFeedback": [],
+     "explanation": "`HAVING` filtra los grupos después de agruparlos y puede usar `COUNT(*)`. Quedan San José, Alajuela y Cartago.",
+     "hint": "No puede ser `WHERE`, porque la condición usa un agregado."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-10-24",
+  "kind": "weekly",
+  "path": "Laboratorio SQL",
+  "description": "Reportes de la semana 2: la gerente de la Tienda Pura Vida necesita un paquete de reportes para su reunión mensual: diez preguntas de negocio que se responden con columnas calculadas, CASE, fechas, agregados y GROUP BY, y que se califican solas en el laboratorio. Al final redactas una conclusión con lo que descubriste en los datos, como la escribirías para alguien que no sabe SQL.",
+  "criteria": [
+   "Los 10 ejercicios del informe están resueltos en el laboratorio y el calificador los marca como correctos.",
+   "Cada consulta devuelve exactamente las columnas pedidas, en el orden pedido, y con el redondeo indicado.",
+   "Los porcentajes y promedios no caen en la división entera y las fechas se calculan con la referencia `'2026-09-30'`, nunca con `date('now')`.",
+   "Las condiciones sobre filas están en `WHERE` y las condiciones sobre grupos en `HAVING`.",
+   "La conclusión escrita tiene entre 150 y 300 palabras, cita al menos cuatro cifras obtenidas en los ejercicios y propone al menos una acción concreta para la tienda."
+  ],
+  "steps": [
+   "Lee los 10 enunciados completos antes de escribir una sola consulta y marca, para cada uno, qué tabla usa y si necesita `GROUP BY`.",
+   "Para cada ejercicio, completa la frase «quiero una fila por cada…» (o «una sola fila» si no hay agrupación) antes de escribir el `SELECT`.",
+   "Escribe la consulta por partes: primero el `FROM` y el `WHERE` con `SELECT *` y `LIMIT`, luego el `GROUP BY` y por último las columnas calculadas y el `ORDER BY`.",
+   "Compara el número de filas que obtienes con lo que esperas por sentido común (por ejemplo, 7 días de la semana o 9 meses de 2026) antes de enviar a calificar.",
+   "Cuando un ejercicio no pase, revisa en este orden: columnas y su orden, redondeo, división entera, filtro de fechas y lugar de cada condición (`WHERE` o `HAVING`).",
+   "Anota en un papel o un archivo de notas las cifras más llamativas de cada resultado mientras avanzas; las necesitarás para la conclusión.",
+   "Redacta la conclusión: qué está pasando en la tienda, qué cifras lo muestran y qué harías tú como analista."
+  ],
+  "tips": [
+   "Si un ejercicio pide un orden, incluye siempre el desempate que indica el enunciado; sin él, el calificador puede marcarlo mal aunque los números sean correctos.",
+   "Copia la fórmula de la edad y la del margen de los días anteriores en vez de reescribirlas de memoria: es donde más se cuelan los paréntesis mal puestos.",
+   "En la conclusión, escribe para la gerente: frases cortas, cifras redondeadas y una recomendación. Nada de nombres de columnas ni de código."
+  ],
+  "stretch": "Agrega a tu conclusión una consulta propia, que no esté en el informe, que responda una pregunta que te haya surgido al ver los datos (por ejemplo, si los clientes jóvenes prefieren SINPE o tarjeta, o qué día de la semana se cancelan más pedidos), con su resultado y una frase que lo interprete.",
+  "checklist": [
+   "Los 10 ejercicios aparecen como correctos en el laboratorio.",
+   "Ninguna consulta usa `date('now')`, `CURRENT_DATE` ni `random()`.",
+   "Todos los porcentajes usan `100.0` o `CAST` para evitar la división entera.",
+   "Revisé que ningún `SELECT` con `GROUP BY` tenga columnas sueltas.",
+   "La conclusión cita al menos cuatro cifras, propone una acción y no tiene faltas de ortografía."
+  ],
+  "exercises": [
+   {
+    "id": "s02-1",
+    "title": "Directorio de Heredia",
+    "prompt": "Servicio al cliente va a llamar a los clientes de Heredia (`provincia_id` 4). Muestra el nombre completo (nombre, espacio y apellido), el teléfono o el texto `sin teléfono` si no tiene, y la edad en años completos al 30 de septiembre de 2026, en ese orden. Si un cliente no tiene fecha de nacimiento, su edad queda en `NULL`.",
+    "hint": "La edad es `CAST((julianday('2026-09-30') - julianday(fecha_nacimiento)) / 365.25 AS INTEGER)`; con fecha `NULL` da `NULL` sola.",
+    "solution": "SELECT nombre || ' ' || apellido AS cliente,\n       COALESCE(telefono, 'sin teléfono') AS telefono,\n       CAST((julianday('2026-09-30') - julianday(fecha_nacimiento)) / 365.25 AS INTEGER) AS edad\nFROM clientes\nWHERE provincia_id = 4;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s02-2",
+    "title": "Precios finales de Tecnología",
+    "prompt": "Para la nueva lista de precios de Tecnología (`categoria_id` 7), muestra de los productos activos el `nombre`, el precio con IVA del 13 % redondeado a colones enteros y el margen porcentual redondeado a 1 decimal, ordenados de mayor a menor por ese margen redondeado y, si empatan, por nombre.",
+    "hint": "Margen: `(precio - costo) * 100.0 / precio`. Ordena por el alias del margen redondeado.",
+    "solution": "SELECT nombre,\n       ROUND(precio * 1.13) AS precio_con_iva,\n       ROUND((precio - costo) * 100.0 / precio, 1) AS margen\nFROM productos\nWHERE categoria_id = 7 AND activo = 1\nORDER BY margen DESC, nombre;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s02-3",
+    "title": "Clientes por rango de edad",
+    "prompt": "Mercadeo quiere conocer la edad de su clientela. Clasifica a cada cliente según su edad en años completos al 30 de septiembre de 2026: `18 a 29`, `30 a 44`, `45 a 59`, `60 o más`, y `Sin dato` si no tiene fecha de nacimiento. Muestra el rango y la cantidad de clientes de cada uno, en ese orden.",
+    "hint": "Un `CASE` que primero pregunte `fecha_nacimiento IS NULL` y después compare la edad con 30, 45 y 60. Agrupa por ese `CASE` (puedes usar su alias).",
+    "solution": "SELECT CASE\n         WHEN fecha_nacimiento IS NULL THEN 'Sin dato'\n         WHEN CAST((julianday('2026-09-30') - julianday(fecha_nacimiento)) / 365.25 AS INTEGER) < 30 THEN '18 a 29'\n         WHEN CAST((julianday('2026-09-30') - julianday(fecha_nacimiento)) / 365.25 AS INTEGER) < 45 THEN '30 a 44'\n         WHEN CAST((julianday('2026-09-30') - julianday(fecha_nacimiento)) / 365.25 AS INTEGER) < 60 THEN '45 a 59'\n         ELSE '60 o más'\n       END AS rango,\n       COUNT(*) AS clientes\nFROM clientes\nGROUP BY rango;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s02-4",
+    "title": "Pedidos por día de la semana",
+    "prompt": "¿Qué día de la semana se vende más? Considerando solo los pedidos no cancelados, muestra el número de día que da `strftime('%w', fecha)`, el nombre del día en español en minúsculas (`domingo`, `lunes`, `martes`, `miércoles`, `jueves`, `viernes`, `sábado`) y la cantidad de pedidos, ordenados por el número de día.",
+    "hint": "Agrupa por `strftime('%w', fecha)`. El nombre sale de un `CASE` sobre esa misma expresión, así que no es una columna suelta.",
+    "solution": "SELECT strftime('%w', fecha) AS num_dia,\n       CASE strftime('%w', fecha)\n         WHEN '0' THEN 'domingo' WHEN '1' THEN 'lunes' WHEN '2' THEN 'martes'\n         WHEN '3' THEN 'miércoles' WHEN '4' THEN 'jueves' WHEN '5' THEN 'viernes'\n         ELSE 'sábado'\n       END AS dia,\n       COUNT(*) AS pedidos\nFROM pedidos\nWHERE estado <> 'cancelado'\nGROUP BY num_dia\nORDER BY num_dia;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s02-5",
+    "title": "Balance de pedidos de 2026",
+    "prompt": "Para abrir la reunión, la gerente quiere una sola fila con los pedidos hechos en 2026: total de pedidos, cuántos se cancelaron, el porcentaje de cancelados redondeado a 1 decimal y cuántos clientes distintos compraron, en ese orden.",
+    "hint": "Cuenta los cancelados con `SUM(CASE …)` y calcula el porcentaje con `100.0` para no caer en la división entera.",
+    "solution": "SELECT COUNT(*) AS pedidos,\n       SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados,\n       ROUND(SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS pct_cancelados,\n       COUNT(DISTINCT cliente_id) AS clientes\nFROM pedidos\nWHERE fecha >= '2026-01-01';",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s02-6",
+    "title": "Métodos de pago y envíos",
+    "prompt": "Finanzas revisa los envíos según el método de pago, considerando todos los pedidos. Muestra el `metodo_pago`, la cantidad de pedidos, el total cobrado por envíos y el envío promedio solo de los pedidos que sí pagaron envío (mayor que 0) redondeado a colones enteros, en ese orden. Si un método nunca cobró envío, su promedio queda en `NULL`.",
+    "hint": "`AVG(NULLIF(costo_envio, 0))` ignora los envíos de 0.",
+    "solution": "SELECT metodo_pago,\n       COUNT(*) AS pedidos,\n       SUM(costo_envio) AS envios,\n       ROUND(AVG(NULLIF(costo_envio, 0))) AS envio_promedio\nFROM pedidos\nGROUP BY metodo_pago;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s02-7",
+    "title": "Productos que más facturan",
+    "prompt": "Sobre todas las líneas de `detalle_pedido`, muestra el `producto_id`, las unidades vendidas y las ventas netas (`cantidad * precio_unitario * (1 - descuento)`) redondeadas a colones enteros, solo de los productos con ventas netas de al menos ₡800 000, ordenados de mayor a menor venta neta.",
+    "hint": "La condición sobre las ventas del producto va en `HAVING` y usa la suma, no cada línea.",
+    "solution": "SELECT producto_id,\n       SUM(cantidad) AS unidades,\n       ROUND(SUM(cantidad * precio_unitario * (1 - descuento))) AS ventas\nFROM detalle_pedido\nGROUP BY producto_id\nHAVING SUM(cantidad * precio_unitario * (1 - descuento)) >= 800000\nORDER BY ventas DESC;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s02-8",
+    "title": "Los clientes más fieles",
+    "prompt": "El programa de lealtad quiere el historial de sus mejores clientes. Considerando solo pedidos no cancelados, muestra el `cliente_id`, la cantidad de pedidos, la fecha de su primer pedido, la de su último pedido y los días entre ambos (entero), solo de los clientes con al menos 14 pedidos, ordenados de mayor a menor cantidad de pedidos y, si empatan, por `cliente_id`.",
+    "hint": "`MIN(fecha)` y `MAX(fecha)` dan el primer y el último pedido; los días son la resta de sus `julianday`, convertida con `CAST`.",
+    "solution": "SELECT cliente_id,\n       COUNT(*) AS pedidos,\n       MIN(fecha) AS primero,\n       MAX(fecha) AS ultimo,\n       CAST(julianday(MAX(fecha)) - julianday(MIN(fecha)) AS INTEGER) AS dias\nFROM pedidos\nWHERE estado <> 'cancelado'\nGROUP BY cliente_id\nHAVING COUNT(*) >= 14\nORDER BY pedidos DESC, cliente_id;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s02-9",
+    "title": "Pedidos mes a mes en 2026",
+    "prompt": "Para ver la tendencia del año, muestra por cada mes de 2026 el mes (como lo da `strftime('%m', fecha)`), la cantidad total de pedidos, cuántos de ellos fueron en línea (sin `empleado_id`) y el total cobrado por envíos, ordenados por mes.",
+    "hint": "Todos los pedidos de 2026, sin descartar cancelados. Los pedidos en línea se cuentan con `SUM(CASE WHEN empleado_id IS NULL THEN 1 ELSE 0 END)`.",
+    "solution": "SELECT strftime('%m', fecha) AS mes,\n       COUNT(*) AS pedidos,\n       SUM(CASE WHEN empleado_id IS NULL THEN 1 ELSE 0 END) AS en_linea,\n       SUM(costo_envio) AS envios\nFROM pedidos\nWHERE fecha >= '2026-01-01'\nGROUP BY mes\nORDER BY mes;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s02-10",
+    "title": "Radiografía por departamento",
+    "prompt": "Recursos humanos prepara el presupuesto de 2027. Por cada departamento, muestra el `departamento`, la cantidad de empleados, el salario promedio redondeado a colones enteros y la antigüedad promedio en años al 30 de septiembre de 2026 redondeada a 1 decimal (calcula la antigüedad de cada empleado como `(julianday('2026-09-30') - julianday(fecha_ingreso)) / 365.25`, sin convertirla a entero), ordenados de mayor a menor salario promedio.",
+    "hint": "Dentro del `AVG` va la expresión completa de la antigüedad; el `ROUND` va afuera.",
+    "solution": "SELECT departamento,\n       COUNT(*) AS empleados,\n       ROUND(AVG(salario)) AS salario_promedio,\n       ROUND(AVG((julianday('2026-09-30') - julianday(fecha_ingreso)) / 365.25), 1) AS antiguedad\nFROM empleados\nGROUP BY departamento\nORDER BY salario_promedio DESC;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   }
+  ]
+ }
+}

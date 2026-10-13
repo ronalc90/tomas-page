@@ -1,0 +1,2167 @@
+{
+ "id": "s03",
+ "number": 3,
+ "phaseId": 1,
+ "title": "Unir tablas",
+ "rangeLabel": "26 oct – 31 oct",
+ "days": [
+  {
+   "date": "2026-10-26",
+   "kind": "workshop",
+   "title": "Relaciones e INNER JOIN",
+   "summary": "Descubres cómo se conectan las 8 tablas de la Tienda y escribes tus primeras consultas que combinan dos tablas con INNER JOIN.",
+   "objectives": [
+    "Identificar la clave primaria y las claves foráneas de cada tabla de la Tienda usando el mapa de relaciones.",
+    "Explicar con un ejemplo de la Tienda qué es una relación uno a muchos y qué hace una tabla puente.",
+    "Escribir consultas con INNER JOIN ... ON que unan dos tablas usando alias de tabla.",
+    "Evitar el error de columna ambigua calificando cada columna con su alias.",
+    "Combinar un JOIN con WHERE, GROUP BY y HAVING para responder una pregunta de negocio."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: claves primarias, foráneas y el mapa de la Tienda",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: INNER JOIN ... ON y alias de tabla",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Claves primarias y foráneas",
+     "concept": "Hasta ahora consultaste una tabla a la vez. Pero la Tienda no guarda el nombre del cliente dentro de cada pedido: en `pedidos` solo aparece `cliente_id = 28`. El nombre vive una sola vez en `clientes`, en la fila cuyo `id` es 28. Así trabaja una base de datos **relacional**: cada dato se guarda en un solo lugar y las tablas se conectan con números.\n\nLa **clave primaria** identifica cada fila sin repetirse; en las 8 tablas de la Tienda es la columna `id`. La **clave foránea** es una columna que guarda la clave primaria de otra tabla: `pedidos.cliente_id` apunta a `clientes.id` y `productos.categoria_id` apunta a `categorias.id`. La Tienda tiene 9 claves foráneas y todas terminan en `_id`.\n\nCasi todas forman relaciones **uno a muchos**: un cliente tiene muchos pedidos, pero cada pedido es de un solo cliente. Por eso la foránea vive en el lado de los muchos. `detalle_pedido` es una tabla puente: une pedidos con productos, porque un pedido trae varios productos y un producto aparece en muchos pedidos. `resenas` hace lo mismo entre clientes y productos, y `empleados.jefe_id` apunta a la misma tabla `empleados`. El ejemplo de abajo es el mapa que usarás toda la semana.",
+     "tip": "Antes de escribir una consulta con varias tablas, ubica en el mapa dónde está cada columna que necesitas y qué líneas las unen. Si no encuentras el camino en el mapa, la consulta tampoco lo va a encontrar.",
+     "example": "-- Mapa de la Tienda Pura Vida: 8 tablas y 9 claves foráneas.\n-- Cada línea une una clave foránea (lado N, «muchos») con la clave\n-- primaria id de otra tabla (lado 1, «uno»).\n--\n--                     provincias\n--                         1\n--                         |\n--                         N\n--   resenas N-------1 clientes 1-------N pedidos N-------1 empleados 1--+\n--      N                                  1                   N         |\n--      |                                  |                   +---------+\n--      1                                  N                   (jefe_id)\n--   productos 1-----------------------N detalle_pedido\n--      N\n--      |\n--      1\n--   categorias\n--\n-- Las 9 claves foráneas (foránea -> primaria):\n--   clientes.provincia_id      -> provincias.id\n--   pedidos.cliente_id         -> clientes.id\n--   pedidos.empleado_id        -> empleados.id  (NULL = compra en línea)\n--   empleados.jefe_id          -> empleados.id  (la misma tabla)\n--   detalle_pedido.pedido_id   -> pedidos.id\n--   detalle_pedido.producto_id -> productos.id\n--   productos.categoria_id     -> categorias.id\n--   resenas.cliente_id         -> clientes.id\n--   resenas.producto_id        -> productos.id\n\nSELECT id, cliente_id, empleado_id, fecha, estado\nFROM pedidos\nWHERE id = 1;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Comprueba la clave primaria",
+       "body": "Una clave primaria no se repite. Compruébalo: si el número de filas de `clientes` es igual al número de valores distintos de `id`, cada `id` identifica a un solo cliente. Prueba lo mismo con `pedidos`.",
+       "code": "SELECT COUNT(*) AS filas, COUNT(DISTINCT id) AS ids_distintos\nFROM clientes;",
+       "language": "sql"
+      },
+      {
+       "title": "Lista las claves foráneas de una tabla",
+       "body": "SQLite guarda las relaciones en el esquema y `pragma_foreign_key_list` te las muestra. Mira las columnas `from` (la foránea), `table` (la tabla a la que apunta) y `to` (su clave primaria). Cambia `'pedidos'` por `'detalle_pedido'` o `'resenas'` y compara con el mapa.",
+       "code": "SELECT \"from\", \"table\", \"to\"\nFROM pragma_foreign_key_list('pedidos');",
+       "language": "sql"
+      },
+      {
+       "title": "Sigue una clave a mano",
+       "body": "El pedido 1 dice `cliente_id = 28` y `empleado_id = 8`. Busca esos números en sus tablas: así descubres que lo compró María Jiménez y lo atendió Yorleny Cascante. Esto es lo que el JOIN hará por ti en una sola consulta.",
+       "code": "SELECT id, nombre, apellido FROM clientes WHERE id = 28;\nSELECT id, nombre, apellido, puesto FROM empleados WHERE id = 8;",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba el uno a muchos",
+       "body": "Un cliente puede aparecer en muchos pedidos. Agrupa por la foránea y cuenta: la cliente 72 tiene 32 pedidos y la 28 solo 2. Al revés no pasa: cada pedido tiene un único `cliente_id`.",
+       "code": "SELECT cliente_id, COUNT(*) AS pedidos\nFROM pedidos\nWHERE cliente_id IN (28, 72)\nGROUP BY cliente_id;",
+       "language": "sql"
+      },
+      {
+       "title": "Mira la tabla puente",
+       "body": "En `detalle_pedido` cada fila es una línea de un pedido. El pedido 1 tiene tres líneas, una por producto. Y el producto 1 (Café molido Tarrazú) aparece en 80 pedidos distintos. Por eso la relación pedidos y productos necesita esta tabla en el medio.",
+       "code": "SELECT pedido_id, producto_id, cantidad, precio_unitario\nFROM detalle_pedido\nWHERE pedido_id = 1;\nSELECT COUNT(DISTINCT pedido_id) AS pedidos_con_tarrazu\nFROM detalle_pedido\nWHERE producto_id = 1;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "no such column: nombre",
+       "cause": "Escribiste `SELECT nombre FROM pedidos` esperando ver el nombre del cliente, pero `pedidos` solo guarda el número `cliente_id`.",
+       "fix": "El nombre está en otra tabla. Ubícala en el mapa y únela con un JOIN (Tema 2)."
+      },
+      {
+       "error": "Confundir `pedidos.id` con `pedidos.cliente_id`",
+       "cause": "Las dos son números en la misma fila, pero `id` identifica el pedido y `cliente_id` dice de quién es.",
+       "fix": "Lee la foránea en voz alta: «cliente_id es el id del cliente que hizo este pedido». Cada columna `_id` apunta a otra tabla."
+      },
+      {
+       "error": "Poner la foránea en el lado equivocado",
+       "cause": "Se piensa que `clientes` debería tener una columna `pedido_id`, pero un cliente tiene muchos pedidos y una celda guarda un solo valor.",
+       "fix": "La foránea va en el lado de los muchos: cada pedido guarda el `cliente_id` de su único cliente."
+      },
+      {
+       "error": "Hacer cálculos con los id",
+       "cause": "Se suma o promedia `cliente_id`, o se supone que los id van seguidos y sin huecos.",
+       "fix": "Un id es una etiqueta, no una cantidad. Solo se compara (`=`) o se cuenta; nunca se suma."
+      }
+     ]
+    },
+    {
+     "title": "INNER JOIN ... ON y alias de tabla",
+     "concept": "`JOIN` combina dos tablas en un solo resultado emparejando sus filas. En `FROM pedidos p JOIN clientes c ON c.id = p.cliente_id`, SQLite toma cada pedido, busca el cliente cuyo `id` es igual al `cliente_id` del pedido y arma una fila con las columnas de ambos. La condición después de `ON` casi siempre compara una foránea con la primaria a la que apunta: es seguir una línea del mapa.\n\n`INNER JOIN` y `JOIN` son lo mismo: solo aparecen las filas que encuentran pareja. Si unes `clientes` con `pedidos`, los clientes que nunca compraron desaparecen del resultado (el miércoles aprenderás a conservarlos).\n\nLas letras `p` y `c` son **alias de tabla**: apodos que se escriben después del nombre de la tabla. Son casi obligatorios porque varias tablas comparten nombres de columna: `id` está en las 8 tablas y `nombre` en cinco. Si escribes `nombre` a secas, SQLite responde `ambiguous column name: nombre`. Escribe siempre `alias.columna` y renombra lo repetido: `pr.nombre AS producto, cat.nombre AS categoria`.\n\nDespués del JOIN todo lo que ya sabes sigue igual: WHERE, GROUP BY, HAVING y ORDER BY trabajan sobre las filas combinadas.",
+     "tip": "Usa siempre los mismos alias: `c` clientes, `p` pedidos, `dp` detalle_pedido, `pr` productos, `cat` categorias, `e` empleados, `pv` provincias y `r` resenas. Así tus consultas se leen de un vistazo y el ON delata el camino: `dp.producto_id = pr.id`.",
+     "example": "SELECT p.id AS pedido, p.fecha, c.nombre, c.apellido, p.estado\nFROM pedidos p\nJOIN clientes c ON c.id = p.cliente_id\nWHERE p.fecha >= '2026-09-25'\nORDER BY p.fecha, p.id;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Tu primer JOIN",
+       "body": "Une `productos` con `categorias` para ver cada producto junto al nombre de su categoría. La foránea `pr.categoria_id` se compara con la primaria `cat.id`. Fíjate en los alias de columna: sin ellos verías dos columnas llamadas `nombre`.",
+       "code": "SELECT pr.nombre AS producto, cat.nombre AS categoria, pr.precio\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id\nORDER BY pr.id\nLIMIT 8;",
+       "language": "sql"
+      },
+      {
+       "title": "Cuenta las filas del resultado",
+       "body": "Cada producto tiene exactamente una categoría, así que el JOIN devuelve 42 filas, las mismas que `productos`. La categoría «Libros» no aparece: no tiene productos y el INNER JOIN solo deja filas con pareja.",
+       "code": "SELECT COUNT(*) AS filas\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id;",
+       "language": "sql"
+      },
+      {
+       "title": "Provoca el error de ambigüedad",
+       "body": "Ejecuta esta consulta y lee el mensaje: `ambiguous column name: nombre`. SQLite no sabe si hablas del nombre del producto o de la categoría. Corrígela escribiendo `pr.nombre` y vuelve a ejecutarla.",
+       "code": "SELECT nombre, precio\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id;",
+       "language": "sql",
+       "noRun": true
+      },
+      {
+       "title": "Filtra con columnas de la otra tabla",
+       "body": "El WHERE va después de todos los JOIN y puede usar columnas de cualquier tabla unida. Aquí filtras por el nombre de la categoría, que no existe en `productos`, sin tener que averiguar antes que Tecnología es la categoría 7.",
+       "code": "SELECT pr.nombre AS producto, pr.precio\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE cat.nombre = 'Tecnología'\nORDER BY pr.precio DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Agrupa después del JOIN",
+       "body": "Con las tablas unidas puedes agrupar como la semana pasada. Agrupa por `cat.id` (la clave) y muestra `cat.nombre`: así dos categorías con nombre parecido nunca se mezclan. Hay un empate de 7 productos entre Snacks y Tecnología; el segundo criterio del ORDER BY lo resuelve.",
+       "code": "SELECT cat.nombre AS categoria, COUNT(*) AS productos, ROUND(AVG(pr.precio)) AS precio_promedio\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id\nGROUP BY cat.id, cat.nombre\nORDER BY productos DESC, categoria;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "ambiguous column name: id",
+       "cause": "Dos de las tablas unidas tienen una columna `id` y no dijiste de cuál hablas.",
+       "fix": "Antepón el alias: `p.id` para el pedido, `c.id` para el cliente. Con JOIN, pon alias en todas las columnas aunque no se repitan."
+      },
+      {
+       "error": "no such column: productos.nombre",
+       "cause": "Le diste alias a la tabla (`FROM productos pr`) y después usaste el nombre completo. Una vez que la tabla tiene alias, solo se la conoce por él.",
+       "fix": "Usa el alias en toda la consulta: `pr.nombre`."
+      },
+      {
+       "error": "El resultado sale, pero empareja filas que no tienen nada que ver",
+       "cause": "El ON compara columnas equivocadas, por ejemplo `ON cat.id = pr.id`: junta el producto 3 con la categoría 3 aunque no le corresponda.",
+       "fix": "En el ON va la foránea contra la primaria a la que apunta: `cat.id = pr.categoria_id`. Revisa el mapa."
+      },
+      {
+       "error": "Aparecen cientos de filas repetidas",
+       "cause": "Olvidaste el `ON`. Sin condición, SQLite combina cada producto con cada categoría: 42 por 8 dan 336 filas.",
+       "fix": "Escribe siempre el ON junto al JOIN y comprueba con `COUNT(*)` que el tamaño del resultado tiene sentido."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-26-1",
+     "title": "Pedidos de Gabriela",
+     "prompt": "Gabriela Vargas, la cliente con `id` 72, es la que más pedidos ha hecho. Sin usar JOIN, muestra el `id`, la `fecha` y el `estado` de sus pedidos de 2026 (desde el `'2026-01-01'`), en ese orden.",
+     "hint": "La foránea `cliente_id` de `pedidos` guarda el id del cliente: filtra por ella y por la fecha.",
+     "solution": "SELECT id, fecha, estado\nFROM pedidos\nWHERE cliente_id = 72 AND fecha >= '2026-01-01';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-26-2",
+     "title": "Pedidos por vendedor",
+     "prompt": "Ricardo, el jefe de ventas, quiere saber cuántos pedidos atendió cada vendedor. Muestra el `empleado_id` y la cantidad de pedidos, en ese orden, sin incluir las compras en línea (las que tienen `empleado_id` NULL).",
+     "hint": "Agrupa por la foránea `empleado_id` y descarta los NULL con `IS NOT NULL`.",
+     "solution": "SELECT empleado_id, COUNT(*) AS pedidos\nFROM pedidos\nWHERE empleado_id IS NOT NULL\nGROUP BY empleado_id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-26-3",
+     "title": "Productos para la feria",
+     "prompt": "La Tienda va a llevar a una feria artesanal los productos activos (`activo = 1`) de ₡15 000 o más. Muestra el nombre del producto, el nombre de su categoría y el precio, en ese orden.",
+     "hint": "Une `productos pr` con `categorias cat` por `cat.id = pr.categoria_id`. Las dos tablas tienen `nombre`: usa el alias delante.",
+     "solution": "SELECT pr.nombre AS producto, cat.nombre AS categoria, pr.precio\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE pr.activo = 1 AND pr.precio >= 15000;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-26-4",
+     "title": "Clientes de la costa",
+     "prompt": "Se prepara una promoción de envío gratis para las provincias costeras. Muestra el nombre y el apellido de los clientes de Guanacaste, Puntarenas y Limón, y el nombre de su provincia, en ese orden.",
+     "hint": "Une `clientes c` con `provincias pv` y filtra `pv.nombre` con `IN`.",
+     "solution": "SELECT c.nombre, c.apellido, pv.nombre AS provincia\nFROM clientes c\nJOIN provincias pv ON pv.id = c.provincia_id\nWHERE pv.nombre IN ('Guanacaste', 'Puntarenas', 'Limón');",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-26-5",
+     "title": "Cancelaciones de 2026",
+     "prompt": "Servicio al cliente quiere llamar a quienes cancelaron un pedido este año. Muestra el `id` del pedido, su fecha, el nombre y el apellido del cliente y el método de pago, en ese orden, de los pedidos con estado `'cancelado'` desde el `'2026-01-01'`.",
+     "hint": "Une `pedidos p` con `clientes c` por `c.id = p.cliente_id` y pon los dos filtros en el WHERE.",
+     "solution": "SELECT p.id AS pedido, p.fecha, c.nombre, c.apellido, p.metodo_pago\nFROM pedidos p\nJOIN clientes c ON c.id = p.cliente_id\nWHERE p.estado = 'cancelado' AND p.fecha >= '2026-01-01';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-26-6",
+     "title": "Productos más comentados",
+     "prompt": "Para decidir qué productos destacar en la página, la gerente quiere ver los que tienen al menos 8 reseñas. Muestra el nombre del producto, la cantidad de reseñas y la calificación promedio redondeada a 1 decimal, en ese orden.",
+     "hint": "Une `resenas r` con `productos pr`, agrupa por producto y filtra el conteo con `HAVING COUNT(*) >= 8`.",
+     "solution": "SELECT pr.nombre AS producto, COUNT(*) AS resenas, ROUND(AVG(r.calificacion), 1) AS promedio\nFROM resenas r\nJOIN productos pr ON pr.id = r.producto_id\nGROUP BY pr.id, pr.nombre\nHAVING COUNT(*) >= 8;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Las peores reseñas del año",
+    "description": "La gerente quiere leer en persona las reseñas de 1 estrella de 2026. Escribe una consulta que muestre la fecha de la reseña, el nombre del producto, el nombre y el apellido del cliente que la escribió y el comentario, ordenadas por fecha. Necesitas dos JOIN que salen de `resenas`: uno hacia `productos` y otro hacia `clientes`. Después, cuenta cuántas de esas reseñas son del mismo producto y escribe en un comentario qué le recomendarías a la gerente.",
+    "hint": "Empieza en `FROM resenas r`, agrega `JOIN productos pr ON pr.id = r.producto_id` y luego `JOIN clientes c ON c.id = r.cliente_id`. Para la segunda parte agrupa por `pr.nombre`.",
+    "solution": "SELECT r.fecha, pr.nombre AS producto, c.nombre, c.apellido, r.comentario\nFROM resenas r\nJOIN productos pr ON pr.id = r.producto_id\nJOIN clientes c ON c.id = r.cliente_id\nWHERE r.calificacion = 1 AND r.fecha >= '2026-01-01'\nORDER BY r.fecha, r.id;\n\nSELECT pr.nombre AS producto, COUNT(*) AS resenas_de_1\nFROM resenas r\nJOIN productos pr ON pr.id = r.producto_id\nWHERE r.calificacion = 1 AND r.fecha >= '2026-01-01'\nGROUP BY pr.id, pr.nombre\nORDER BY resenas_de_1 DESC;\n-- 5 de las 6 son del Bolso de manta: conviene revisar su calidad o su empaque.",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Base de datos relacional",
+     "definition": "Base de datos que guarda la información en varias tablas conectadas por claves, en lugar de repetir los datos."
+    },
+    {
+     "term": "Clave primaria",
+     "definition": "Columna que identifica cada fila de una tabla sin repetirse ni ser NULL; en la Tienda es `id`."
+    },
+    {
+     "term": "Clave foránea",
+     "definition": "Columna que guarda la clave primaria de otra tabla, como `pedidos.cliente_id`; vive en el lado de los muchos."
+    },
+    {
+     "term": "Uno a muchos",
+     "definition": "Relación en la que una fila de una tabla se conecta con muchas de otra, pero cada una de esas con una sola, como cliente y pedidos."
+    },
+    {
+     "term": "Tabla puente",
+     "definition": "Tabla que conecta otras dos con relación muchos a muchos guardando una foránea hacia cada una, como `detalle_pedido`."
+    },
+    {
+     "term": "INNER JOIN",
+     "definition": "Unión de dos tablas que devuelve solo las filas que encuentran pareja según la condición del ON."
+    },
+    {
+     "term": "Alias de tabla",
+     "definition": "Apodo corto que se da a una tabla en el FROM o el JOIN, como `pedidos p`, para escribir `p.fecha`."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: la sentencia SELECT y sus JOIN",
+     "url": "https://www.sqlite.org/lang_select.html"
+    },
+    {
+     "title": "SQLite: claves foráneas",
+     "url": "https://www.sqlite.org/foreignkeys.html"
+    },
+    {
+     "title": "SQLBolt: consultas con JOIN (en inglés)",
+     "url": "https://sqlbolt.com/lesson/select_queries_with_joins"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Un cliente puede tener muchos pedidos y cada pedido es de un solo cliente. ¿Dónde vive la clave foránea que los relaciona?",
+     "code": "",
+     "options": [
+      "En `clientes`, una columna `pedido_id`",
+      "En `pedidos`, la columna `cliente_id`",
+      "En las dos tablas, para poder unirlas en ambos sentidos",
+      "En una tabla puente `clientes_pedidos`"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: un cliente tiene muchos pedidos y una celda guarda un solo valor; no cabrían.",
+      "Correcto: la foránea va en el lado de los muchos; cada pedido guarda el id de su único cliente.",
+      "No: basta una foránea; el JOIN funciona en los dos sentidos con una sola columna.",
+      "No: las tablas puente son para relaciones muchos a muchos, como pedidos y productos."
+     ],
+     "explanation": "En una relación uno a muchos la foránea se guarda en la tabla de los muchos (`pedidos`), porque cada pedido tiene un solo cliente que referenciar.",
+     "hint": "Piensa en cuál de las dos tablas la referencia cabe en una sola columna."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál es la condición correcta para unir `productos pr` con `categorias cat`?",
+     "code": "",
+     "options": [
+      "ON cat.id = pr.id",
+      "ON cat.nombre = pr.nombre",
+      "ON cat.id = pr.categoria_id",
+      "ON cat.categoria_id = pr.id"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: compara dos claves primarias; juntaría el producto 3 con la categoría 3 sin que tengan relación.",
+      "No: el nombre de un producto no es el de su categoría; los JOIN se hacen por claves.",
+      "Correcto: la foránea `pr.categoria_id` se compara con la primaria `cat.id`.",
+      "No: `categorias` no tiene columna `categoria_id`; daría `no such column`."
+     ],
+     "explanation": "El ON compara la clave foránea de una tabla con la clave primaria a la que apunta.",
+     "hint": "Busca en el mapa qué columna de `productos` apunta a `categorias`."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuántas filas devuelve esta consulta?",
+     "code": "SELECT pr.nombre, cat.nombre\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id;",
+     "options": [
+      "8, una por categoría",
+      "43, porque Libros aparece con NULL",
+      "336, todas las combinaciones",
+      "42, una por producto"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: las categorías con varios productos aparecen varias veces y Libros no aparece.",
+      "No: INNER JOIN descarta las filas sin pareja; mantenerlas es trabajo de LEFT JOIN.",
+      "No: eso pasaría sin ON. Con la condición, cada producto se empareja con una sola categoría.",
+      "Correcto: cada producto tiene exactamente una categoría, así que sale una fila por producto."
+     ],
+     "explanation": "Con INNER JOIN por la foránea sale una fila por cada producto que tiene pareja; los 42 la tienen.",
+     "hint": "¿Cuántas categorías tiene cada producto?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "`JOIN` sin nada delante y `INNER JOIN` hacen exactamente lo mismo.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: INNER es opcional; los dos devuelven solo las filas con pareja.",
+      "No: son sinónimos. La variante que conserva filas sin pareja es LEFT JOIN."
+     ],
+     "explanation": "En SQL, JOIN a secas significa INNER JOIN.",
+     "hint": "Piensa si la palabra INNER cambia algo o solo lo dice explícitamente."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si escribes `FROM productos pr`, puedes seguir usando `productos.nombre` en el SELECT.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: una vez que la tabla tiene alias, SQLite solo la reconoce por él y responde `no such column: productos.nombre`.",
+      "Correcto: con alias, la tabla se llama `pr` en toda la consulta."
+     ],
+     "explanation": "El alias reemplaza al nombre de la tabla dentro de la consulta: se escribe `pr.nombre`.",
+     "hint": "Piensa en el error del Tema 2 sobre `productos.nombre`."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué nombre devuelve esta consulta?",
+     "code": "SELECT c.nombre\nFROM pedidos p\nJOIN clientes c ON c.id = p.cliente_id\nWHERE p.id = 1;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "María"
+     ],
+     "optionFeedback": [],
+     "explanation": "El pedido 1 tiene `cliente_id = 28`, y la cliente 28 es María Jiménez.",
+     "hint": "Es la misma clave que seguiste a mano en el Tema 1."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(*)\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE cat.nombre = 'Tecnología';",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "7"
+     ],
+     "optionFeedback": [],
+     "explanation": "La categoría Tecnología tiene 7 productos, desde el cable HDMI hasta el parlante bluetooth.",
+     "hint": "Lo viste en el paso «Filtra con columnas de la otra tabla»."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la condición para unir cada cliente con su provincia.",
+     "code": "SELECT c.nombre, pv.nombre AS provincia\nFROM clientes c\nJOIN provincias pv ON pv.id = ___;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "c.provincia_id"
+     ],
+     "optionFeedback": [],
+     "explanation": "La foránea `c.provincia_id` apunta a la primaria `pv.id`.",
+     "hint": "Usa el alias de `clientes` y su columna que termina en `_id`."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "kind": "workshop",
+   "title": "JOIN de varias tablas",
+   "summary": "Encadenas 3 y 4 tablas siguiendo el mapa y construyes los reportes que pide cualquier gerente: ventas por categoría, por provincia y por vendedor.",
+   "objectives": [
+    "Encadenar 3 y 4 tablas escribiendo un JOIN por cada línea del mapa.",
+    "Identificar el grano de un resultado y contar pedidos con COUNT(DISTINCT) cuando el JOIN repite filas.",
+    "Calcular ventas con `cantidad * precio_unitario * (1 - descuento)` excluyendo los pedidos cancelados.",
+    "Construir reportes con JOIN y GROUP BY por categoría, provincia y vendedor."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: encadenar 3 y 4 tablas",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: JOIN + GROUP BY para reportes",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Encadenar 3 y 4 tablas",
+     "concept": "Muchas preguntas cruzan más de dos tablas. «¿Qué productos compró Raquel en el pedido 403?» necesita el pedido (`pedidos`), la clienta (`clientes`), las líneas (`detalle_pedido`) y los nombres de los productos (`productos`). En el mapa eso son cuatro tablas y tres líneas, así que escribes tres JOIN, uno debajo del otro, cada uno con su ON. **Una línea del mapa, un JOIN.**\n\nCada JOIN nuevo se puede conectar con cualquier tabla que ya esté en la consulta: `JOIN detalle_pedido dp ON dp.pedido_id = p.id` se engancha a `pedidos`, y luego `JOIN productos pr ON pr.id = dp.producto_id` se engancha a `detalle_pedido`. Con INNER JOIN el orden en que escribes las tablas no cambia el resultado, pero seguir el camino del mapa hace la consulta mucho más fácil de leer.\n\nOjo con el **grano** del resultado: qué representa cada fila. `pedidos` tiene una fila por pedido, pero al unirla con `detalle_pedido` el resultado tiene una fila por línea de pedido. Los 420 pedidos se convierten en 862 filas, y el pedido 403 aparece cuatro veces, una por producto. Antes de contar o sumar, pregúntate siempre: ¿qué es una fila de mi resultado?",
+     "tip": "Construye la consulta de a un JOIN por vez y ejecútala en cada paso. Si después de un JOIN el número de filas cambia de forma inesperada, el problema está en ese ON y no en los demás.",
+     "example": "SELECT p.id AS pedido, p.fecha, c.nombre, c.apellido,\n       pr.nombre AS producto, dp.cantidad, dp.precio_unitario\nFROM pedidos p\nJOIN clientes c ON c.id = p.cliente_id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nJOIN productos pr ON pr.id = dp.producto_id\nWHERE p.id = 403\nORDER BY dp.id;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Empieza con dos tablas",
+       "body": "Une `pedidos` con `detalle_pedido` para el pedido 403. Mira el grano: ya no hay una fila por pedido sino una por línea, y salen 4.",
+       "code": "SELECT p.id, p.fecha, dp.producto_id, dp.cantidad\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.id = 403;",
+       "language": "sql"
+      },
+      {
+       "title": "Agrega la tercera tabla",
+       "body": "Ahora engancha `productos` a `detalle_pedido` por `pr.id = dp.producto_id` para cambiar el número de producto por su nombre. El número de filas no cambia: cada línea tiene un solo producto.",
+       "code": "SELECT p.id, p.fecha, pr.nombre AS producto, dp.cantidad\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nJOIN productos pr ON pr.id = dp.producto_id\nWHERE p.id = 403;",
+       "language": "sql"
+      },
+      {
+       "title": "Llega hasta la categoría",
+       "body": "Una línea más del mapa: `categorias` se engancha a `productos`. Con cuatro tablas ves de qué categoría es cada producto del pedido. Fíjate en que hay tres columnas `nombre` posibles; los alias de columna evitan la confusión.",
+       "code": "SELECT p.id, pr.nombre AS producto, cat.nombre AS categoria, dp.cantidad\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nJOIN productos pr ON pr.id = dp.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE p.id = 403;",
+       "language": "sql"
+      },
+      {
+       "title": "Dos JOIN que salen de la misma tabla",
+       "body": "No todo camino es una cadena. `pedidos` tiene dos foráneas, hacia `clientes` y hacia `empleados`, y puedes seguir las dos. Aquí ves quién compró y quién atendió los pedidos de los últimos días de setiembre que se hicieron en tienda.",
+       "code": "SELECT p.id, p.fecha, c.nombre AS cliente, e.nombre AS vendedor\nFROM pedidos p\nJOIN clientes c ON c.id = p.cliente_id\nJOIN empleados e ON e.id = p.empleado_id\nWHERE p.fecha >= '2026-09-15'\nORDER BY p.fecha, p.id;",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba el grano con un conteo",
+       "body": "Cuenta las filas y los pedidos distintos de Gabriela (cliente 72) al unir con `detalle_pedido`: 58 filas, pero solo 32 pedidos. Si hubieras usado `COUNT(*)` para contar pedidos, el número habría salido inflado.",
+       "code": "SELECT COUNT(*) AS filas, COUNT(DISTINCT p.id) AS pedidos\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.cliente_id = 72;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "ambiguous column name: nombre",
+       "cause": "Con cuatro tablas unidas, `nombre` puede ser del cliente, del producto o de la categoría.",
+       "fix": "Escribe `c.nombre`, `pr.nombre` o `cat.nombre`, y renombra en el SELECT: `pr.nombre AS producto`."
+      },
+      {
+       "error": "no such column: dp.pedido_id",
+       "cause": "Usaste el alias `dp` en un ON antes de que su tabla aparezca en la consulta, por ejemplo en el JOIN de `productos` escrito antes del de `detalle_pedido`.",
+       "fix": "Un ON solo puede usar tablas que ya se unieron más arriba. Ordena los JOIN siguiendo el camino del mapa."
+      },
+      {
+       "error": "Los conteos salen más altos de lo esperado",
+       "cause": "Al unir con `detalle_pedido`, cada pedido se repite una vez por línea y `COUNT(*)` cuenta líneas, no pedidos.",
+       "fix": "Para contar pedidos usa `COUNT(DISTINCT p.id)`. Antes de contar, decide cuál es el grano del resultado."
+      }
+     ]
+    },
+    {
+     "title": "JOIN + GROUP BY para reportes",
+     "concept": "Los reportes que pide una gerente casi siempre tienen la forma «total de algo por algo»: ventas por categoría, por provincia, por vendedor. La receta es unir las tablas necesarias, filtrar, agrupar por la clave de la dimensión y sumar. La dimensión (categoría, provincia, vendedor) suele estar lejos del dinero, que vive en `detalle_pedido`: por eso hacen falta varios JOIN.\n\nEn la Tienda, una **venta** es una línea de un pedido que no está cancelado, y su monto es `dp.cantidad * dp.precio_unitario * (1 - dp.descuento)`. Esa expresión, dentro de `SUM`, da las ventas del grupo. Como el descuento es decimal, redondea con `ROUND(..., 0)` o `ROUND(...)` para hablar en colones enteros.\n\nAgrupa por la clave y muestra el nombre: `GROUP BY cat.id, cat.nombre`. Y recuerda el grano: después de unir con `detalle_pedido`, `COUNT(*)` cuenta líneas y `COUNT(DISTINCT p.id)` cuenta pedidos. Lo mismo pasa con las columnas de `pedidos`: `SUM(p.costo_envio)` sumaría el envío una vez por cada línea. Las ventas por provincia, en cambio, no necesitan `productos`: solo usa las tablas del camino entre la dimensión y el dinero.",
+     "tip": "Escribe primero el reporte sin GROUP BY, con unas pocas filas, y mira si cada fila tiene la dimensión y el monto correctos. Cuando lo veas bien, agrupa. Es más fácil revisar 5 filas sueltas que un total que no cuadra.",
+     "example": "SELECT cat.nombre AS categoria,\n       SUM(dp.cantidad) AS unidades,\n       ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM detalle_pedido dp\nJOIN pedidos p ON p.id = dp.pedido_id\nJOIN productos pr ON pr.id = dp.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE p.estado <> 'cancelado'\nGROUP BY cat.id, cat.nombre\nORDER BY ventas DESC;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Calcula el monto de cada línea",
+       "body": "Antes de agrupar, mira las líneas del pedido 403 con su monto. La salsa Lizano tiene 10 % de descuento: 2 por ₡2450 por 0.9 dan ₡4410.",
+       "code": "SELECT dp.id, dp.cantidad, dp.precio_unitario, dp.descuento,\n       dp.cantidad * dp.precio_unitario * (1 - dp.descuento) AS monto\nFROM detalle_pedido dp\nWHERE dp.pedido_id = 403;",
+       "language": "sql"
+      },
+      {
+       "title": "Ventas totales de la Tienda",
+       "body": "Suma el monto de todas las líneas de pedidos no cancelados. Necesitas `pedidos` solo para leer el estado. El total histórico es ₡11 831 135.",
+       "code": "SELECT ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM detalle_pedido dp\nJOIN pedidos p ON p.id = dp.pedido_id\nWHERE p.estado <> 'cancelado';",
+       "language": "sql"
+      },
+      {
+       "title": "Ventas por provincia",
+       "body": "La provincia está en `provincias`, unida a `clientes`, unida a `pedidos`, unida a `detalle_pedido`. No hace falta `productos`. Fíjate en Limón: con solo 7 clientes es la segunda provincia en ventas.",
+       "code": "SELECT pv.nombre AS provincia, COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM provincias pv\nJOIN clientes c ON c.provincia_id = pv.id\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY pv.id, pv.nombre\nORDER BY ventas DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Ventas por vendedor",
+       "body": "Para los vendedores se sigue la foránea `pedidos.empleado_id`. Las compras en línea (empleado NULL) quedan fuera solas, porque el INNER JOIN no encuentra pareja para ellas. El nombre completo se arma con `||`.",
+       "code": "SELECT e.nombre || ' ' || e.apellido AS vendedor, COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM empleados e\nJOIN pedidos p ON p.empleado_id = e.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY e.id, vendedor\nORDER BY ventas DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "La trampa del costo de envío",
+       "body": "Compara las dos sumas. Sin JOIN, el envío cobrado en pedidos no cancelados es ₡402 000. Después de unir con `detalle_pedido`, cada envío se repite por cada línea y la suma sube a ₡847 000. Las columnas de `pedidos` no se suman después de bajar al grano de líneas.",
+       "code": "SELECT SUM(costo_envio) AS envio_real\nFROM pedidos\nWHERE estado <> 'cancelado';\n\nSELECT SUM(p.costo_envio) AS envio_inflado\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado';",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Las ventas incluyen pedidos cancelados",
+       "cause": "Se olvidó el filtro del estado y se sumaron pedidos que nunca se cobraron.",
+       "fix": "Une con `pedidos` aunque no muestres ninguna de sus columnas y agrega `WHERE p.estado <> 'cancelado'`."
+      },
+      {
+       "error": "Ventas con decimales que no son colones enteros",
+       "cause": "El descuento es una fracción y la multiplicación produce decimales.",
+       "fix": "Redondea el total al final: `ROUND(SUM(...))`. Redondear cada línea antes de sumar puede cambiar el resultado unos colones."
+      },
+      {
+       "error": "Dos vendedores con el mismo nombre se suman juntos",
+       "cause": "Se agrupó solo por `e.nombre`; si dos personas se llaman igual, sus ventas se mezclan en un grupo.",
+       "fix": "Agrupa por la clave (`e.id`) y agrega el nombre al GROUP BY para mostrarlo: `GROUP BY e.id, e.nombre, e.apellido`."
+      },
+      {
+       "error": "SUM(p.costo_envio) da casi el doble",
+       "cause": "Se sumó una columna de `pedidos` después de unir con `detalle_pedido`, y cada pedido se repitió una vez por línea.",
+       "fix": "Suma los envíos en una consulta aparte, sin unir con `detalle_pedido`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-27-1",
+     "title": "Detalle del pedido 250",
+     "prompt": "Un cliente llamó para preguntar por su pedido 250. Muestra el nombre y el apellido del cliente, el nombre del producto, la cantidad y el precio unitario de cada línea de ese pedido, en ese orden.",
+     "hint": "Necesitas cuatro tablas: `pedidos`, `clientes`, `detalle_pedido` y `productos`. Un JOIN por cada línea del mapa.",
+     "solution": "SELECT c.nombre, c.apellido, pr.nombre AS producto, dp.cantidad, dp.precio_unitario\nFROM pedidos p\nJOIN clientes c ON c.id = p.cliente_id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nJOIN productos pr ON pr.id = dp.producto_id\nWHERE p.id = 250;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-27-2",
+     "title": "Café de setiembre",
+     "prompt": "La encargada de compras quiere saber qué productos de la categoría `'Café y bebidas'` aparecen en pedidos de setiembre de 2026, sin importar su estado. Muestra solo el nombre del producto, sin repetir.",
+     "hint": "El camino es `detalle_pedido` → `pedidos` (para la fecha) y `detalle_pedido` → `productos` → `categorias` (para la categoría). Usa `SELECT DISTINCT` y `BETWEEN '2026-09-01' AND '2026-09-30'`.",
+     "solution": "SELECT DISTINCT pr.nombre AS producto\nFROM detalle_pedido dp\nJOIN pedidos p ON p.id = dp.pedido_id\nJOIN productos pr ON pr.id = dp.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE cat.nombre = 'Café y bebidas'\n  AND p.fecha BETWEEN '2026-09-01' AND '2026-09-30';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-27-3",
+     "title": "Ventas por categoría",
+     "prompt": "La gerente quiere el reporte de ventas por categoría de toda la historia, sin pedidos cancelados. Muestra el nombre de la categoría, las unidades vendidas (suma de `cantidad`) y las ventas en colones redondeadas a entero, en ese orden.",
+     "hint": "Une `detalle_pedido`, `pedidos`, `productos` y `categorias`. El monto de una línea es `cantidad * precio_unitario * (1 - descuento)`.",
+     "solution": "SELECT cat.nombre AS categoria, SUM(dp.cantidad) AS unidades, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM detalle_pedido dp\nJOIN pedidos p ON p.id = dp.pedido_id\nJOIN productos pr ON pr.id = dp.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE p.estado <> 'cancelado'\nGROUP BY cat.id, cat.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-27-4",
+     "title": "Ventas por provincia",
+     "prompt": "Para planear las rutas de entrega, la gerente quiere ver por provincia la cantidad de pedidos no cancelados y las ventas redondeadas a entero. Muestra el nombre de la provincia, los pedidos y las ventas, en ese orden.",
+     "hint": "El camino es `provincias` → `clientes` → `pedidos` → `detalle_pedido`. Para contar pedidos y no líneas usa `COUNT(DISTINCT p.id)`.",
+     "solution": "SELECT pv.nombre AS provincia, COUNT(DISTINCT p.id) AS pedidos, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM provincias pv\nJOIN clientes c ON c.provincia_id = pv.id\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY pv.id, pv.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-27-5",
+     "title": "Ranking de vendedores 2026",
+     "prompt": "Ricardo quiere el ranking de vendedores de este año. Para los pedidos no cancelados desde el `'2026-01-01'`, muestra el nombre y el apellido del vendedor, la cantidad de pedidos y las ventas redondeadas a entero, en ese orden, de mayor a menor venta.",
+     "hint": "Une `empleados e` con `pedidos p` por `p.empleado_id = e.id` y luego con `detalle_pedido`. Combina los dos filtros con AND.",
+     "solution": "SELECT e.nombre, e.apellido, COUNT(DISTINCT p.id) AS pedidos, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM empleados e\nJOIN pedidos p ON p.empleado_id = e.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\nGROUP BY e.id, e.nombre, e.apellido\nORDER BY ventas DESC;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-27-6",
+     "title": "Clientes VIP",
+     "prompt": "La Tienda quiere invitar a un evento a los clientes que han comprado más de ₡400 000 en total (sin pedidos cancelados). Muestra el nombre, el apellido, el nombre de la provincia y el total comprado redondeado a entero, en ese orden, de mayor a menor total.",
+     "hint": "Bastan cuatro tablas: `clientes`, `provincias`, `pedidos` y `detalle_pedido`. Agrupa por cliente y filtra el total con HAVING.",
+     "solution": "SELECT c.nombre, c.apellido, pv.nombre AS provincia, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS total\nFROM clientes c\nJOIN provincias pv ON pv.id = c.provincia_id\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY c.id, c.nombre, c.apellido, pv.nombre\nHAVING SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)) > 400000\nORDER BY total DESC;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "¿Qué categoría deja más ganancia?",
+    "description": "Vender mucho no siempre es ganar mucho. Para cada categoría (pedidos no cancelados) calcula las ventas, el costo de lo vendido (`dp.cantidad * pr.costo`, con el costo actual del producto), el margen en colones (ventas menos costo) y el margen como porcentaje de las ventas con 1 decimal. Ordena de mayor a menor porcentaje. ¿La categoría que más vende es la que más gana por cada colón?",
+    "hint": "Usa la misma unión del ejemplo del Tema 2 y agrega `SUM(dp.cantidad * pr.costo)`. Para el porcentaje multiplica por `100.0` antes de dividir.",
+    "solution": "SELECT cat.nombre AS categoria,\n       ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas,\n       SUM(dp.cantidad * pr.costo) AS costo,\n       ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)) - SUM(dp.cantidad * pr.costo)) AS margen,\n       ROUND(100.0 * (SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)) - SUM(dp.cantidad * pr.costo))\n             / SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)), 1) AS margen_pct\nFROM detalle_pedido dp\nJOIN pedidos p ON p.id = dp.pedido_id\nJOIN productos pr ON pr.id = dp.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE p.estado <> 'cancelado'\nGROUP BY cat.id, cat.nombre\nORDER BY margen_pct DESC;\n-- Ropa gana 47.8 % de cada venta; Tecnología, la segunda en ventas, solo 25.5 %.",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Grano",
+     "definition": "Lo que representa cada fila de un resultado: un pedido, una línea de pedido, un cliente. Define qué significan los conteos y las sumas."
+    },
+    {
+     "term": "Dimensión",
+     "definition": "La columna por la que se agrupa un reporte, como la categoría, la provincia o el vendedor."
+    },
+    {
+     "term": "Monto de línea",
+     "definition": "Lo que se cobró por una línea de pedido: `cantidad * precio_unitario * (1 - descuento)`."
+    },
+    {
+     "term": "COUNT(DISTINCT)",
+     "definition": "Cuenta valores distintos; después de un JOIN que repite filas, `COUNT(DISTINCT p.id)` cuenta pedidos y no líneas."
+    },
+    {
+     "term": "Margen",
+     "definition": "Diferencia entre lo que se vende y lo que cuesta lo vendido; como porcentaje, margen dividido entre ventas."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: SELECT, JOIN y GROUP BY",
+     "url": "https://www.sqlite.org/lang_select.html"
+    },
+    {
+     "title": "SQLite: funciones de agregación",
+     "url": "https://www.sqlite.org/lang_aggfunc.html"
+    },
+    {
+     "title": "SQLBolt: consultas con agregados (en inglés)",
+     "url": "https://sqlbolt.com/lesson/select_queries_with_aggregates"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Quieres ver, para cada pedido, la categoría de los productos que trae. ¿Cuántos JOIN necesitas a partir de `pedidos`?",
+     "code": "",
+     "options": [
+      "1",
+      "2",
+      "3",
+      "4"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `pedidos` no se conecta directamente con `categorias`.",
+      "No: con dos llegas a `productos`, pero la categoría está una línea más allá.",
+      "Correcto: `pedidos` → `detalle_pedido` → `productos` → `categorias`; cuatro tablas, tres líneas, tres JOIN.",
+      "No: sobra uno; cuatro JOIN unirían cinco tablas."
+     ],
+     "explanation": "Cada JOIN recorre una línea del mapa. De pedidos a categorías hay tres líneas.",
+     "hint": "Cuenta las líneas del mapa en el camino, no las tablas."
+    },
+    {
+     "type": "choice",
+     "prompt": "Esta consulta quiere contar los pedidos de cada cliente, pero da números más altos de lo real. ¿Por qué?",
+     "code": "SELECT c.id, COUNT(*) AS pedidos\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nGROUP BY c.id;",
+     "options": [
+      "Porque COUNT(*) no funciona con JOIN",
+      "Porque falta un ORDER BY",
+      "Porque cada pedido se repite una vez por línea de detalle y COUNT(*) cuenta líneas",
+      "Porque hay que agrupar por c.nombre en vez de c.id"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: COUNT(*) funciona, pero cuenta las filas del resultado del JOIN.",
+      "No: el orden no cambia los conteos.",
+      "Correcto: el grano pasó a ser la línea de pedido; con `COUNT(DISTINCT p.id)` se cuentan pedidos.",
+      "No: agrupar por el id es lo correcto; el problema es qué se cuenta."
+     ],
+     "explanation": "Al unir con `detalle_pedido` el resultado tiene una fila por línea. Para contar pedidos se usa `COUNT(DISTINCT p.id)`.",
+     "hint": "Pregúntate qué representa cada fila después del segundo JOIN."
+    },
+    {
+     "type": "choice",
+     "prompt": "Para el reporte de ventas por provincia, ¿qué tablas necesitas como mínimo?",
+     "code": "",
+     "options": [
+      "provincias, clientes, pedidos y detalle_pedido",
+      "provincias, clientes y pedidos",
+      "provincias, clientes, pedidos, detalle_pedido y productos",
+      "provincias y detalle_pedido"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: es el camino del mapa entre la provincia y el dinero, que está en `detalle_pedido`.",
+      "No: en `pedidos` no está el monto vendido; está en las líneas de `detalle_pedido`.",
+      "No: `productos` sobra; el precio cobrado ya está en `detalle_pedido.precio_unitario`.",
+      "No: no hay una línea directa entre esas dos tablas en el mapa."
+     ],
+     "explanation": "Solo se usan las tablas del camino entre la dimensión (provincia) y el dinero (detalle_pedido).",
+     "hint": "Busca dónde está el precio que se cobró en cada venta."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Con INNER JOIN, cambiar el orden en que escribes las tablas cambia las filas del resultado.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: con INNER JOIN el resultado es el mismo; el orden solo cambia lo fácil que es leer la consulta.",
+      "Correcto: las filas son las mismas; seguir el mapa es una cuestión de claridad."
+     ],
+     "explanation": "En un INNER JOIN las filas que quedan son las que cumplen todas las condiciones ON, sin importar el orden de escritura.",
+     "hint": "Piensa si alguna fila sin pareja podría sobrevivir en un orden y no en otro."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Después de unir `pedidos` con `detalle_pedido`, `SUM(p.costo_envio)` da el total real de envíos cobrados.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: cada envío se repite una vez por línea del pedido, y la suma sale inflada (₡847 000 en vez de ₡402 000).",
+      "Correcto: el envío es una columna de `pedidos` y se repite en cada línea; hay que sumarlo sin bajar al grano de líneas."
+     ],
+     "explanation": "Las columnas del lado «uno» se repiten tras un JOIN con el lado «muchos»; sumarlas las cuenta varias veces.",
+     "hint": "Piensa cuántas veces aparece el pedido 403 después del JOIN."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(*)\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.cliente_id = 72;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "58"
+     ],
+     "optionFeedback": [],
+     "explanation": "Gabriela tiene 32 pedidos, pero en total suman 58 líneas de detalle; COUNT(*) cuenta líneas.",
+     "hint": "No son sus 32 pedidos: cuenta filas después del JOIN."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué categoría devuelve esta consulta?",
+     "code": "SELECT cat.nombre\nFROM detalle_pedido dp\nJOIN productos pr ON pr.id = dp.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE dp.id = 1;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Ropa"
+     ],
+     "optionFeedback": [],
+     "explanation": "La línea 1 es del producto 22, el Bolso de manta, que pertenece a la categoría Ropa.",
+     "hint": "La línea 1 es del primer pedido de la Tienda; busca su producto."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa para contar pedidos y no líneas en el reporte por provincia.",
+     "code": "SELECT pv.nombre, COUNT(DISTINCT ___) AS pedidos\nFROM provincias pv\nJOIN clientes c ON c.provincia_id = pv.id\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nGROUP BY pv.id, pv.nombre;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "p.id"
+     ],
+     "optionFeedback": [],
+     "explanation": "`COUNT(DISTINCT p.id)` cuenta cada pedido una sola vez aunque tenga varias líneas.",
+     "hint": "Es la clave primaria de la tabla de pedidos, con su alias."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "kind": "workshop",
+   "title": "LEFT JOIN",
+   "summary": "Aprendes a conservar las filas sin pareja con LEFT JOIN, a encontrar lo que falta con un anti-join y a decidir si un filtro va en el ON o en el WHERE.",
+   "objectives": [
+    "Escribir LEFT JOIN para que una tabla aparezca completa aunque no tenga pareja.",
+    "Contar correctamente con LEFT JOIN usando COUNT de una columna de la derecha.",
+    "Encontrar clientes y productos sin movimientos con el patrón anti-join (`IS NULL`).",
+    "Decidir si un filtro va en el ON o en el WHERE y explicar cómo cambia el resultado."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: LEFT JOIN y filas sin pareja",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: anti-join y filtros en ON o en WHERE",
+     "minutes": 75
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "LEFT JOIN y filas sin pareja",
+     "concept": "El INNER JOIN tiene un punto ciego: descarta lo que no tiene pareja. Si la gerente pide «cuántos productos tiene cada categoría» y usas INNER JOIN, «Libros» no aparece, porque no tiene productos. El reporte se ve completo, pero le falta una categoría y nadie lo nota.\n\n`LEFT JOIN` conserva **todas las filas de la tabla de la izquierda** (la que está en el FROM, antes del JOIN), tengan pareja o no. Cuando una fila no encuentra pareja, las columnas de la tabla de la derecha salen en NULL. `categorias cat LEFT JOIN productos pr` devuelve las 42 filas con producto más una fila para Libros con `pr.id`, `pr.nombre` y todo lo demás de `pr` en NULL.\n\nEso cambia cómo se cuenta. `COUNT(*)` cuenta filas, y la fila de Libros existe, así que daría 1. `COUNT(pr.id)` cuenta solo los valores no NULL y da el 0 correcto. Con LEFT JOIN, **cuenta siempre una columna de la tabla de la derecha**, de preferencia su `id`. Para mostrar algo más amable que NULL usa `COALESCE`, que ya conoces: `COALESCE(e.nombre, 'En línea')`.\n\nLa regla para elegir: si la pregunta dice «todos», «cada uno» o «incluidos los que no tienen», el lado que debe aparecer completo va a la izquierda de un LEFT JOIN.",
+     "tip": "Antes de escribir el JOIN pregúntate: ¿qué tabla tiene que aparecer completa en el resultado? Esa va en el FROM. Luego compara el número de filas con la tabla original: un LEFT JOIN nunca devuelve menos filas que su tabla de la izquierda.",
+     "example": "SELECT cat.nombre AS categoria,\n       COUNT(pr.id) AS productos,\n       COUNT(*) AS filas_del_join\nFROM categorias cat\nLEFT JOIN productos pr ON pr.categoria_id = cat.id\nGROUP BY cat.id, cat.nombre\nORDER BY productos DESC, categoria;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Compara INNER y LEFT",
+       "body": "Cuenta las filas de las dos uniones entre `clientes` y `pedidos`. El INNER JOIN da 420 (una por pedido). El LEFT JOIN da 440: los mismos 420 más una fila por cada uno de los 20 clientes que nunca compraron.",
+       "code": "SELECT COUNT(*) AS filas_inner\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id;\n\nSELECT COUNT(*) AS filas_left\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id;",
+       "language": "sql"
+      },
+      {
+       "title": "Mira los NULL de la derecha",
+       "body": "Pide las filas del LEFT JOIN para tres clientes. La cliente 72 aparece una vez por pedido; los clientes 1 y 4 no tienen pedidos y aparecen una sola vez con `p.id` y `p.fecha` en NULL.",
+       "code": "SELECT c.id, c.nombre, p.id AS pedido, p.fecha\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nWHERE c.id IN (1, 4, 72)\nORDER BY c.id, p.fecha\nLIMIT 6;",
+       "language": "sql"
+      },
+      {
+       "title": "Cuenta bien con LEFT JOIN",
+       "body": "Cuenta los pedidos de cada uno de esos clientes. `COUNT(*)` le daría 1 a quien no compró nada; `COUNT(p.id)` le da 0.",
+       "code": "SELECT c.id, c.nombre, c.apellido, COUNT(*) AS mal, COUNT(p.id) AS bien\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nWHERE c.id IN (1, 4, 72)\nGROUP BY c.id, c.nombre, c.apellido;",
+       "language": "sql"
+      },
+      {
+       "title": "Reemplaza el NULL con COALESCE",
+       "body": "Las compras en línea no tienen vendedor. Con INNER JOIN a `empleados` desaparecerían; con LEFT JOIN se quedan, y COALESCE cambia el NULL por un texto claro.",
+       "code": "SELECT p.id, p.fecha, COALESCE(e.nombre || ' ' || e.apellido, 'En línea') AS atendido_por\nFROM pedidos p\nLEFT JOIN empleados e ON e.id = p.empleado_id\nWHERE p.fecha >= '2026-09-20'\nORDER BY p.fecha, p.id;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Libros aparece con 1 producto",
+       "cause": "Se usó `COUNT(*)` después de un LEFT JOIN: la fila de Libros existe, aunque sus columnas de `productos` estén en NULL.",
+       "fix": "Cuenta una columna de la tabla de la derecha: `COUNT(pr.id)`."
+      },
+      {
+       "error": "Faltan filas aunque se usó LEFT JOIN",
+       "cause": "Las tablas quedaron al revés: `FROM productos pr LEFT JOIN categorias cat` conserva todos los productos, no todas las categorías.",
+       "fix": "La tabla que debe aparecer completa va en el FROM, a la izquierda del LEFT JOIN."
+      },
+      {
+       "error": "Faltan las compras en línea al mostrar el vendedor",
+       "cause": "Se unió `pedidos` con `empleados` con INNER JOIN, y los pedidos con `empleado_id` NULL no encuentran pareja.",
+       "fix": "Usa `LEFT JOIN empleados e` y `COALESCE` para mostrar 'En línea'."
+      }
+     ]
+    },
+    {
+     "title": "Encontrar lo que falta y filtrar en ON o en WHERE",
+     "concept": "Muchas preguntas de negocio buscan lo que **no** pasó: clientes que nunca compraron, productos que nunca se vendieron. El patrón se llama **anti-join**: haces un LEFT JOIN y te quedas solo con las filas que no encontraron pareja, con `WHERE p.id IS NULL`. Se revisa la clave primaria de la derecha porque nunca es NULL en una fila real: si es NULL, es que no hubo pareja. Y recuerda que se escribe `IS NULL`, nunca `= NULL`.\n\nLa otra sutileza es dónde va un filtro sobre la tabla de la derecha. Una condición en el **ON** decide con qué filas se empareja, pero no borra filas de la izquierda. Una condición en el **WHERE** se aplica después del JOIN y borra todo lo que no la cumpla, incluidas las filas con NULL.\n\nEjemplo: «clientes nuevos de 2026 por provincia, incluidas las que no tienen». Si pones `c.fecha_registro >= '2026-01-01'` en el WHERE, Limón desaparece, porque su fila con NULL no cumple la condición, y tu LEFT JOIN se comporta como un INNER JOIN. Si la pones en el ON, Limón queda con 0. Regla práctica: con LEFT JOIN, **los filtros de la tabla de la derecha van en el ON**; los de la izquierda, en el WHERE.",
+     "tip": "Cuando un LEFT JOIN devuelva menos filas de las que esperabas, revisa el WHERE: si menciona una columna de la tabla de la derecha (y no es el `IS NULL` de un anti-join), casi seguro ese filtro debía ir en el ON.",
+     "example": "SELECT pv.nombre AS provincia, COUNT(c.id) AS clientes_nuevos_2026\nFROM provincias pv\nLEFT JOIN clientes c ON c.provincia_id = pv.id\n                     AND c.fecha_registro >= '2026-01-01'\nGROUP BY pv.id, pv.nombre\nORDER BY clientes_nuevos_2026 DESC, provincia;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Clientes que nunca compraron",
+       "body": "El anti-join clásico: todos los clientes a la izquierda, sus pedidos a la derecha, y solo los que quedaron sin pareja. Son 20 clientes.",
+       "code": "SELECT c.id, c.nombre, c.apellido\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nWHERE p.id IS NULL\nORDER BY c.id;",
+       "language": "sql"
+      },
+      {
+       "title": "Productos que nunca se vendieron",
+       "body": "El mismo patrón con `productos` y `detalle_pedido`. Salen 5, entre ellos el Cable HDMI, lanzado en agosto de 2026, y dos productos agotados.",
+       "code": "SELECT pr.id, pr.nombre, pr.stock, pr.fecha_lanzamiento\nFROM productos pr\nLEFT JOIN detalle_pedido dp ON dp.producto_id = pr.id\nWHERE dp.id IS NULL;",
+       "language": "sql"
+      },
+      {
+       "title": "Filtro en el WHERE: Limón desaparece",
+       "body": "Ejecuta esta versión con la fecha en el WHERE. Devuelve 6 provincias: Limón no tuvo clientes nuevos, su fila tenía NULL en `fecha_registro` y el WHERE la eliminó.",
+       "code": "SELECT pv.nombre AS provincia, COUNT(c.id) AS clientes_nuevos\nFROM provincias pv\nLEFT JOIN clientes c ON c.provincia_id = pv.id\nWHERE c.fecha_registro >= '2026-01-01'\nGROUP BY pv.id, pv.nombre;",
+       "language": "sql"
+      },
+      {
+       "title": "Filtro en el ON: Limón se queda con 0",
+       "body": "Mueve la condición al ON con AND. Ahora la fecha solo decide qué clientes se emparejan, y las 7 provincias aparecen. Es el ejemplo del tema.",
+       "code": "SELECT pv.nombre AS provincia, COUNT(c.id) AS clientes_nuevos\nFROM provincias pv\nLEFT JOIN clientes c ON c.provincia_id = pv.id AND c.fecha_registro >= '2026-01-01'\nGROUP BY pv.id, pv.nombre;",
+       "language": "sql"
+      },
+      {
+       "title": "Los filtros de la izquierda sí van en el WHERE",
+       "body": "Los clientes de Heredia con sus pedidos de 2026: la provincia es de la tabla de la izquierda y va en el WHERE; la fecha es de `pedidos` y va en el ON. Así aparecen los 8 clientes de Heredia, incluidos tres con 0 pedidos.",
+       "code": "SELECT c.nombre, c.apellido, COUNT(p.id) AS pedidos_2026\nFROM clientes c\nJOIN provincias pv ON pv.id = c.provincia_id\nLEFT JOIN pedidos p ON p.cliente_id = c.id AND p.fecha >= '2026-01-01'\nWHERE pv.nombre = 'Heredia'\nGROUP BY c.id, c.nombre, c.apellido\nORDER BY pedidos_2026 DESC, c.apellido;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "El anti-join devuelve 0 filas",
+       "cause": "Se escribió `WHERE p.id = NULL`. Nada es igual a NULL, ni siquiera NULL, así que la condición nunca es verdadera.",
+       "fix": "Usa `WHERE p.id IS NULL`."
+      },
+      {
+       "error": "El anti-join devuelve clientes que sí compraron",
+       "cause": "Se revisó una columna que puede ser NULL en filas reales, como `p.empleado_id`: las compras en línea también tienen NULL ahí.",
+       "fix": "Revisa la clave primaria de la tabla de la derecha (`p.id`), que solo es NULL cuando no hubo pareja."
+      },
+      {
+       "error": "El LEFT JOIN se comporta como INNER JOIN",
+       "cause": "Un filtro sobre la tabla de la derecha quedó en el WHERE y elimina las filas con NULL.",
+       "fix": "Pasa ese filtro al ON con AND: `LEFT JOIN pedidos p ON p.cliente_id = c.id AND p.fecha >= '2026-01-01'`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-28-1",
+     "title": "Categorías y sus productos",
+     "prompt": "La gerente quiere ver cuántos productos tiene cada categoría, incluidas las que todavía no tienen ninguno. Muestra el nombre de la categoría y la cantidad de productos, en ese orden.",
+     "hint": "`categorias` va a la izquierda de un LEFT JOIN. Cuenta `pr.id`, no `*`.",
+     "solution": "SELECT cat.nombre AS categoria, COUNT(pr.id) AS productos\nFROM categorias cat\nLEFT JOIN productos pr ON pr.categoria_id = cat.id\nGROUP BY cat.id, cat.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-28-2",
+     "title": "¿Quién atendió?",
+     "prompt": "Para el cierre de setiembre de 2026, muestra el `id` de cada pedido del mes, su fecha y el nombre completo del vendedor que lo atendió (nombre, un espacio y apellido), en ese orden. Si fue una compra en línea, en lugar del vendedor debe decir `'En línea'`.",
+     "hint": "LEFT JOIN de `pedidos` a `empleados`, y `COALESCE(e.nombre || ' ' || e.apellido, 'En línea')`.",
+     "solution": "SELECT p.id, p.fecha, COALESCE(e.nombre || ' ' || e.apellido, 'En línea') AS atendido_por\nFROM pedidos p\nLEFT JOIN empleados e ON e.id = p.empleado_id\nWHERE p.fecha BETWEEN '2026-09-01' AND '2026-09-30';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-28-3",
+     "title": "Clientes que nunca compraron",
+     "prompt": "Mercadeo quiere enviar un cupón de bienvenida a los clientes registrados que nunca han hecho un pedido. Muestra su `id`, nombre, apellido y email, en ese orden.",
+     "hint": "Anti-join: LEFT JOIN de `clientes` a `pedidos` y quédate con las filas donde la clave del pedido es NULL.",
+     "solution": "SELECT c.id, c.nombre, c.apellido, c.email\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nWHERE p.id IS NULL;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-28-4",
+     "title": "Productos sin ventas",
+     "prompt": "Bodega quiere revisar los productos que nunca aparecieron en ningún pedido. Muestra su nombre, el stock y la fecha de lanzamiento, en ese orden.",
+     "hint": "El mismo patrón, con `productos` a la izquierda y `detalle_pedido` a la derecha.",
+     "solution": "SELECT pr.nombre, pr.stock, pr.fecha_lanzamiento\nFROM productos pr\nLEFT JOIN detalle_pedido dp ON dp.producto_id = pr.id\nWHERE dp.id IS NULL;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-28-5",
+     "title": "Pedidos de 2026 por empleado",
+     "prompt": "Recursos humanos quiere una tabla con los 14 empleados y cuántos pedidos atendió cada uno en 2026 (desde el `'2026-01-01'`), con 0 para quienes no atendieron ninguno. Muestra el nombre, el apellido, el puesto y la cantidad de pedidos, en ese orden.",
+     "hint": "Los 14 empleados deben aparecer: `empleados` a la izquierda. ¿La condición de la fecha va en el ON o en el WHERE?",
+     "solution": "SELECT e.nombre, e.apellido, e.puesto, COUNT(p.id) AS pedidos_2026\nFROM empleados e\nLEFT JOIN pedidos p ON p.empleado_id = e.id AND p.fecha >= '2026-01-01'\nGROUP BY e.id, e.nombre, e.apellido, e.puesto;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-28-6",
+     "title": "Reseñas de Tecnología",
+     "prompt": "La encargada de Tecnología quiere ver todos los productos de su categoría con su cantidad de reseñas y su calificación promedio redondeada a 1 decimal (los que no tienen reseñas deben aparecer con 0 reseñas y promedio NULL). Muestra el nombre del producto, la cantidad de reseñas y el promedio, en ese orden.",
+     "hint": "Une `productos` con `categorias` (INNER, porque todo producto tiene categoría) y luego haz LEFT JOIN a `resenas`. `AVG` de puros NULL da NULL.",
+     "solution": "SELECT pr.nombre AS producto, COUNT(r.id) AS resenas, ROUND(AVG(r.calificacion), 1) AS promedio\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id\nLEFT JOIN resenas r ON r.producto_id = pr.id\nWHERE cat.nombre = 'Tecnología'\nGROUP BY pr.id, pr.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Productos sin reseñas en 2026",
+    "description": "La gerente quiere pedir opiniones de los productos activos que no recibieron ninguna reseña en 2026 (desde el `'2026-01-01'`), aunque hayan tenido reseñas antes. Muestra el nombre del producto y su categoría, ordenados por categoría y nombre. Después cambia la condición de fecha al WHERE y explica en un comentario por qué el resultado cambia.",
+    "hint": "Es un anti-join con una condición extra: la fecha de la reseña va en el ON del LEFT JOIN a `resenas`, y `r.id IS NULL` en el WHERE.",
+    "solution": "SELECT pr.nombre AS producto, cat.nombre AS categoria\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id\nLEFT JOIN resenas r ON r.producto_id = pr.id AND r.fecha >= '2026-01-01'\nWHERE pr.activo = 1 AND r.id IS NULL\nORDER BY categoria, producto;\n-- Con r.fecha en el WHERE se exigiría que la reseña sea de 2026 y que su id sea NULL a la vez:\n-- ninguna fila cumple las dos cosas, así que el resultado queda vacío.",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "LEFT JOIN",
+     "definition": "Unión que conserva todas las filas de la tabla de la izquierda; si no encuentran pareja, las columnas de la derecha salen en NULL."
+    },
+    {
+     "term": "Tabla de la izquierda",
+     "definition": "La que se escribe antes del LEFT JOIN (en el FROM); es la que aparece completa en el resultado."
+    },
+    {
+     "term": "Anti-join",
+     "definition": "Patrón para encontrar filas sin pareja: LEFT JOIN y luego `WHERE derecha.id IS NULL`."
+    },
+    {
+     "term": "COUNT(columna)",
+     "definition": "Cuenta solo los valores no NULL de esa columna; con LEFT JOIN da 0 a las filas sin pareja."
+    },
+    {
+     "term": "COALESCE",
+     "definition": "Devuelve el primer valor no NULL de su lista; sirve para mostrar un texto o un 0 en vez de NULL."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: SELECT y los tipos de JOIN",
+     "url": "https://www.sqlite.org/lang_select.html"
+    },
+    {
+     "title": "SQLBolt: OUTER JOIN (en inglés)",
+     "url": "https://sqlbolt.com/lesson/select_queries_with_outer_joins"
+    },
+    {
+     "title": "SQLBolt: consultas con NULL (en inglés)",
+     "url": "https://sqlbolt.com/lesson/select_queries_with_nulls"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Cuántas filas devuelve esta consulta? (Hay 80 clientes, 420 pedidos y 20 clientes sin pedidos.)",
+     "code": "SELECT c.id, p.id\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id;",
+     "options": [
+      "80",
+      "420",
+      "440",
+      "500"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: los clientes con varios pedidos aparecen una vez por pedido.",
+      "No: eso devolvería un INNER JOIN; el LEFT JOIN agrega a los clientes sin pedidos.",
+      "Correcto: 420 filas con pareja más 20 filas de clientes sin pedidos.",
+      "No: no se suman todas las filas de las dos tablas."
+     ],
+     "explanation": "El LEFT JOIN devuelve las filas emparejadas (420) más una fila por cada cliente sin pareja (20).",
+     "hint": "Empieza por el resultado del INNER JOIN y piensa qué agrega el LEFT."
+    },
+    {
+     "type": "choice",
+     "prompt": "En `categorias cat LEFT JOIN productos pr ... GROUP BY cat.id`, ¿qué expresión da 0 para Libros?",
+     "code": "",
+     "options": [
+      "COUNT(pr.id)",
+      "COUNT(*)",
+      "COUNT(cat.id)",
+      "SUM(1)"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `pr.id` es NULL en la fila de Libros y COUNT no cuenta los NULL.",
+      "No: COUNT(*) cuenta la fila de Libros aunque sus columnas de productos sean NULL, y da 1.",
+      "No: `cat.id` nunca es NULL; también daría 1.",
+      "No: suma 1 por cada fila, igual que COUNT(*)."
+     ],
+     "explanation": "Con LEFT JOIN se cuenta una columna de la tabla de la derecha para que las filas sin pareja den 0.",
+     "hint": "¿Qué columnas de la fila de Libros son NULL?"
+    },
+    {
+     "type": "choice",
+     "prompt": "Quieres los productos que nunca se vendieron. ¿Qué va en el WHERE?",
+     "code": "SELECT pr.nombre\nFROM productos pr\nLEFT JOIN detalle_pedido dp ON dp.producto_id = pr.id\n-- ¿WHERE?",
+     "options": [
+      "WHERE dp.cantidad = 0",
+      "WHERE dp.id = NULL",
+      "WHERE pr.id IS NULL",
+      "WHERE dp.id IS NULL"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: las líneas que existen tienen cantidad mayor que 0; los productos sin ventas no tienen líneas.",
+      "No: `= NULL` nunca es verdadero; se escribe IS NULL.",
+      "No: `pr.id` es de la tabla de la izquierda y nunca es NULL.",
+      "Correcto: si la clave de la línea es NULL, el producto no encontró ninguna venta."
+     ],
+     "explanation": "En un anti-join se revisa con IS NULL la clave primaria de la tabla de la derecha.",
+     "hint": "¿Qué tabla queda en NULL cuando un producto no tiene pareja?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "En un LEFT JOIN, poner en el WHERE un filtro sobre una columna de la tabla de la derecha puede eliminar las filas sin pareja.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: esas filas tienen NULL en la derecha, no cumplen el filtro y el WHERE las borra.",
+      "No: sí las elimina; por eso los filtros de la derecha van en el ON."
+     ],
+     "explanation": "El WHERE se aplica después del JOIN; una comparación con NULL no es verdadera y la fila se descarta.",
+     "hint": "Recuerda qué le pasó a Limón en el paso 3 del Tema 2."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Un LEFT JOIN puede devolver menos filas que las que tiene su tabla de la izquierda.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: cada fila de la izquierda aparece al menos una vez; puede salir más veces, pero nunca desaparece (salvo que un WHERE la quite).",
+      "Correcto: el LEFT JOIN conserva todas las filas de la izquierda."
+     ],
+     "explanation": "Un LEFT JOIN devuelve como mínimo una fila por cada fila de la tabla de la izquierda.",
+     "hint": "Piensa qué significa «conservar todas las filas de la izquierda»."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(*)\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nWHERE p.id IS NULL;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "20"
+     ],
+     "optionFeedback": [],
+     "explanation": "Es el anti-join de clientes sin pedidos: 20 clientes nunca compraron.",
+     "hint": "Es el número de clientes que mercadeo quiere invitar con un cupón."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(pr.id)\nFROM categorias cat\nLEFT JOIN productos pr ON pr.categoria_id = cat.id\nWHERE cat.nombre = 'Libros';",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "0"
+     ],
+     "optionFeedback": [],
+     "explanation": "Libros aparece una vez con `pr.id` en NULL, y COUNT(pr.id) no cuenta los NULL.",
+     "hint": "COUNT de una columna ignora los NULL."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa el anti-join para encontrar a los empleados que nunca atendieron un pedido.",
+     "code": "SELECT e.nombre, e.apellido\nFROM empleados e\nLEFT JOIN pedidos p ON p.empleado_id = e.id\nWHERE p.id ___;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "IS NULL"
+     ],
+     "optionFeedback": [],
+     "explanation": "Las filas sin pareja tienen `p.id` en NULL, y se detectan con IS NULL.",
+     "hint": "Son dos palabras; nunca uses = con NULL."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "kind": "workshop",
+   "title": "Más formas de combinar",
+   "summary": "Unes una tabla consigo misma para ver empleados y jefes, armas plantillas con CROSS JOIN y combinas resultados con UNION, INTERSECT y EXCEPT.",
+   "objectives": [
+    "Escribir un self join con dos alias para relacionar a cada empleado con su jefe.",
+    "Usar CROSS JOIN a propósito para generar todas las combinaciones y reconocerlo cuando aparece por error.",
+    "Combinar dos consultas con UNION y UNION ALL y explicar la diferencia.",
+    "Responder preguntas de «en los dos» y «en uno pero no en el otro» con INTERSECT y EXCEPT."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: self join y CROSS JOIN",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: UNION, UNION ALL, INTERSECT y EXCEPT",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Self join y CROSS JOIN",
+     "concept": "En `empleados`, la columna `jefe_id` apunta a la misma tabla: el jefe de Felipe (id 5) es el empleado 2, Ricardo. Para ver el nombre del empleado y el de su jefe en una fila se une la tabla **consigo misma**: es un **self join**. El truco es usar dos alias que representen dos papeles distintos: `e` para el empleado y `j` para el jefe. `FROM empleados e JOIN empleados j ON j.id = e.jefe_id` se lee «para cada empleado, busca la fila cuyo id es su jefe_id».\n\nComo cualquier JOIN, el self join con INNER deja fuera a quien no tiene pareja: Laura, la gerente, no tiene jefe (`jefe_id` NULL) y desaparece. Si debe aparecer, usa LEFT JOIN y COALESCE, como el miércoles.\n\n`CROSS JOIN` es lo contrario de emparejar: combina **cada fila de una tabla con cada fila de la otra**, sin ON. 5 vendedores por 7 categorías dan 35 filas. Sirve para armar plantillas: todas las combinaciones de vendedor y categoría para asignar metas, o de provincia y categoría para un informe que no debe tener huecos. Úsalo a propósito y con tablas pequeñas: el número de filas se multiplica. Un JOIN al que se le olvidó el ON produce exactamente esto, pero sin querer.",
+     "tip": "En un self join, nombra los alias por su papel y no por la tabla: `e` y `j`, o `empleado` y `jefe`. Si los llamas `e1` y `e2`, a la tercera línea ya no recuerdas cuál es cuál.",
+     "example": "SELECT e.nombre || ' ' || e.apellido AS empleado, e.puesto,\n       COALESCE(j.nombre || ' ' || j.apellido, 'Sin jefe') AS jefe\nFROM empleados e\nLEFT JOIN empleados j ON j.id = e.jefe_id\nORDER BY e.id;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Sigue jefe_id a mano",
+       "body": "Felipe tiene `jefe_id = 2`. Busca la fila 2 en la misma tabla: es Ricardo Solano, el jefe de ventas. El self join hace este segundo paso por ti.",
+       "code": "SELECT id, nombre, puesto, jefe_id FROM empleados WHERE id = 5;\nSELECT id, nombre, apellido, puesto FROM empleados WHERE id = 2;",
+       "language": "sql"
+      },
+      {
+       "title": "Tu primer self join",
+       "body": "La misma tabla aparece dos veces con alias distintos. Son 13 filas: las 14 personas menos Laura, que no tiene jefe y no encuentra pareja en el INNER JOIN.",
+       "code": "SELECT e.nombre AS empleado, e.puesto, j.nombre AS jefe\nFROM empleados e\nJOIN empleados j ON j.id = e.jefe_id\nORDER BY j.id, e.id;",
+       "language": "sql"
+      },
+      {
+       "title": "Compara cada fila con la de su jefe",
+       "body": "Como las dos filas quedan lado a lado, puedes calcular con columnas de ambas. Aquí ves cuánto más gana Ricardo que cada persona de su equipo.",
+       "code": "SELECT e.nombre AS vendedor, e.salario, j.salario AS salario_jefe,\n       j.salario - e.salario AS diferencia\nFROM empleados e\nJOIN empleados j ON j.id = e.jefe_id\nWHERE j.nombre = 'Ricardo'\nORDER BY diferencia;",
+       "language": "sql"
+      },
+      {
+       "title": "Arma una plantilla con CROSS JOIN",
+       "body": "Ricardo quiere asignar una meta a cada vendedor en cada categoría que tiene productos. CROSS JOIN no lleva ON y crea todas las combinaciones: 5 vendedores por 7 categorías, 35 filas.",
+       "code": "SELECT e.nombre AS vendedor, cat.nombre AS categoria\nFROM empleados e\nCROSS JOIN categorias cat\nWHERE e.puesto IN ('Vendedor', 'Vendedora') AND cat.nombre <> 'Libros'\nORDER BY e.id, cat.id;",
+       "language": "sql"
+      },
+      {
+       "title": "Comprueba la multiplicación",
+       "body": "Cuenta las combinaciones de provincias y categorías: 7 por 8 da 56. Si alguna vez un JOIN te devuelve un múltiplo exacto del tamaño de dos tablas, sospecha que se te olvidó el ON.",
+       "code": "SELECT COUNT(*) AS combinaciones\nFROM provincias pv\nCROSS JOIN categorias cat;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "ambiguous column name: nombre",
+       "cause": "En un self join las dos copias tienen exactamente las mismas columnas, así que toda columna es ambigua sin alias.",
+       "fix": "Escribe `e.nombre` y `j.nombre`, y renómbralas: `e.nombre AS empleado, j.nombre AS jefe`."
+      },
+      {
+       "error": "Cada empleado aparece como su propio jefe",
+       "cause": "El ON quedó al revés o compara la misma columna: `ON j.id = e.id` empareja cada fila consigo misma.",
+       "fix": "La foránea del empleado contra la primaria del jefe: `ON j.id = e.jefe_id`."
+      },
+      {
+       "error": "La gerente no aparece en el organigrama",
+       "cause": "Se usó INNER JOIN y Laura tiene `jefe_id` NULL, así que no encuentra pareja.",
+       "fix": "Usa `LEFT JOIN empleados j` y `COALESCE(j.nombre, 'Sin jefe')`."
+      },
+      {
+       "error": "Un CROSS JOIN devuelve miles de filas",
+       "cause": "Se combinaron tablas grandes, por ejemplo `pedidos` por `detalle_pedido` (420 por 862, más de 360 000 filas).",
+       "fix": "CROSS JOIN es para tablas pequeñas de catálogo. Si querías emparejar, usa JOIN con ON."
+      }
+     ]
+    },
+    {
+     "title": "UNION, UNION ALL, INTERSECT y EXCEPT",
+     "concept": "Los JOIN pegan tablas **de lado**: agregan columnas. Los operadores de conjuntos pegan resultados **hacia abajo**: juntan las filas de dos SELECT en un solo resultado. Para que funcionen, los dos SELECT deben devolver la misma cantidad de columnas, en el mismo orden y con tipos compatibles. Los nombres de las columnas los pone el primer SELECT, y el ORDER BY se escribe una sola vez, al final de todo.\n\n`UNION` junta las filas y elimina las repetidas; `UNION ALL` las junta todas, sin revisar, y por eso es más rápido. Hay 80 clientes y 14 empleados: sus nombres con UNION ALL dan 94 filas, con UNION solo 46 nombres distintos. Para una lista de contactos de clientes y empleados, agrega una columna fija como `'Cliente' AS tipo` para saber de dónde vino cada fila.\n\n`INTERSECT` deja solo las filas que están en los dos resultados: clientes que compraron en 2025 **y** en 2026. `EXCEPT` deja las del primero que no están en el segundo: productos vendidos en 2025 pero no en 2026. Con EXCEPT el orden importa: `A EXCEPT B` no es lo mismo que `B EXCEPT A`. Los cuatro comparan filas completas: si un SELECT trae el id y el otro no, nunca van a coincidir.",
+     "tip": "Escribe y ejecuta cada SELECT por separado antes de unirlos con el operador. Si los dos funcionan solos y tienen las mismas columnas, la unión casi siempre funciona a la primera.",
+     "example": "SELECT nombre, apellido, 'Cliente' AS tipo\nFROM clientes\nWHERE provincia_id = 7\nUNION\nSELECT nombre, apellido, 'Empleado'\nFROM empleados\nWHERE departamento = 'Bodega'\nORDER BY tipo, apellido;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "UNION frente a UNION ALL",
+       "body": "Cuenta los nombres de clientes y empleados con cada operador. UNION ALL conserva los 94; UNION elimina los repetidos y quedan 46.",
+       "code": "SELECT COUNT(*) AS con_union_all\nFROM (SELECT nombre FROM clientes UNION ALL SELECT nombre FROM empleados);\n\nSELECT COUNT(*) AS con_union\nFROM (SELECT nombre FROM clientes UNION SELECT nombre FROM empleados);",
+       "language": "sql"
+      },
+      {
+       "title": "Una lista de contactos",
+       "body": "Clientes de Limón y personal de bodega en una sola lista. La columna fija `tipo` dice de qué tabla vino cada fila, y el ORDER BY final ordena todo el resultado.",
+       "code": "SELECT nombre, apellido, 'Cliente' AS tipo FROM clientes WHERE provincia_id = 7\nUNION\nSELECT nombre, apellido, 'Empleado' FROM empleados WHERE departamento = 'Bodega'\nORDER BY tipo, apellido;",
+       "language": "sql"
+      },
+      {
+       "title": "INTERSECT: lo que está en los dos",
+       "body": "¿Qué nombres de pila comparten clientes y empleados? Solo uno. Prueba también con `apellido` en vez de `nombre`.",
+       "code": "SELECT nombre FROM clientes\nINTERSECT\nSELECT nombre FROM empleados;",
+       "language": "sql"
+      },
+      {
+       "title": "EXCEPT: lo que está en el primero y no en el segundo",
+       "body": "Productos con ventas en 2025 que no volvieron a venderse en 2026 (sin contar pedidos cancelados). Cada mitad es un JOIN normal; EXCEPT resta la segunda de la primera.",
+       "code": "SELECT pr.id, pr.nombre\nFROM productos pr\nJOIN detalle_pedido dp ON dp.producto_id = pr.id\nJOIN pedidos p ON p.id = dp.pedido_id\nWHERE p.estado <> 'cancelado' AND p.fecha < '2026-01-01'\nEXCEPT\nSELECT pr.id, pr.nombre\nFROM productos pr\nJOIN detalle_pedido dp ON dp.producto_id = pr.id\nJOIN pedidos p ON p.id = dp.pedido_id\nWHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01';",
+       "language": "sql"
+      },
+      {
+       "title": "Provoca el error de columnas",
+       "body": "Ejecuta esta unión y lee el error: el primer SELECT tiene dos columnas y el segundo tres. Agrega `apellido` al primero para corregirla.",
+       "code": "SELECT nombre, email FROM clientes\nUNION\nSELECT nombre, apellido, puesto FROM empleados;",
+       "language": "sql",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "SELECTs to the left and right of UNION do not have the same number of result columns",
+       "cause": "Los dos SELECT devuelven una cantidad distinta de columnas.",
+       "fix": "Iguala las columnas. Si a una tabla le falta un dato, rellena con un valor fijo, como `NULL` o `'-'`."
+      },
+      {
+       "error": "ORDER BY clause should come after UNION not before",
+       "cause": "Se escribió un ORDER BY en el primer SELECT, antes del UNION.",
+       "fix": "Escribe un solo ORDER BY al final de todo; ordena el resultado completo."
+      },
+      {
+       "error": "La lista combinada tiene menos filas de las esperadas",
+       "cause": "Se usó UNION y había filas idénticas en las dos partes (por ejemplo, dos personas con el mismo nombre y apellido), que se fusionaron en una.",
+       "fix": "Usa UNION ALL cuando quieras conservar todas las filas, o agrega una columna que las distinga, como el tipo o el id."
+      },
+      {
+       "error": "INTERSECT no encuentra nada aunque sí hay coincidencias",
+       "cause": "Los dos SELECT traen columnas distintas, por ejemplo `c.id, c.nombre` y `c.nombre, c.id`, o uno incluye la fecha del pedido.",
+       "fix": "Las filas deben ser idénticas: mismas columnas, mismo orden. Deja fuera todo lo que cambie de una fila a otra, como fechas o montos."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-29-1",
+     "title": "Organigrama",
+     "prompt": "Recursos humanos quiere el organigrama. Para cada empleado que tiene jefe, muestra su nombre, su apellido, su puesto y el nombre y el apellido de su jefe, en ese orden.",
+     "hint": "Self join: `empleados e` y `empleados j`, unidos por `j.id = e.jefe_id`. Renombra las columnas del jefe.",
+     "solution": "SELECT e.nombre, e.apellido, e.puesto, j.nombre AS jefe_nombre, j.apellido AS jefe_apellido\nFROM empleados e\nJOIN empleados j ON j.id = e.jefe_id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-29-2",
+     "title": "Plantilla de metas",
+     "prompt": "Ricardo necesita una plantilla con cada vendedor (puesto `'Vendedor'` o `'Vendedora'`) combinado con cada categoría, excepto `'Libros'`, para escribir una meta en cada casilla. Muestra el nombre y el apellido del vendedor y el nombre de la categoría, en ese orden.",
+     "hint": "`CROSS JOIN` entre `empleados` y `categorias`, con los dos filtros en el WHERE. Deben salir 35 filas.",
+     "solution": "SELECT e.nombre, e.apellido, cat.nombre AS categoria\nFROM empleados e\nCROSS JOIN categorias cat\nWHERE e.puesto IN ('Vendedor', 'Vendedora') AND cat.nombre <> 'Libros';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-29-3",
+     "title": "Lista de contactos de Heredia",
+     "prompt": "La Tienda abrirá un punto de retiro en Heredia y quiere una lista para avisar a los clientes de esa provincia y al equipo de servicio al cliente (departamento `'Servicio al cliente'`). Muestra nombre, apellido y una columna tipo que diga `'Cliente'` o `'Empleado'`, en ese orden.",
+     "hint": "Dos SELECT con las mismas tres columnas, unidos con UNION. Para los clientes de Heredia une con `provincias` o usa su `provincia_id`.",
+     "solution": "SELECT c.nombre, c.apellido, 'Cliente' AS tipo\nFROM clientes c\nJOIN provincias pv ON pv.id = c.provincia_id\nWHERE pv.nombre = 'Heredia'\nUNION\nSELECT e.nombre, e.apellido, 'Empleado'\nFROM empleados e\nWHERE e.departamento = 'Servicio al cliente';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-29-4",
+     "title": "Clientes fieles",
+     "prompt": "Mercadeo quiere premiar a quienes compraron en 2025 y también en 2026 (sin contar pedidos cancelados). Muestra el `id`, el nombre y el apellido de esos clientes, en ese orden.",
+     "hint": "Escribe un SELECT con los clientes de 2025 y otro con los de 2026, cada uno con un JOIN a `pedidos`, y quédate con los que están en los dos con INTERSECT.",
+     "solution": "SELECT c.id, c.nombre, c.apellido\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id\nWHERE p.estado <> 'cancelado' AND p.fecha BETWEEN '2025-01-01' AND '2025-12-31'\nINTERSECT\nSELECT c.id, c.nombre, c.apellido\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id\nWHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-29-5",
+     "title": "Productos que dejaron de venderse",
+     "prompt": "Bodega sospecha que algunos productos se vendían en 2025 y en 2026 ya no. Muestra el `id` y el nombre de los productos que tuvieron ventas en 2025 pero ninguna desde el `'2026-01-01'` (en ambos casos sin contar pedidos cancelados), en ese orden.",
+     "hint": "Productos vendidos en 2025 EXCEPT productos vendidos en 2026. Cada parte une `productos`, `detalle_pedido` y `pedidos`.",
+     "solution": "SELECT pr.id, pr.nombre\nFROM productos pr\nJOIN detalle_pedido dp ON dp.producto_id = pr.id\nJOIN pedidos p ON p.id = dp.pedido_id\nWHERE p.estado <> 'cancelado' AND p.fecha BETWEEN '2025-01-01' AND '2025-12-31'\nEXCEPT\nSELECT pr.id, pr.nombre\nFROM productos pr\nJOIN detalle_pedido dp ON dp.producto_id = pr.id\nJOIN pedidos p ON p.id = dp.pedido_id\nWHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-29-6",
+     "title": "Tamaño de cada equipo",
+     "prompt": "La gerente quiere saber cuántas personas le reportan directamente a cada empleado, incluidos los que no tienen a nadie a cargo (con 0). Muestra el nombre, el apellido, el puesto y la cantidad de personas a cargo de los 14 empleados, en ese orden.",
+     "hint": "Self join con LEFT JOIN: la tabla de la izquierda es el posible jefe (`e`) y la de la derecha sus subordinados (`s`), unidos por `s.jefe_id = e.id`. Cuenta `s.id`.",
+     "solution": "SELECT e.nombre, e.apellido, e.puesto, COUNT(s.id) AS a_cargo\nFROM empleados e\nLEFT JOIN empleados s ON s.jefe_id = e.id\nGROUP BY e.id, e.nombre, e.apellido, e.puesto;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Compañeros de departamento",
+    "description": "Para organizar parejas de capacitación, la gerente quiere todas las parejas de empleados que trabajan en el mismo departamento, sin repetir parejas (Hugo con Wendy es la misma pareja que Wendy con Hugo) y sin emparejar a nadie consigo mismo. Muestra el nombre completo de cada uno y el departamento, ordenado por departamento. ¿Cuántas parejas salen y por qué Ventas tiene tantas?",
+    "hint": "Self join por `a.departamento = b.departamento`. Para no repetir ni emparejar a alguien consigo mismo agrega `AND a.id < b.id` al ON.",
+    "solution": "SELECT a.nombre || ' ' || a.apellido AS persona_1,\n       b.nombre || ' ' || b.apellido AS persona_2,\n       a.departamento\nFROM empleados a\nJOIN empleados b ON b.departamento = a.departamento AND a.id < b.id\nORDER BY a.departamento, a.id, b.id;\n-- 22 parejas. Ventas tiene 6 personas y 6 personas forman 15 parejas (6 x 5 / 2).",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Self join",
+     "definition": "Unión de una tabla consigo misma usando dos alias con papeles distintos, como empleado y jefe."
+    },
+    {
+     "term": "CROSS JOIN",
+     "definition": "Unión sin condición que combina cada fila de una tabla con cada fila de la otra; el resultado tiene filas de una por filas de la otra."
+    },
+    {
+     "term": "UNION",
+     "definition": "Junta las filas de dos SELECT con las mismas columnas y elimina las repetidas."
+    },
+    {
+     "term": "UNION ALL",
+     "definition": "Junta las filas de dos SELECT conservando todas, incluidas las repetidas."
+    },
+    {
+     "term": "INTERSECT",
+     "definition": "Devuelve solo las filas que aparecen en el resultado de los dos SELECT."
+    },
+    {
+     "term": "EXCEPT",
+     "definition": "Devuelve las filas del primer SELECT que no aparecen en el segundo."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: SELECT compuestos (UNION, INTERSECT, EXCEPT)",
+     "url": "https://www.sqlite.org/lang_select.html#compound_select_statements"
+    },
+    {
+     "title": "SQLBolt: UNION, INTERSECT y EXCEPT (en inglés)",
+     "url": "https://sqlbolt.com/topic/set_operations"
+    },
+    {
+     "title": "W3Schools: SQL Self Join (en inglés)",
+     "url": "https://www.w3schools.com/sql/sql_join_self.asp"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué hace falta para unir `empleados` consigo misma?",
+     "code": "",
+     "options": [
+      "Nada especial: `FROM empleados JOIN empleados`",
+      "Darle dos alias distintos, uno por cada papel",
+      "Crear una copia de la tabla con otro nombre",
+      "Usar CROSS JOIN, porque no hay foránea"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: SQLite no sabría a cuál de las dos copias te refieres en cada columna.",
+      "Correcto: con `empleados e` y `empleados j` cada copia tiene su nombre y su papel.",
+      "No: no hace falta copiar nada; los alias bastan.",
+      "No: sí hay foránea, `jefe_id`, y se usa en el ON."
+     ],
+     "explanation": "En un self join la misma tabla aparece dos veces, y cada aparición necesita su propio alias.",
+     "hint": "Piensa cómo distinguirías `nombre` del empleado y `nombre` del jefe."
+    },
+    {
+     "type": "choice",
+     "prompt": "Hay 5 vendedores y 7 categorías con productos. ¿Cuántas filas da un CROSS JOIN entre ellos?",
+     "code": "",
+     "options": [
+      "7",
+      "12",
+      "5",
+      "35"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso sería una fila por categoría.",
+      "No: CROSS JOIN multiplica, no suma.",
+      "No: eso sería una fila por vendedor.",
+      "Correcto: cada vendedor se combina con cada categoría: 5 por 7."
+     ],
+     "explanation": "CROSS JOIN produce todas las combinaciones: filas de una tabla por filas de la otra.",
+     "hint": "Imagina una tabla de doble entrada."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál es la diferencia entre UNION y UNION ALL?",
+     "code": "",
+     "options": [
+      "UNION ordena el resultado y UNION ALL no",
+      "UNION elimina filas repetidas y UNION ALL las conserva",
+      "UNION ALL permite SELECT con distinta cantidad de columnas",
+      "No hay diferencia; ALL es opcional"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ninguno garantiza un orden; para eso está ORDER BY al final.",
+      "Correcto: UNION revisa y quita duplicados; UNION ALL junta todo tal cual.",
+      "No: los dos exigen la misma cantidad de columnas.",
+      "No: con nombres de clientes y empleados, uno da 94 filas y el otro 46."
+     ],
+     "explanation": "UNION quita duplicados; UNION ALL conserva todas las filas y es más rápido.",
+     "hint": "Recuerda los 94 y los 46 nombres del Tema 2."
+    },
+    {
+     "type": "boolean",
+     "prompt": "En una consulta con UNION, los nombres de las columnas del resultado los decide el primer SELECT.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: los alias del primer SELECT son los que se ven; los del segundo se ignoran.",
+      "No: sí los decide el primero; por eso el alias `tipo` basta escribirlo una vez."
+     ],
+     "explanation": "En un SELECT compuesto, los nombres de columna salen del primer SELECT.",
+     "hint": "Mira el ejemplo de la lista de contactos: ¿dónde se escribió `AS tipo`?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "`A EXCEPT B` y `B EXCEPT A` siempre dan el mismo resultado.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: EXCEPT resta el segundo resultado del primero; si cambias el orden, cambias la pregunta.",
+      "Correcto: «vendidos en 2025 y no en 2026» no es lo mismo que «vendidos en 2026 y no en 2025»."
+     ],
+     "explanation": "EXCEPT no es simétrico: devuelve lo que está en el primer SELECT y no en el segundo.",
+     "hint": "Piensa en una resta: ¿5 menos 3 es igual a 3 menos 5?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(*)\nFROM (SELECT nombre FROM clientes\n      UNION ALL\n      SELECT nombre FROM empleados);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "94"
+     ],
+     "optionFeedback": [],
+     "explanation": "UNION ALL conserva todas las filas: 80 clientes más 14 empleados.",
+     "hint": "UNION ALL no quita nada."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT nombre FROM clientes\nINTERSECT\nSELECT nombre FROM empleados;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Laura"
+     ],
+     "optionFeedback": [],
+     "explanation": "Laura es el único nombre de pila que aparece en las dos tablas: la gerente Laura Méndez y la clienta Laura Montero.",
+     "hint": "Es el nombre de la gerente."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa el self join para ver a cada empleado junto a su jefe.",
+     "code": "SELECT e.nombre AS empleado, j.nombre AS jefe\nFROM empleados e\nJOIN empleados j ON j.id = e.___;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "jefe_id"
+     ],
+     "optionFeedback": [],
+     "explanation": "La foránea `e.jefe_id` del empleado apunta a la primaria `j.id` del jefe.",
+     "hint": "Es la columna de `empleados` que apunta a la misma tabla."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "kind": "workshop",
+   "title": "Repaso integrador",
+   "summary": "Juntas todo lo de la semana con un método en 5 pasos para pasar de una pregunta de negocio a la consulta, y practicas leer, depurar y mejorar consultas ajenas.",
+   "objectives": [
+    "Aplicar el método en 5 pasos para convertir una pregunta de negocio en una consulta con varias tablas.",
+    "Leer una consulta en su orden lógico de ejecución y explicar qué pregunta responde.",
+    "Depurar consultas con conteos inflados, ON equivocados o columnas ambiguas.",
+    "Reescribir una consulta para que sea clara, con alias consistentes y una cláusula por línea."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: de la pregunta de negocio a la consulta",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: leer, depurar y mejorar consultas ajenas",
+     "minutes": 65
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 85
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "De la pregunta de negocio a la consulta: método en 5 pasos",
+     "concept": "Nadie en una empresa te va a pedir «un LEFT JOIN con GROUP BY». Te van a preguntar «¿qué vendemos en la costa?». Pasar de esa frase a la consulta es la habilidad que de verdad se paga, y se puede hacer con un método.\n\n**Paso 1, traduce la pregunta:** escribe cómo se vería el resultado: qué columnas y qué es cada fila (el grano). «Ventas por categoría en la costa en 2026» es una fila por categoría con su nombre y sus ventas. **Paso 2, ubica los datos en el mapa:** ¿en qué tabla vive cada columna y cada filtro? La categoría en `categorias`, el dinero en `detalle_pedido`, la provincia en `provincias`, la fecha y el estado en `pedidos`. **Paso 3, traza el camino:** escribe el FROM y un JOIN por cada línea del mapa entre esas tablas; decide si alguno debe ser LEFT porque algo tiene que aparecer aunque no tenga pareja.\n\n**Paso 4, filtra, agrupa y calcula:** WHERE para las filas, GROUP BY por la clave del grano, la expresión del cálculo y HAVING si el filtro es sobre un total. **Paso 5, presenta y verifica:** alias claros, ROUND, ORDER BY con desempate, y una prueba de sentido común: ¿el número de filas es el esperado?, ¿un total cuadra con otra consulta más simple?",
+     "tip": "Antes de ejecutar, adivina el resultado: «deberían salir 7 filas y Ropa debería estar arriba». Si el resultado te sorprende, o descubriste algo o hay un error; en los dos casos vale la pena mirar más de cerca.",
+     "example": "-- Pregunta: ¿qué categorías vendieron más en 2026 en Guanacaste, Puntarenas y Limón?\n-- 1. Resultado: una fila por categoría -> categoria, ventas (las 3 mayores)\n-- 2. Datos: categorias.nombre, detalle_pedido (dinero), provincias.nombre, pedidos.fecha y estado\n-- 3. Camino: detalle_pedido -> pedidos -> clientes -> provincias; detalle_pedido -> productos -> categorias\n-- 4. Filtros: no cancelado, 2026, provincias costeras; agrupar por categoría\n-- 5. Presentar: ROUND, de mayor a menor, LIMIT 3\nSELECT cat.nombre AS categoria,\n       ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM detalle_pedido dp\nJOIN pedidos p     ON p.id = dp.pedido_id\nJOIN clientes c    ON c.id = p.cliente_id\nJOIN provincias pv ON pv.id = c.provincia_id\nJOIN productos pr   ON pr.id = dp.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE p.estado <> 'cancelado'\n  AND p.fecha >= '2026-01-01'\n  AND pv.nombre IN ('Guanacaste', 'Puntarenas', 'Limón')\nGROUP BY cat.id, cat.nombre\nORDER BY ventas DESC\nLIMIT 3;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Paso 1: dibuja el resultado",
+       "body": "Pregunta de la gerente: «¿Cuál es el ticket promedio de las compras en línea frente a las de la tienda física?». Antes de escribir SQL, anota: una fila por canal; columnas canal, pedidos y ticket promedio (ventas entre pedidos). Ya sabes que deben salir 2 filas.",
+       "code": "-- Resultado esperado: canal | pedidos | ticket_promedio  (2 filas)\n-- Exploración rápida: ¿cuántos pedidos tiene cada canal?\nSELECT empleado_id IS NULL AS es_en_linea, COUNT(*) AS pedidos\nFROM pedidos\nGROUP BY es_en_linea;",
+       "language": "sql"
+      },
+      {
+       "title": "Pasos 2 y 3: ubica los datos y traza el camino",
+       "body": "El canal sale de `pedidos.empleado_id` (NULL es en línea) y el dinero de `detalle_pedido`. Camino: una sola línea del mapa. Ejecuta el JOIN sin agrupar para ver que cada línea trae su canal y su monto.",
+       "code": "SELECT p.id, CASE WHEN p.empleado_id IS NULL THEN 'En línea' ELSE 'Tienda física' END AS canal,\n       dp.cantidad * dp.precio_unitario * (1 - dp.descuento) AS monto\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nORDER BY p.id\nLIMIT 6;",
+       "language": "sql"
+      },
+      {
+       "title": "Paso 4: filtra, agrupa y calcula",
+       "body": "Agrupa por el canal. El ticket promedio es ventas entre pedidos, y como el JOIN bajó al grano de líneas, los pedidos se cuentan con `COUNT(DISTINCT p.id)`. Usar `AVG` del monto daría el promedio por línea, no por pedido.",
+       "code": "SELECT CASE WHEN p.empleado_id IS NULL THEN 'En línea' ELSE 'Tienda física' END AS canal,\n       COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)) / COUNT(DISTINCT p.id)) AS ticket_promedio\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY canal;",
+       "language": "sql"
+      },
+      {
+       "title": "Paso 5: verifica con otra consulta",
+       "body": "Comprueba que los pedidos de los dos canales suman los 387 pedidos no cancelados contando directo en `pedidos`. Las compras en línea son 168 y las de tienda 219.",
+       "code": "SELECT COUNT(*) AS pedidos_no_cancelados\nFROM pedidos\nWHERE estado <> 'cancelado';",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "Empezar a escribir SQL sin saber qué es una fila del resultado",
+       "cause": "Se agregan JOIN y columnas sobre la marcha y el resultado termina con un grano que nadie pidió.",
+       "fix": "Escribe primero, como comentario, las columnas y qué representa cada fila. Es el paso 1 y toma un minuto."
+      },
+      {
+       "error": "Usar tablas que no están en el camino",
+       "cause": "Se une `productos` o `categorias` «por si acaso», y en el peor caso se agrega una relación que repite filas.",
+       "fix": "Cada tabla del FROM debe aportar una columna, un filtro o ser un eslabón del camino. Si no, sobra."
+      },
+      {
+       "error": "Responder otra pregunta",
+       "cause": "La pregunta decía 2026 o «sin cancelados» y el filtro se quedó en el tintero; el número sale, pero es de otra pregunta.",
+       "fix": "En el paso 2 subraya cada condición de la pregunta y verifica en el paso 5 que cada una está en el WHERE, el ON o el HAVING."
+      }
+     ]
+    },
+    {
+     "title": "Leer, depurar y mejorar consultas ajenas",
+     "concept": "En el trabajo vas a leer más SQL del que escribes: reportes viejos, consultas de un compañero, ejemplos de internet. Para entender una consulta, léela en el **orden lógico** en que SQLite la ejecuta, no en el orden en que está escrita: FROM y JOIN (qué tablas y cómo se emparejan), WHERE (qué filas sobreviven), GROUP BY y HAVING (cómo se agrupan y qué grupos quedan), SELECT (qué se calcula) y ORDER BY y LIMIT (cómo se presenta).\n\nPara **depurar**, divide y ejecuta. Comenta el GROUP BY y mira las filas sueltas; quita los JOIN de abajo hacia arriba hasta que el conteo tenga sentido. Los errores de esta semana se repiten mucho: un ON que compara columnas que no se corresponden, `COUNT(*)` que cuenta líneas en vez de pedidos, una columna de `pedidos` sumada después de bajar al grano de líneas, un filtro en el WHERE que anula un LEFT JOIN y una columna `nombre` sin alias. \n\nPara **mejorar** una consulta que ya funciona: una cláusula por línea, alias de tabla consistentes, alias de columna que expliquen el dato, agrupar por la clave y no solo por el nombre, y quitar lo que sobra. Una consulta clara es una consulta que otro puede revisar, y eso la hace más confiable.",
+     "tip": "Cuando te pasen una consulta para revisar, ejecútala primero con `LIMIT 5` y sin el GROUP BY. Ver las filas antes de agruparlas revela la mitad de los errores.",
+     "example": "-- Versión mejorada de una consulta heredada:\n-- SELECT nombre, count(*), avg(calificacion) FROM resenas JOIN productos ON productos.id = resenas.producto_id\n--   JOIN categorias ON categorias.id = productos.id GROUP BY nombre\nSELECT cat.nombre AS categoria,\n       COUNT(*) AS resenas,\n       ROUND(AVG(r.calificacion), 2) AS calificacion_promedio\nFROM resenas r\nJOIN productos pr   ON pr.id = r.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nGROUP BY cat.id, cat.nombre\nORDER BY calificacion_promedio DESC;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Lee en orden lógico",
+       "body": "Lee esta consulta empezando por el FROM: une clientes con pedidos, se queda con los pedidos de 2026, agrupa por cliente, deja los grupos con 5 o más pedidos y al final elige columnas y ordena. Antes de ejecutarla, di en una frase qué pregunta responde.",
+       "code": "SELECT c.nombre, c.apellido, COUNT(*) AS pedidos_2026\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id\nWHERE p.fecha >= '2026-01-01'\nGROUP BY c.id, c.nombre, c.apellido\nHAVING COUNT(*) >= 5\nORDER BY pedidos_2026 DESC, c.apellido;",
+       "language": "sql"
+      },
+      {
+       "title": "Depura un conteo inflado",
+       "body": "Este reporte dice que San José tuvo 138 pedidos en 2026, pero son menos. Ejecútalo y luego cambia `COUNT(*)` por `COUNT(DISTINCT p.id)`: baja a 71. Si además agregas el filtro de pedidos no cancelados, quedan 64.",
+       "code": "SELECT pv.nombre, COUNT(*) AS pedidos\nFROM provincias pv\nJOIN clientes c ON c.provincia_id = pv.id\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.fecha >= '2026-01-01' AND pv.nombre = 'San José'\nGROUP BY pv.nombre;",
+       "language": "sql"
+      },
+      {
+       "title": "Depura un ON equivocado",
+       "body": "Esta consulta corre sin error, pero dice que Libros, una categoría sin productos, tiene 5 reseñas. El ON compara `cat.id` con `pr.id`, dos claves primarias, y le pega a cada categoría las reseñas del producto con su mismo número. Ejecútala, compárala con el ejemplo del tema y busca la diferencia.",
+       "code": "SELECT cat.nombre AS categoria, COUNT(*) AS resenas\nFROM resenas r\nJOIN productos pr ON pr.id = r.producto_id\nJOIN categorias cat ON cat.id = pr.id\nGROUP BY cat.id, cat.nombre;",
+       "language": "sql"
+      },
+      {
+       "title": "Mejora el formato",
+       "body": "Esta consulta es correcta pero difícil de leer. Reescríbela con una cláusula por línea, alias `c`, `p` y `e`, y alias de columna claros, y verifica que el resultado no cambió.",
+       "code": "select clientes.nombre, empleados.nombre, pedidos.fecha from pedidos join clientes on clientes.id=pedidos.cliente_id join empleados on empleados.id=pedidos.empleado_id where pedidos.fecha>='2026-09-20' order by pedidos.fecha, pedidos.id;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "ambiguous column name: nombre",
+       "cause": "La consulta heredada usaba una sola tabla con `nombre` y alguien agregó un JOIN a otra que también lo tiene.",
+       "fix": "Califica todas las columnas con su alias. Es la mejora más barata y evita el error en cualquier cambio futuro."
+      },
+      {
+       "error": "La consulta corre, pero el número no cuadra",
+       "cause": "SQLite solo avisa de errores de sintaxis; un ON equivocado o un conteo en el grano incorrecto producen resultados falsos sin ningún mensaje.",
+       "fix": "Verifica con una consulta más simple: el total de una tabla, el conteo de pedidos sin JOIN. Si no coinciden, divide la consulta y ejecútala por partes."
+      },
+      {
+       "error": "Arreglar un síntoma con DISTINCT",
+       "cause": "Se agrega `SELECT DISTINCT` para esconder filas repetidas sin entender por qué se repiten; las sumas siguen infladas.",
+       "fix": "Busca la causa: casi siempre es un JOIN que bajó el grano. Cuenta con `COUNT(DISTINCT ...)` o quita la tabla que sobra."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-30-1",
+     "title": "Mejores clientes de 2026",
+     "prompt": "La gerente quiere llamar en persona a los 5 clientes que más han comprado en 2026 (pedidos no cancelados desde el `'2026-01-01'`). Muestra el nombre, el apellido, la provincia y el total comprado redondeado a entero, en ese orden, de mayor a menor total, solo los 5 primeros.",
+     "hint": "Aplica el método: una fila por cliente; camino `clientes` → `provincias` y `clientes` → `pedidos` → `detalle_pedido`; ORDER BY y LIMIT al final.",
+     "solution": "SELECT c.nombre, c.apellido, pv.nombre AS provincia, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS total\nFROM clientes c\nJOIN provincias pv ON pv.id = c.provincia_id\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\nGROUP BY c.id, c.nombre, c.apellido, pv.nombre\nORDER BY total DESC\nLIMIT 5;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-30-2",
+     "title": "Ticket por canal",
+     "prompt": "Muestra, para los pedidos no cancelados, el canal (`'En línea'` si no tiene vendedor y `'Tienda física'` si lo tiene), la cantidad de pedidos y el ticket promedio (ventas entre pedidos) redondeado a entero, en ese orden.",
+     "hint": "Es la consulta de los pasos del Tema 1: CASE para el canal, `COUNT(DISTINCT p.id)` y ventas divididas entre pedidos.",
+     "solution": "SELECT CASE WHEN p.empleado_id IS NULL THEN 'En línea' ELSE 'Tienda física' END AS canal,\n       COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)) / COUNT(DISTINCT p.id)) AS ticket_promedio\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY canal;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-30-3",
+     "title": "Ventas mes a mes",
+     "prompt": "Para la reunión de cierre, la gerente quiere las ventas de cada mes de 2026 (pedidos no cancelados). Muestra el mes en formato `'AAAA-MM'`, la cantidad de pedidos y las ventas redondeadas a entero, en ese orden, del mes más antiguo al más reciente.",
+     "hint": "`strftime('%Y-%m', p.fecha)` da el mes. Agrupa por esa expresión y ordena por ella.",
+     "solution": "SELECT strftime('%Y-%m', p.fecha) AS mes, COUNT(DISTINCT p.id) AS pedidos, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\nGROUP BY mes\nORDER BY mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-30-4",
+     "title": "Corrige: pedidos por provincia",
+     "prompt": "Un compañero escribió este reporte de pedidos de 2026 por provincia, pero los números salen inflados y además incluye pedidos cancelados. Corrígelo para que muestre el nombre de la provincia y la cantidad de pedidos no cancelados de 2026, en ese orden.",
+     "hint": "Hay dos errores: `COUNT(*)` cuenta líneas de detalle (¿hace falta esa tabla?) y falta un filtro. Agrupa también por `pv.id`.",
+     "solution": "SELECT pv.nombre AS provincia, COUNT(p.id) AS pedidos\nFROM provincias pv\nJOIN clientes c ON c.provincia_id = pv.id\nJOIN pedidos p ON p.cliente_id = c.id\nWHERE p.fecha >= '2026-01-01' AND p.estado <> 'cancelado'\nGROUP BY pv.id, pv.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "SELECT pv.nombre, COUNT(*) AS pedidos\nFROM provincias pv\nJOIN clientes c ON c.provincia_id = pv.id\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.fecha >= '2026-01-01'\nGROUP BY pv.nombre;",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-30-5",
+     "title": "Corrige: calificación por categoría",
+     "prompt": "Esta consulta heredada debía mostrar la calificación de cada categoría, pero falla con `ambiguous column name: nombre` y, aun corrigiendo eso, une mal las tablas. Arréglala para que muestre el nombre de la categoría, la cantidad de reseñas y la calificación promedio redondeada a 2 decimales, en ese orden.",
+     "hint": "Califica `nombre` con el alias correcto y revisa el ON de `categorias`: ¿qué columna de `productos` apunta a esa tabla?",
+     "solution": "SELECT cat.nombre AS categoria, COUNT(*) AS resenas, ROUND(AVG(r.calificacion), 2) AS promedio\nFROM resenas r\nJOIN productos pr ON pr.id = r.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nGROUP BY cat.id, cat.nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "SELECT nombre, COUNT(*) AS resenas, AVG(calificacion) AS promedio\nFROM resenas r\nJOIN productos pr ON pr.id = r.producto_id\nJOIN categorias cat ON cat.id = pr.id\nGROUP BY nombre;",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-30-6",
+     "title": "Clientes que se enfriaron",
+     "prompt": "Mercadeo quiere reconquistar a los clientes que compraron en 2025 pero no han vuelto a comprar en 2026 (en ambos casos, sin contar pedidos cancelados). Muestra su `id`, nombre, apellido y email, en ese orden.",
+     "hint": "Clientes con compras en 2025 EXCEPT clientes con compras desde el `'2026-01-01'`. Las dos partes deben tener exactamente las mismas columnas.",
+     "solution": "SELECT c.id, c.nombre, c.apellido, c.email\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id\nWHERE p.estado <> 'cancelado' AND p.fecha BETWEEN '2025-01-01' AND '2025-12-31'\nEXCEPT\nSELECT c.id, c.nombre, c.apellido, c.email\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id\nWHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "La pregunta de la gerente",
+    "description": "Laura Méndez pregunta: «¿Qué método de pago tiene más cancelaciones, en proporción?». Aplica el método en 5 pasos y escribe cada paso como comentario antes del SQL. El resultado debe tener, por método de pago, el total de pedidos, los cancelados y el porcentaje de cancelación con 1 decimal, de mayor a menor porcentaje. Termina con un comentario de dos líneas: qué le dirías a Laura y qué otra consulta harías para entender la causa.",
+    "hint": "Todo está en `pedidos`: no necesitas JOIN. Cuenta los cancelados con `SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END)` y multiplica por `100.0` antes de dividir.",
+    "solution": "-- 1. Resultado: una fila por método -> metodo_pago, pedidos, cancelados, pct_cancelados\n-- 2. Datos: todo en pedidos (metodo_pago, estado)\n-- 3. Camino: una sola tabla, sin JOIN\n-- 4. Agrupar por metodo_pago; contar total y cancelados con CASE\n-- 5. ROUND a 1 decimal, de mayor a menor porcentaje\nSELECT metodo_pago,\n       COUNT(*) AS pedidos,\n       SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados,\n       ROUND(100.0 * SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_cancelados\nFROM pedidos\nGROUP BY metodo_pago\nORDER BY pct_cancelados DESC;\n-- El efectivo se cancela 17.9 % de las veces, más del doble que los otros métodos (6.7 % a 7.9 %).\n-- Siguiente consulta: cancelaciones en efectivo por vendedor y por mes, para ver si se concentran en alguien o en una época.",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "Pregunta de negocio",
+     "definition": "Lo que una persona de la empresa quiere saber, dicho en sus palabras; el punto de partida del método en 5 pasos."
+    },
+    {
+     "term": "Ticket promedio",
+     "definition": "Lo que gasta en promedio un pedido: ventas totales divididas entre la cantidad de pedidos."
+    },
+    {
+     "term": "Orden lógico",
+     "definition": "El orden en que SQLite evalúa una consulta: FROM y JOIN, WHERE, GROUP BY, HAVING, SELECT, ORDER BY y LIMIT."
+    },
+    {
+     "term": "Depurar",
+     "definition": "Encontrar y corregir la causa de un error, por ejemplo ejecutando la consulta por partes."
+    },
+    {
+     "term": "Consulta heredada",
+     "definition": "Consulta escrita por otra persona (o por ti hace tiempo) que hay que entender, corregir o mejorar."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: SELECT (procesamiento de una consulta)",
+     "url": "https://www.sqlite.org/lang_select.html"
+    },
+    {
+     "title": "SQLite: funciones de fecha y hora",
+     "url": "https://www.sqlite.org/lang_datefunc.html"
+    },
+    {
+     "title": "SQLBolt: orden de ejecución de una consulta (en inglés)",
+     "url": "https://sqlbolt.com/lesson/select_queries_order_of_execution"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Según el método en 5 pasos, ¿qué haces primero ante la pregunta «¿cuánto vendió cada vendedor en 2026?»?",
+     "code": "",
+     "options": [
+      "Escribir el FROM con la tabla de pedidos",
+      "Definir el resultado: una fila por vendedor con su nombre y sus ventas",
+      "Escribir el GROUP BY",
+      "Ejecutar SELECT * FROM empleados"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: elegir tablas es el paso 2 y 3; primero hay que saber qué resultado buscas.",
+      "Correcto: el paso 1 es traducir la pregunta a columnas y a qué es cada fila.",
+      "No: agrupar es el paso 4.",
+      "No: explorar ayuda, pero sin saber qué buscas no sabes qué mirar."
+     ],
+     "explanation": "El paso 1 define el grano y las columnas del resultado; todo lo demás depende de eso.",
+     "hint": "El método empieza por el final: cómo debe verse la respuesta."
+    },
+    {
+     "type": "choice",
+     "prompt": "Una consulta de ventas por categoría corre sin errores, pero Café y bebidas sale con ventas de un solo producto. ¿Qué revisas primero?",
+     "code": "",
+     "options": [
+      "El ORDER BY",
+      "El ROUND",
+      "Las condiciones ON de los JOIN",
+      "El alias de la columna de ventas"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el orden no cambia los números.",
+      "No: redondear no hace desaparecer productos.",
+      "Correcto: un ON que compara columnas equivocadas empareja filas que no corresponden, sin dar ningún error.",
+      "No: el nombre de la columna no cambia su valor."
+     ],
+     "explanation": "Los resultados falsos sin mensaje de error casi siempre vienen de un ON mal escrito o de un grano equivocado.",
+     "hint": "¿Qué parte de la consulta decide qué filas se emparejan?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿En qué orden lógico evalúa SQLite estas cláusulas?",
+     "code": "",
+     "options": [
+      "SELECT, FROM, WHERE, GROUP BY",
+      "FROM, SELECT, WHERE, GROUP BY",
+      "WHERE, FROM, GROUP BY, SELECT",
+      "FROM, WHERE, GROUP BY, SELECT"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: ese es el orden en que se escriben, no en el que se evalúan.",
+      "No: el WHERE se evalúa antes de calcular las columnas del SELECT.",
+      "No: no se puede filtrar antes de saber de qué tablas salen las filas.",
+      "Correcto: primero las tablas, luego el filtro de filas, luego los grupos y al final lo que se muestra."
+     ],
+     "explanation": "El orden lógico es FROM y JOIN, WHERE, GROUP BY, HAVING, SELECT, ORDER BY y LIMIT.",
+     "hint": "Lo primero es saber de dónde salen las filas."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si una consulta corre sin ningún mensaje de error, su resultado es correcto.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: un ON equivocado o un COUNT(*) en el grano de líneas dan números falsos sin ningún aviso.",
+      "Correcto: SQLite solo detecta errores de sintaxis y de nombres; los errores de lógica hay que verificarlos tú."
+     ],
+     "explanation": "Por eso el paso 5 del método es verificar con una consulta más simple.",
+     "hint": "Recuerda el ejemplo de San José con 138 pedidos."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Agregar DISTINCT al SELECT es una buena forma de corregir sumas infladas por un JOIN.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: DISTINCT quita filas repetidas del resultado final, pero las sumas ya se calcularon con las filas repetidas.",
+      "Correcto: hay que corregir la causa, que suele ser un JOIN que cambió el grano."
+     ],
+     "explanation": "DISTINCT esconde el síntoma; la solución es contar con COUNT(DISTINCT ...) o no unir la tabla que repite filas.",
+     "hint": "¿DISTINCT actúa antes o después de calcular el SUM?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(DISTINCT p.id)\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado';",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "387"
+     ],
+     "optionFeedback": [],
+     "explanation": "Hay 420 pedidos y 33 cancelados; el JOIN repite pedidos, pero COUNT(DISTINCT) los cuenta una vez: 387.",
+     "hint": "Piensa en los pedidos no cancelados, no en las líneas."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta?",
+     "code": "SELECT COUNT(*)\nFROM pedidos\nWHERE empleado_id IS NULL AND estado <> 'cancelado';",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "168"
+     ],
+     "optionFeedback": [],
+     "explanation": "Son las compras en línea no canceladas, las mismas que aparecen en el ticket por canal.",
+     "hint": "Es la cantidad de pedidos del canal en línea."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa para calcular el ticket promedio por pedido después de unir con `detalle_pedido`.",
+     "code": "SELECT ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)) / ___) AS ticket\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado';",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "COUNT(DISTINCT p.id)"
+     ],
+     "optionFeedback": [],
+     "explanation": "Hay que dividir entre la cantidad de pedidos, y después del JOIN se cuentan con COUNT(DISTINCT p.id).",
+     "hint": "No es COUNT(*): eso contaría líneas."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-10-31",
+  "kind": "mini-project",
+  "path": "Laboratorio SQL",
+  "description": "Cierre de la fase 1: un informe de ventas para Laura Méndez, la gerente de la Tienda Pura Vida. Respondes 10 preguntas de negocio con consultas que unen varias tablas (se califican solas en el laboratorio) y escribes un informe con tus hallazgos y recomendaciones, que es la evidencia que entregas.",
+  "criteria": [
+   "Los 10 ejercicios (s03-1 a s03-10) pasan la revisión automática del laboratorio.",
+   "Las consultas usan alias de tabla consistentes y califican todas las columnas repetidas (`id`, `nombre`).",
+   "Las ventas se calculan con `cantidad * precio_unitario * (1 - descuento)` y excluyen los pedidos cancelados cuando la pregunta lo pide.",
+   "El informe tiene al menos 5 hallazgos, cada uno con el número que lo respalda y el ejercicio de donde sale.",
+   "El informe cierra con 3 recomendaciones concretas para la gerente, cada una conectada con un hallazgo.",
+   "El informe está escrito para una gerente, sin jerga de SQL, con montos en colones y sin errores de ortografía."
+  ],
+  "steps": [
+   "Lee las 10 preguntas completas antes de empezar y marca cuáles usan INNER JOIN, cuáles LEFT JOIN y cuáles solo una o dos tablas.",
+   "Resuelve cada ejercicio con el método en 5 pasos: escribe primero como comentario el resultado esperado y el camino en el mapa, y después el SQL.",
+   "Antes de enviar cada solución, verifica un número con una consulta más simple; por ejemplo, que los pedidos de s03-1 sumen los 387 pedidos no cancelados.",
+   "Mientras resuelves, anota en una lista aparte cada dato que te sorprenda (una provincia, un producto, un vendedor) y de qué ejercicio sale.",
+   "Elige tus 5 hallazgos más importantes y escribe cada uno en dos o tres frases: qué viste, el número y por qué le importa a la Tienda.",
+   "Escribe 3 recomendaciones. Cada una debe decir qué hacer, a quién le toca y en qué hallazgo se apoya.",
+   "Arma el informe con un título, un resumen de tres líneas para alguien que solo lea eso, los hallazgos y las recomendaciones, y entrégalo como evidencia."
+  ],
+  "tips": [
+   "Un hallazgo no es un número suelto: «Limón es la segunda provincia en ventas con solo 7 clientes» dice mucho más que «Limón vendió ₡2 306 535».",
+   "Compara siempre contra algo: el año anterior, otra categoría, el promedio. Una cifra sin comparación no le dice a la gerente si es buena o mala.",
+   "Ten cuidado con 2026: los datos llegan hasta el 30 de setiembre, así que comparar el año completo de 2025 con nueve meses de 2026 favorece a 2025. Dilo en el informe.",
+   "Si un ejercicio no te sale, resuelve primero la versión con menos tablas y agrega un JOIN a la vez, revisando el número de filas en cada paso."
+  ],
+  "stretch": "Agrega al informe una sección «Qué preguntaría después» con dos consultas extra que tú mismo diseñes, por ejemplo cómo cambian las ventas de Ropa si se excluye el Bolso de manta, o qué vendedores atienden más clientes de Limón, con su SQL y lo que encontraste.",
+  "checklist": [
+   "Los 10 ejercicios aparecen como correctos en el laboratorio.",
+   "Cada consulta tiene alias de tabla y ninguna columna `nombre` o `id` sin calificar.",
+   "Revisé que ninguna suma de ventas incluya pedidos cancelados cuando no correspondía.",
+   "El informe tiene título, resumen, al menos 5 hallazgos con su número y 3 recomendaciones.",
+   "Cada número del informe coincide con el resultado de mi consulta.",
+   "Mencioné que 2026 solo tiene datos hasta el 30 de setiembre.",
+   "Releí el informe en voz alta para revisar la ortografía y que se entienda sin saber SQL."
+  ],
+  "exercises": [
+   {
+    "id": "s03-1",
+    "title": "Ventas por año",
+    "prompt": "Para abrir el informe, la gerente quiere comparar los dos años de la Tienda. Para los pedidos no cancelados, muestra el año (texto `'AAAA'`), la cantidad de pedidos y las ventas redondeadas a entero, en ese orden, del año más antiguo al más reciente.",
+    "hint": "`strftime('%Y', p.fecha)` da el año. Recuerda contar pedidos con `COUNT(DISTINCT p.id)` después de unir con `detalle_pedido`.",
+    "solution": "SELECT strftime('%Y', p.fecha) AS anio, COUNT(DISTINCT p.id) AS pedidos, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM pedidos p\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY anio\nORDER BY anio;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s03-2",
+    "title": "Ventas y margen por categoría en 2026",
+    "prompt": "Para los pedidos no cancelados desde el `'2026-01-01'`, muestra por categoría el nombre de la categoría, las ventas redondeadas a entero y el margen como porcentaje de las ventas con 1 decimal (ventas menos `cantidad * costo` del producto, dividido entre las ventas, por 100), en ese orden, de mayor a menor venta.",
+    "hint": "Une `detalle_pedido`, `pedidos`, `productos` y `categorias`. Multiplica por `100.0` antes de dividir para no caer en la división entera.",
+    "solution": "SELECT cat.nombre AS categoria, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas,\n       ROUND(100.0 * (SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)) - SUM(dp.cantidad * pr.costo)) / SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)), 1) AS margen_pct\nFROM detalle_pedido dp\nJOIN pedidos p ON p.id = dp.pedido_id\nJOIN productos pr ON pr.id = dp.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\nGROUP BY cat.id, cat.nombre\nORDER BY ventas DESC;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s03-3",
+    "title": "Los 10 productos estrella",
+    "prompt": "Muestra los 10 productos con más ventas de toda la historia (pedidos no cancelados): el nombre del producto, el nombre de su categoría, las unidades vendidas y las ventas redondeadas a entero, en ese orden, de mayor a menor venta.",
+    "hint": "Agrupa por producto (`pr.id`) y no olvides la categoría en el GROUP BY. Termina con `ORDER BY ventas DESC LIMIT 10`.",
+    "solution": "SELECT pr.nombre AS producto, cat.nombre AS categoria, SUM(dp.cantidad) AS unidades, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas\nFROM detalle_pedido dp\nJOIN pedidos p ON p.id = dp.pedido_id\nJOIN productos pr ON pr.id = dp.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nWHERE p.estado <> 'cancelado'\nGROUP BY pr.id, pr.nombre, cat.nombre\nORDER BY ventas DESC\nLIMIT 10;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s03-4",
+    "title": "Provincias por canal",
+    "prompt": "La gerente quiere saber si cada provincia compra más en línea o en la tienda física. Para los pedidos no cancelados, muestra el nombre de la provincia, las ventas en línea (pedidos sin vendedor) y las ventas en tienda física (pedidos con vendedor), ambas redondeadas a entero, en ese orden.",
+    "hint": "Una sola consulta: `SUM(CASE WHEN p.empleado_id IS NULL THEN <monto> ELSE 0 END)` para una columna y lo contrario para la otra.",
+    "solution": "SELECT pv.nombre AS provincia,\n       ROUND(SUM(CASE WHEN p.empleado_id IS NULL THEN dp.cantidad * dp.precio_unitario * (1 - dp.descuento) ELSE 0 END)) AS en_linea,\n       ROUND(SUM(CASE WHEN p.empleado_id IS NOT NULL THEN dp.cantidad * dp.precio_unitario * (1 - dp.descuento) ELSE 0 END)) AS tienda_fisica\nFROM provincias pv\nJOIN clientes c ON c.provincia_id = pv.id\nJOIN pedidos p ON p.cliente_id = c.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\nGROUP BY pv.id, pv.nombre;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s03-5",
+    "title": "Vendedores en 2026",
+    "prompt": "Para los pedidos no cancelados desde el `'2026-01-01'` que atendió un vendedor, muestra el nombre completo del vendedor (nombre, un espacio y apellido), la cantidad de pedidos, las ventas redondeadas a entero y el ticket promedio (ventas entre pedidos) redondeado a entero, en ese orden, de mayor a menor venta.",
+    "hint": "Une `empleados`, `pedidos` y `detalle_pedido`. El ticket es la suma de los montos dividida entre `COUNT(DISTINCT p.id)`.",
+    "solution": "SELECT e.nombre || ' ' || e.apellido AS vendedor, COUNT(DISTINCT p.id) AS pedidos, ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento))) AS ventas,\n       ROUND(SUM(dp.cantidad * dp.precio_unitario * (1 - dp.descuento)) / COUNT(DISTINCT p.id)) AS ticket_promedio\nFROM empleados e\nJOIN pedidos p ON p.empleado_id = e.id\nJOIN detalle_pedido dp ON dp.pedido_id = p.id\nWHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\nGROUP BY e.id, e.nombre, e.apellido\nORDER BY ventas DESC;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s03-6",
+    "title": "Clientes activos por provincia",
+    "prompt": "Para cada una de las 7 provincias, muestra el nombre de la provincia, la cantidad de clientes registrados y la cantidad de esos clientes que han hecho al menos un pedido (de cualquier estado), en ese orden.",
+    "hint": "`provincias` LEFT JOIN `clientes` LEFT JOIN `pedidos`. Cuenta clientes con `COUNT(DISTINCT c.id)` y compradores con `COUNT(DISTINCT p.cliente_id)`.",
+    "solution": "SELECT pv.nombre AS provincia, COUNT(DISTINCT c.id) AS clientes, COUNT(DISTINCT p.cliente_id) AS con_compras\nFROM provincias pv\nLEFT JOIN clientes c ON c.provincia_id = pv.id\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nGROUP BY pv.id, pv.nombre;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s03-7",
+    "title": "Lista para la campaña de bienvenida",
+    "prompt": "Mercadeo llamará a los clientes que nunca han hecho un pedido. Muestra su nombre, apellido, el nombre de su provincia, su teléfono (o `'sin teléfono'` si no tiene) y su email, en ese orden.",
+    "hint": "Anti-join de `clientes` con `pedidos`, más un JOIN a `provincias`. Para el teléfono usa COALESCE.",
+    "solution": "SELECT c.nombre, c.apellido, pv.nombre AS provincia, COALESCE(c.telefono, 'sin teléfono') AS telefono, c.email\nFROM clientes c\nJOIN provincias pv ON pv.id = c.provincia_id\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nWHERE p.id IS NULL;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s03-8",
+    "title": "Inventario detenido",
+    "prompt": "Bodega quiere saber cuánto dinero hay guardado en productos que nunca se han vendido. Muestra el nombre del producto, el nombre de su categoría, el stock y el valor del inventario a costo (`stock * costo`), en ese orden.",
+    "hint": "Anti-join de `productos` con `detalle_pedido` y un JOIN a `categorias`.",
+    "solution": "SELECT pr.nombre AS producto, cat.nombre AS categoria, pr.stock, pr.stock * pr.costo AS valor_a_costo\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id\nLEFT JOIN detalle_pedido dp ON dp.producto_id = pr.id\nWHERE dp.id IS NULL;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s03-9",
+    "title": "Productos con quejas",
+    "prompt": "Muestra los productos con al menos 3 reseñas y calificación promedio menor que 3.5: el nombre del producto, el nombre de su categoría, la cantidad de reseñas y el promedio redondeado a 2 decimales, en ese orden, del peor promedio al mejor y, si empatan, por nombre del producto.",
+    "hint": "Une `resenas`, `productos` y `categorias`, agrupa por producto y pon las dos condiciones en el HAVING con AND.",
+    "solution": "SELECT pr.nombre AS producto, cat.nombre AS categoria, COUNT(*) AS resenas, ROUND(AVG(r.calificacion), 2) AS promedio\nFROM resenas r\nJOIN productos pr ON pr.id = r.producto_id\nJOIN categorias cat ON cat.id = pr.categoria_id\nGROUP BY pr.id, pr.nombre, cat.nombre\nHAVING COUNT(*) >= 3 AND AVG(r.calificacion) < 3.5\nORDER BY promedio, producto;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s03-10",
+    "title": "Productos que llegan a todo el país",
+    "prompt": "La gerente quiere saber qué productos se han vendido (en pedidos no cancelados) a clientes de las 7 provincias. Muestra el nombre del producto y el nombre de su categoría, en ese orden.",
+    "hint": "El camino va de `productos` hasta `provincias` pasando por `detalle_pedido`, `pedidos` y `clientes`. Agrupa por producto y exige `COUNT(DISTINCT pv.id) = 7`.",
+    "solution": "SELECT pr.nombre AS producto, cat.nombre AS categoria\nFROM productos pr\nJOIN categorias cat ON cat.id = pr.categoria_id\nJOIN detalle_pedido dp ON dp.producto_id = pr.id\nJOIN pedidos p ON p.id = dp.pedido_id\nJOIN clientes c ON c.id = p.cliente_id\nJOIN provincias pv ON pv.id = c.provincia_id\nWHERE p.estado <> 'cancelado'\nGROUP BY pr.id, pr.nombre, cat.nombre\nHAVING COUNT(DISTINCT pv.id) = 7;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   }
+  ]
+ }
+}

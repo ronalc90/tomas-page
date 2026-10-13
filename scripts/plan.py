@@ -81,7 +81,7 @@ def _plantillas() -> tuple[sqlite3.Connection, sqlite3.Connection]:
 
 def base_nueva(invertir: bool = False) -> sqlite3.Connection:
     normal, invertida = _plantillas()
-    con = sqlite3.connect(":memory:")
+    con = sqlite3.connect(":memory:", isolation_level=None)
     (invertida if invertir else normal).backup(con)
     if invertir:
         con.execute("PRAGMA reverse_unordered_selects = ON")

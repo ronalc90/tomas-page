@@ -1,0 +1,1791 @@
+{
+ "id": "s01",
+ "number": 1,
+ "phaseId": 1,
+ "title": "Tus primeras consultas",
+ "rangeLabel": "13 oct – 17 oct",
+ "days": [
+  {
+   "date": "2026-10-13",
+   "kind": "workshop",
+   "title": "Bases de datos y SELECT",
+   "summary": "Conocer qué es una base de datos relacional, recorrer las tablas de la Tienda Pura Vida en el laboratorio y escribir tus primeras consultas con SELECT, alias y cálculos simples.",
+   "objectives": [
+    "Explicar con tus palabras qué son una tabla, una fila, una columna y una clave primaria, usando ejemplos de la Tienda Pura Vida.",
+    "Usar el laboratorio SQL: escribir una consulta, ejecutarla con el botón Ejecutar o con Ctrl+Enter (Cmd+Enter en Mac) y revisar las tablas en el explorador.",
+    "Escribir consultas con `SELECT` y `FROM` que muestren todas las columnas (`*`) o solo las que pides, en el orden que pides.",
+    "Calcular columnas nuevas como `precio - costo` y ponerles un nombre claro con `AS`."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Qué es una base de datos relacional y cómo usar el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: SELECT y FROM, alias y cálculos",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Qué es una base de datos relacional",
+     "concept": "Una **base de datos relacional** guarda la información en tablas, como hojas de cálculo muy ordenadas. Cada tabla trata de una sola cosa: `clientes`, `productos`, `pedidos`. Cada **fila** es un registro (un cliente concreto) y cada **columna** es un dato con nombre fijo (`nombre`, `email`, `provincia_id`). La columna `id` es la **clave primaria**: un número que identifica cada fila sin repetirse nunca, como la cédula de una persona.\n\nLa Tienda Pura Vida, la tienda de productos ticos con la que practicarás todo el curso, tiene ocho tablas: `provincias` (las 7 de Costa Rica), `clientes` (80 personas registradas), `categorias` (café, snacks, artesanía, ropa…), `productos` (42 artículos con su precio, costo y existencias), `empleados` (14 personas), `pedidos` (420 compras), `detalle_pedido` (qué productos lleva cada pedido) y `resenas` (las opiniones de los clientes).\n\nLo de «relacional» viene de que las tablas se conectan por números: un cliente no guarda el nombre de su provincia, guarda `provincia_id = 4`, y en `provincias` la fila con `id` 4 es Heredia. Así cada dato se escribe una sola vez. Para pedirle datos a la base se usa **SQL**, un lenguaje casi en inglés.",
+     "tip": "Antes de escribir cualquier consulta, abre la tabla en el explorador de la izquierda y lee los nombres de sus columnas: la mitad de los errores de un principiante son nombres de columna mal escritos.",
+     "example": "SELECT *\nFROM provincias;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Ubícate en el laboratorio",
+       "body": "Abre el laboratorio SQL de la página. A la izquierda está el explorador con las ocho tablas; al hacer clic en una ves sus columnas. A la derecha está el editor, donde escribes, y debajo aparece el resultado. Escribe la consulta de abajo y presiona el botón Ejecutar, o Ctrl+Enter (Cmd+Enter en Mac). Deben salir las 7 provincias.",
+       "code": "SELECT * FROM provincias;",
+       "language": "sql"
+      },
+      {
+       "title": "Mira una tabla con más datos",
+       "body": "Ahora consulta las categorías. Fíjate en que cada fila tiene un `id` distinto y en la última, «Libros», que la tienda acaba de crear y todavía no tiene productos. Leer la `descripcion` te da una idea de qué vende la tienda.",
+       "code": "SELECT * FROM categorias;",
+       "language": "sql"
+      },
+      {
+       "title": "Descubre la relación entre dos tablas",
+       "body": "Consulta los productos y observa la columna `categoria_id`: los primeros tienen 1, que en `categorias` es «Café y bebidas». Así se relacionan las tablas: con el número `id` de la otra tabla. Mira también `precio`, `costo` (lo que le cuesta a la tienda), `stock` (unidades en bodega) y `activo` (1 si se sigue vendiendo, 0 si no).",
+       "code": "SELECT * FROM productos;",
+       "language": "sql"
+      },
+      {
+       "title": "Encuentra los datos vacíos",
+       "body": "Consulta los clientes y recorre el resultado. En algunas filas verás `NULL` en `email`, `telefono` o `fecha_nacimiento`: significa que ese dato no se conoce. No es un cero ni un texto vacío; el viernes aprenderás a trabajar con él.",
+       "code": "SELECT * FROM clientes;",
+       "language": "sql"
+      },
+      {
+       "title": "Equivócate a propósito",
+       "body": "Escribe mal el nombre de la tabla, en singular, y ejecuta. El laboratorio muestra el mensaje `no such table: producto` y no pasa nada más: una consulta `SELECT` solo lee, nunca cambia datos. Y si algún día modificas algo sin querer, la base se puede restaurar a su estado original.",
+       "code": "SELECT * FROM producto;",
+       "language": "sql",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "no such table: producto",
+       "cause": "El nombre de la tabla está mal escrito. En la Tienda todas las tablas están en plural y sin tildes: `productos`, `categorias`, `resenas`.",
+       "fix": "Copia el nombre exacto desde el explorador de la izquierda y vuelve a ejecutar."
+      },
+      {
+       "error": "No pasa nada al presionar Ctrl+Enter",
+       "cause": "El cursor no está dentro del editor, así que el atajo de teclado le llega a otra parte de la página.",
+       "fix": "Haz clic dentro del editor antes de usar el atajo, o usa el botón Ejecutar."
+      },
+      {
+       "error": "Confundir `id` con `provincia_id`",
+       "cause": "En `clientes`, `id` es el número del cliente y `provincia_id` es el número de su provincia. Son columnas distintas aunque las dos sean números.",
+       "fix": "Lee el nombre completo de la columna: lo que termina en `_id` apunta al `id` de otra tabla."
+      }
+     ]
+    },
+    {
+     "title": "SELECT y FROM",
+     "concept": "Toda consulta empieza igual: `SELECT` dice **qué columnas** quieres ver y `FROM` dice **de qué tabla** salen. `SELECT nombre, precio FROM productos;` muestra solo esas dos columnas, en ese orden, para todos los productos. Las columnas se separan con comas, sin coma después de la última, y la consulta termina con punto y coma.\n\nEl asterisco `SELECT *` trae todas las columnas. Sirve para explorar, pero en un reporte es mejor nombrar las columnas: el resultado es más claro y no cambia si mañana alguien agrega una columna a la tabla.\n\nEn el `SELECT` también puedes **calcular**: `precio - costo` es la ganancia de cada producto y `salario * 12` el salario de un año. Con `AS` le das un nombre a esa columna nueva: `precio - costo AS ganancia`. Ese nombre se llama alias; usa minúsculas y guiones bajos, sin espacios. Ojo: calcular en un `SELECT` no cambia la tabla, solo muestra el resultado.",
+     "tip": "Escribe cada parte de la consulta en su propia línea (`SELECT` arriba, `FROM` abajo). Cuando las consultas crezcan, así encontrarás los errores mucho más rápido.",
+     "example": "SELECT nombre, precio, costo, precio - costo AS ganancia\nFROM productos;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Elige tus columnas",
+       "body": "Pide solo el nombre y el precio de los productos. Cambia el orden a `precio, nombre` y ejecuta otra vez: el resultado muestra las columnas exactamente en el orden en que las escribiste.",
+       "code": "SELECT nombre, precio\nFROM productos;",
+       "language": "sql"
+      },
+      {
+       "title": "Ponle nombre a una columna",
+       "body": "Con `AS` cambias el encabezado que se ve en el resultado. Es útil para que un reporte se entienda solo; los datos no cambian.",
+       "code": "SELECT nombre AS producto, precio AS precio_colones\nFROM productos;",
+       "language": "sql"
+      },
+      {
+       "title": "Calcula la ganancia",
+       "body": "Resta el costo al precio para saber cuánto gana la tienda por cada unidad vendida. La máscara boruca, por ejemplo, deja ₡15 750 por unidad. Sin el alias, el encabezado sería `precio - costo`, que se lee peor.",
+       "code": "SELECT nombre, precio - costo AS ganancia\nFROM productos;",
+       "language": "sql"
+      },
+      {
+       "title": "Multiplica por una cantidad",
+       "body": "Calcula cuánto le cuesta a la tienda la mercadería que tiene en bodega: unidades en `stock` por `costo`. Los productos con `stock` 0 dan 0, como era de esperar.",
+       "code": "SELECT nombre, stock, costo, stock * costo AS valor_en_bodega\nFROM productos;",
+       "language": "sql"
+      },
+      {
+       "title": "Prueba con decimales",
+       "body": "Calcula el precio con el 13 % de IVA multiplicando por `1.13` (en SQL el decimal se escribe con punto, no con coma). Verás valores como `7344.999999999999` en vez de 7345: es la forma en que el computador guarda los decimales. La próxima semana aprenderás a redondear con `ROUND`.",
+       "code": "SELECT nombre, precio, precio * 1.13 AS precio_con_iva\nFROM productos;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "near \"FROM\": syntax error",
+       "cause": "Quedó una coma después de la última columna: `SELECT nombre, precio, FROM productos`.",
+       "fix": "Las comas van solo entre columnas. Borra la que está antes de `FROM`."
+      },
+      {
+       "error": "Sale una sola columna llamada `precio` llena de nombres de productos",
+       "cause": "Faltó la coma: `SELECT nombre precio FROM productos` se interpreta como la columna `nombre` con el alias `precio`. No da error, por eso es traicionero.",
+       "fix": "Revisa que haya una coma entre cada par de columnas."
+      },
+      {
+       "error": "near \"con\": syntax error",
+       "cause": "El alias tiene espacios: `AS precio con iva`. SQL cree que la consulta terminó en `precio`.",
+       "fix": "Usa guiones bajos: `AS precio_con_iva`."
+      },
+      {
+       "error": "no such column: nombres",
+       "cause": "El nombre de la columna no existe tal como lo escribiste (plural, tilde o letra de más).",
+       "fix": "Revisa el nombre exacto en el explorador de la izquierda."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-13-1",
+     "title": "Las siete provincias",
+     "prompt": "Para empezar con buen pie: muestra **todas las columnas** de la tabla `provincias`.",
+     "hint": "El asterisco `*` significa «todas las columnas». Después de `FROM` va el nombre de la tabla.",
+     "solution": "SELECT * FROM provincias;",
+     "check": "",
+     "setup": "",
+     "starter": "SELECT \nFROM provincias;",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-13-2",
+     "title": "Directorio del equipo",
+     "prompt": "La gerente quiere una lista sencilla del personal para la pizarra de la oficina. Muestra el `nombre`, el `apellido` y el `puesto` de todos los empleados, en ese orden.",
+     "hint": "Escribe las tres columnas separadas por comas después de `SELECT`, y la tabla `empleados` después de `FROM`.",
+     "solution": "SELECT nombre, apellido, puesto FROM empleados;",
+     "check": "",
+     "setup": "",
+     "starter": "SELECT \nFROM empleados;",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-13-3",
+     "title": "Ganancia por unidad",
+     "prompt": "Para saber qué productos dejan más dinero, muestra el `nombre`, el `precio`, el `costo` y la ganancia por unidad (`precio - costo`) de cada producto, en ese orden. Ponle a la última columna el alias `ganancia`.",
+     "hint": "La resta va dentro del `SELECT`, como si fuera una columna más, seguida de `AS ganancia`.",
+     "solution": "SELECT nombre, precio, costo, precio - costo AS ganancia FROM productos;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-13-4",
+     "title": "Precios con IVA",
+     "prompt": "Un cliente pregunta cuánto pagaría por cada producto si se le suma el 13 % de IVA. Muestra el `nombre`, el `precio` y el precio multiplicado por `1.13` con el alias `precio_con_iva`, en ese orden.",
+     "hint": "Sumar el 13 % es lo mismo que multiplicar por 1.13. En SQL el decimal se escribe con punto.",
+     "solution": "SELECT nombre, precio, precio * 1.13 AS precio_con_iva FROM productos;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-13-5",
+     "title": "Planilla anual",
+     "prompt": "Contabilidad prepara el presupuesto del próximo año. Muestra el `nombre`, el `apellido`, el `salario` mensual y el salario de 12 meses con el alias `salario_anual`, en ese orden, para todos los empleados.",
+     "hint": "Multiplica la columna `salario` por 12 dentro del `SELECT`.",
+     "solution": "SELECT nombre, apellido, salario, salario * 12 AS salario_anual FROM empleados;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-13-6",
+     "title": "Ganancia guardada en bodega",
+     "prompt": "Si la tienda vendiera todo lo que tiene en bodega, ¿cuánto ganaría con cada producto? Muestra el `nombre`, el `stock` y la ganancia total posible, es decir, `(precio - costo) * stock`, con el alias `ganancia_posible`, en ese orden.",
+     "hint": "Los paréntesis hacen que primero se reste y después se multiplique. Sin ellos, SQL multiplicaría `costo * stock` primero.",
+     "solution": "SELECT nombre, stock, (precio - costo) * stock AS ganancia_posible FROM productos;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Ficha de rentabilidad del catálogo",
+    "description": "La gerente quiere una ficha de rentabilidad de todo el catálogo en una sola consulta. Escribe un `SELECT` sobre `productos` que muestre, en este orden y con estos alias: `producto` (el nombre), `precio`, `costo`, `ganancia` (precio menos costo), `ganancia_en_bodega` (la ganancia por unidad multiplicada por el stock) y `precio_con_iva` (el precio por 1.13). Después recorre el resultado y anota en un papel qué producto deja más ganancia por unidad y cuál tiene la mayor ganancia guardada en bodega.",
+    "hint": "Son seis columnas separadas por comas, cada una con su `AS`. Usa paréntesis en `(precio - costo) * stock`. Para responder las preguntas basta con mirar el resultado con calma; mañana y pasado aprenderás a filtrar y ordenar para que SQL lo haga por ti.",
+    "solution": "SELECT nombre AS producto,\n       precio,\n       costo,\n       precio - costo AS ganancia,\n       (precio - costo) * stock AS ganancia_en_bodega,\n       precio * 1.13 AS precio_con_iva\nFROM productos;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "base de datos relacional",
+     "definition": "Conjunto de tablas que se relacionan entre sí guardando en una tabla el `id` de las filas de otra."
+    },
+    {
+     "term": "tabla",
+     "definition": "Conjunto de registros de un mismo tipo, como `clientes` o `productos`, organizados en filas y columnas."
+    },
+    {
+     "term": "fila",
+     "definition": "Un registro de una tabla: un cliente, un producto o un pedido concreto."
+    },
+    {
+     "term": "columna",
+     "definition": "Un dato con nombre fijo que tienen todas las filas de una tabla, como `precio` o `email`."
+    },
+    {
+     "term": "clave primaria",
+     "definition": "Columna cuyo valor identifica cada fila sin repetirse; en la Tienda es siempre `id`."
+    },
+    {
+     "term": "SQL",
+     "definition": "Structured Query Language: el lenguaje para consultar y modificar bases de datos relacionales. `SELECT` es la instrucción para consultar."
+    },
+    {
+     "term": "alias",
+     "definition": "Nombre que le das a una columna del resultado con `AS`, como `precio - costo AS ganancia`."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Base de datos relacional (Wikipedia en español)",
+     "url": "https://es.wikipedia.org/wiki/Base_de_datos_relacional"
+    },
+    {
+     "title": "SQL SELECT Statement (W3Schools, con ejemplos interactivos)",
+     "url": "https://www.w3schools.com/sql/sql_select.asp"
+    },
+    {
+     "title": "SELECT en la documentación oficial de SQLite",
+     "url": "https://www.sqlite.org/lang_select.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "En la tabla `clientes`, ¿qué representa una fila?",
+     "code": "",
+     "options": [
+      "Un dato, como el email, para todos los clientes",
+      "Una persona concreta, con todos sus datos",
+      "La lista de nombres de columna de la tabla",
+      "Una provincia de Costa Rica"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso es una columna. Una columna es un mismo dato para todas las filas.",
+      "Correcto: cada fila es un registro, en este caso un cliente con su nombre, email, teléfono y demás.",
+      "No: los nombres de columna son el encabezado de la tabla, no una fila de datos.",
+      "No: las provincias viven en su propia tabla; el cliente solo guarda el número `provincia_id`."
+     ],
+     "explanation": "Una fila es un registro completo: en `clientes`, una persona. Las columnas son los datos que tiene cada registro.",
+     "hint": "Piensa en la tabla como una hoja de cálculo: ¿qué es cada renglón?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Para qué sirve la columna `id` en la tabla `productos`?",
+     "code": "",
+     "options": [
+      "Para guardar cuántas unidades hay en bodega",
+      "Para indicar la categoría del producto",
+      "Para identificar cada producto con un número que no se repite",
+      "Para ordenar los productos del más caro al más barato"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: las unidades en bodega están en `stock`.",
+      "No: la categoría está en `categoria_id`, que apunta al `id` de la tabla `categorias`.",
+      "Correcto: `id` es la clave primaria; dos productos nunca tienen el mismo `id`.",
+      "No: el `id` no dice nada del precio. Para ordenar existe `ORDER BY`, que verás el jueves."
+     ],
+     "explanation": "`id` es la clave primaria: identifica cada fila de forma única, como una cédula.",
+     "hint": "¿Qué columna usarías para distinguir dos productos que se llamaran igual?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál de estas consultas muestra el nombre de cada producto y su ganancia por unidad con el encabezado `ganancia`?",
+     "code": "",
+     "options": [
+      "SELECT nombre, precio - costo AS ganancia FROM productos;",
+      "SELECT nombre, precio - costo AS ganancia, FROM productos;",
+      "SELECT nombre precio - costo AS ganancia FROM productos;",
+      "FROM productos SELECT nombre, precio - costo AS ganancia;"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: dos columnas separadas por coma, la segunda calculada y con su alias.",
+      "No: la coma antes de `FROM` produce `near \"FROM\": syntax error`.",
+      "No: falta la coma entre `nombre` y la resta, y la consulta da error de sintaxis.",
+      "No: el orden es fijo: primero `SELECT` y después `FROM`."
+     ],
+     "explanation": "La forma es `SELECT columnas FROM tabla;`, con comas solo entre columnas y el alias después de `AS`.",
+     "hint": "Revisa las comas y el orden de las dos palabras clave."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si en el laboratorio escribes una consulta con errores, puedes dañar la base de datos de la tienda de forma permanente.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: una consulta con errores simplemente no se ejecuta y muestra un mensaje. Además, la base del laboratorio se puede restaurar.",
+      "Correcto: un `SELECT` solo lee datos, y aunque más adelante modifiques algo, la base del laboratorio se puede restaurar a su estado original."
+     ],
+     "explanation": "Equivocarse es parte de aprender: el laboratorio muestra el error y no cambia nada. `SELECT` nunca modifica datos y la base se puede restaurar.",
+     "hint": "¿Qué pasó cuando escribiste `producto` en singular?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "La consulta `SELECT nombre, precio * 1.13 AS precio_con_iva FROM productos;` cambia los precios guardados en la tabla `productos`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el cálculo solo existe en el resultado que ves. Para cambiar datos hace falta `UPDATE`, que verás en la semana 5.",
+      "Correcto: un `SELECT` calcula y muestra, pero la tabla queda igual."
+     ],
+     "explanation": "Las columnas calculadas viven solo en el resultado de la consulta; la tabla no cambia.",
+     "hint": "Ejecuta después `SELECT nombre, precio FROM productos;` y compara."
+    },
+    {
+     "type": "output",
+     "prompt": "La carreta típica de Sarchí mediana cuesta ₡18 500 y a la tienda le cuesta ₡11 450. ¿Qué devuelve esta consulta?",
+     "code": "SELECT 18500 - 11450 AS ganancia;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "7050"
+     ],
+     "optionFeedback": [],
+     "explanation": "SQL también funciona como calculadora: 18 500 − 11 450 = 7 050. Es la ganancia por unidad de la carreta mediana.",
+     "hint": "Haz la resta; el alias solo cambia el encabezado."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué número devuelve esta consulta? Recuerda que en SQL, como en matemática, la multiplicación se hace antes que la resta.",
+     "code": "SELECT 9500 - 4300 * 2 AS resultado;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "900"
+     ],
+     "optionFeedback": [],
+     "explanation": "Primero 4300 * 2 = 8600 y luego 9500 − 8600 = 900. Si quisieras restar primero, necesitarías paréntesis: `(9500 - 4300) * 2` da 10400.",
+     "hint": "Resuelve primero la multiplicación."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para que la columna calculada se llame `salario_anual`.",
+     "code": "SELECT nombre, salario * 12 ___ salario_anual\nFROM empleados;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "AS"
+     ],
+     "optionFeedback": [],
+     "explanation": "`AS` le pone un alias a la columna: `salario * 12 AS salario_anual`.",
+     "hint": "Es una palabra de dos letras que significa «como»."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-14",
+   "kind": "workshop",
+   "title": "Filtrar con WHERE",
+   "summary": "Quedarte solo con las filas que te interesan: comparar números, textos y fechas con WHERE y combinar condiciones con AND, OR, NOT y paréntesis.",
+   "objectives": [
+    "Filtrar filas con `WHERE` usando los operadores `=`, `<>`, `<`, `>`, `<=` y `>=`.",
+    "Escribir textos entre comillas simples y comparar fechas en formato `'AAAA-MM-DD'`.",
+    "Combinar dos o más condiciones con `AND`, `OR` y `NOT`.",
+    "Usar paréntesis para que una condición con `AND` y `OR` signifique lo que quieres."
+   ],
+   "schedule": [
+    {
+     "label": "Repaso rápido de SELECT con un cálculo",
+     "minutes": 10
+    },
+    {
+     "label": "Tema 1: WHERE y operadores de comparación",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: AND, OR, NOT y paréntesis",
+     "minutes": 65
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "WHERE y operadores de comparación",
+     "concept": "Ayer cada consulta devolvía todas las filas de la tabla. Casi nunca se quiere eso: la gerente no pide «todos los productos», pide «los productos de más de ₡20 000». Para eso está `WHERE`, que va después de `FROM` y deja pasar **solo las filas que cumplen la condición**.\n\nLos **operadores de comparación** son los de la escuela: `=` igual, `<>` distinto (también se acepta `!=`), `<`, `>`, `<=` y `>=`. Los números se escriben tal cual, sin separador de miles: `WHERE precio > 20000`. Los textos van entre **comillas simples**: `WHERE departamento = 'Bodega'`, y deben coincidir exactamente, con mayúsculas y tildes.\n\nLas fechas de la Tienda son texto en formato ISO, `'AAAA-MM-DD'`, por ejemplo `'2026-09-15'`. Como el año va primero, luego el mes y luego el día, el orden alfabético coincide con el orden del calendario, así que `WHERE fecha >= '2026-09-01'` trae los pedidos de septiembre de 2026 en adelante. Por eso es tan importante guardar las fechas en este formato.",
+     "tip": "Antes de filtrar por un texto, mira cómo está escrito en la tabla con un `SELECT` sin filtro. Si la columna dice `'sinpe'` en minúscula, `WHERE metodo_pago = 'SINPE'` no encontrará nada.",
+     "example": "SELECT nombre, apellido, puesto\nFROM empleados\nWHERE departamento = 'Bodega';",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Filtra por un número",
+       "body": "Busca los productos con menos de 20 unidades en bodega: son los candidatos para hacer un pedido al proveedor. Deben salir 12 productos, varios con `stock` 0.",
+       "code": "SELECT nombre, stock\nFROM productos\nWHERE stock < 20;",
+       "language": "sql"
+      },
+      {
+       "title": "Filtra por un texto",
+       "body": "Busca a las vendedoras. El texto va entre comillas simples y tiene que estar escrito igual que en la tabla: `'Vendedora'` con V mayúscula. Prueba después con `'vendedora'` y verás que no sale nadie.",
+       "code": "SELECT nombre, apellido, salario\nFROM empleados\nWHERE puesto = 'Vendedora';",
+       "language": "sql"
+      },
+      {
+       "title": "Filtra por una fecha",
+       "body": "Busca a las personas que entraron a la empresa de 2023 en adelante. La fecha se escribe como texto `'AAAA-MM-DD'` y `>=` incluye el mismo 1 de enero. Deben salir 4 personas.",
+       "code": "SELECT nombre, apellido, fecha_ingreso\nFROM empleados\nWHERE fecha_ingreso >= '2023-01-01';",
+       "language": "sql"
+      },
+      {
+       "title": "Usa el distinto",
+       "body": "Con `<>` te quedas con todo lo que no es un valor. Aquí ves los pedidos que no se pagaron con tarjeta: salen los de SINPE Móvil, efectivo y transferencia.",
+       "code": "SELECT id, fecha, metodo_pago\nFROM pedidos\nWHERE metodo_pago <> 'tarjeta';",
+       "language": "sql"
+      },
+      {
+       "title": "Filtra por una columna calculada",
+       "body": "En `WHERE` también puedes calcular. Estos son los productos que dejan más de ₡10 000 de ganancia por unidad. Repite el cálculo en el `WHERE` en vez de usar el alias: así la consulta funciona en cualquier motor de base de datos.",
+       "code": "SELECT nombre, precio - costo AS ganancia\nFROM productos\nWHERE precio - costo > 10000;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "unrecognized token: \"'Ana\"",
+       "cause": "Falta la comilla de cierre del texto: `WHERE nombre = 'Ana`.",
+       "fix": "Todo texto abre y cierra con comilla simple: `'Ana'`."
+      },
+      {
+       "error": "La consulta no da error pero devuelve 0 filas",
+       "cause": "El texto no coincide exactamente: mayúsculas (`'bodega'` en vez de `'Bodega'`), tildes o espacios de más. También pasa al comparar un número con un nombre: `provincia_id = 'Heredia'`.",
+       "fix": "Mira primero los valores reales con un `SELECT` sin filtro y copia el texto tal cual. Para provincias usa el número: Heredia es `provincia_id = 4`."
+      },
+      {
+       "error": "Usar comillas dobles: `WHERE puesto = \"Vendedor\"`",
+       "cause": "En SQL las comillas dobles son para nombres de columnas. SQLite a veces lo acepta como texto, pero si existe una columna con ese nombre compara contra la columna y el resultado es otro.",
+       "fix": "Usa siempre comillas simples para los textos."
+      },
+      {
+       "error": "Escribir `20.000` o `20,000` para veinte mil",
+       "cause": "En SQL el punto es el separador decimal y la coma separa columnas, así que `20.000` es veinte y `20,000` rompe la consulta.",
+       "fix": "Escribe los números sin separadores: `20000`."
+      }
+     ]
+    },
+    {
+     "title": "AND, OR, NOT y paréntesis",
+     "concept": "Las preguntas reales suelen tener varias condiciones. `AND` exige que se cumplan **las dos**: `WHERE departamento = 'Ventas' AND salario > 750000` trae solo a quienes están en Ventas y además ganan más de esa cifra. `OR` se conforma con **una de las dos**: `WHERE estado = 'pendiente' OR estado = 'pagado'`. `NOT` invierte una condición: `WHERE NOT activo = 1` trae los productos inactivos.\n\nCuando mezclas `AND` y `OR` hay una trampa: SQL resuelve **primero los `AND`** y después los `OR`, igual que la multiplicación va antes que la suma. Por eso `WHERE categoria_id = 1 OR categoria_id = 2 AND precio > 3000` no significa «café o snacks, de más de ₡3000», sino «todo el café, más los snacks de más de ₡3000».\n\nLa solución es usar **paréntesis**: `WHERE (categoria_id = 1 OR categoria_id = 2) AND precio > 3000`. Ponlos siempre que mezcles `AND` con `OR`, aunque creas que no hacen falta: la consulta se lee mejor y no hay sorpresas.",
+     "tip": "Lee tu `WHERE` en voz alta con «y», «o» y «no». Si al leerlo dudas de qué va con qué, te faltan paréntesis.",
+     "example": "SELECT nombre, precio, stock\nFROM productos\nWHERE categoria_id = 3 AND precio < 20000;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Exige dos condiciones con AND",
+       "body": "Busca los productos de tecnología (`categoria_id` 7) que están activos y tienen unidades en bodega. Con `AND` puedes encadenar las tres condiciones; deben salir 6 productos.",
+       "code": "SELECT nombre, stock, precio\nFROM productos\nWHERE categoria_id = 7 AND activo = 1 AND stock > 0;",
+       "language": "sql"
+      },
+      {
+       "title": "Acepta una u otra con OR",
+       "body": "Busca los pedidos que todavía están pendientes o pagados (aún no se envían). Fíjate en que hay que repetir `estado =` en cada lado del `OR`.",
+       "code": "SELECT id, fecha, estado\nFROM pedidos\nWHERE estado = 'pendiente' OR estado = 'pagado';",
+       "language": "sql"
+      },
+      {
+       "title": "Invierte con NOT",
+       "body": "`NOT` niega la condición que le sigue. Aquí salen los 5 productos que la tienda ya no vende. Es lo mismo que escribir `activo = 0` o `activo <> 1`; elige la forma que se lea más clara.",
+       "code": "SELECT nombre, activo\nFROM productos\nWHERE NOT activo = 1;",
+       "language": "sql"
+      },
+      {
+       "title": "Cae en la trampa del AND y el OR",
+       "body": "Ejecuta esta consulta sin paréntesis y cuenta las filas: salen 7, entre ellas el agua dulce de ₡1900, que no pasa de ₡3000. SQL entendió «todo el café, más los snacks caros».",
+       "code": "SELECT nombre, categoria_id, precio\nFROM productos\nWHERE categoria_id = 1 OR categoria_id = 2 AND precio > 3000;",
+       "language": "sql"
+      },
+      {
+       "title": "Arréglala con paréntesis",
+       "body": "Ahora agrupa el `OR` entre paréntesis y vuelve a ejecutar: salen 5 productos, todos de más de ₡3000. Es la misma consulta con dos caracteres más y un significado distinto.",
+       "code": "SELECT nombre, categoria_id, precio\nFROM productos\nWHERE (categoria_id = 1 OR categoria_id = 2) AND precio > 3000;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "incomplete input",
+       "cause": "La condición quedó a medias, por ejemplo terminando en `AND` o con un paréntesis sin cerrar.",
+       "fix": "Revisa el final del `WHERE`: cada `AND` y `OR` necesita una condición a cada lado y cada `(` su `)`."
+      },
+      {
+       "error": "`WHERE estado = 'pendiente' OR 'pagado'` trae resultados raros",
+       "cause": "Cada lado del `OR` es una condición completa. `'pagado'` solo no compara nada con `estado`.",
+       "fix": "Repite la columna: `estado = 'pendiente' OR estado = 'pagado'`."
+      },
+      {
+       "error": "Salen filas que no cumplen una de las condiciones",
+       "cause": "Mezclaste `AND` y `OR` sin paréntesis y el `AND` se resolvió primero.",
+       "fix": "Encierra entre paréntesis el grupo del `OR`."
+      },
+      {
+       "error": "0 filas con `WHERE departamento = 'Ventas' AND departamento = 'Bodega'`",
+       "cause": "Una misma fila no puede tener dos valores a la vez en la misma columna, así que nunca se cumplen las dos.",
+       "fix": "Para «uno u otro» se usa `OR`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-14-1",
+     "title": "Clientes de Heredia",
+     "prompt": "La tienda va a hacer una entrega especial en Heredia, que en la tabla `provincias` tiene el `id` 4. Muestra el `nombre` y el `apellido` de los clientes de esa provincia, en ese orden.",
+     "hint": "La columna que dice la provincia de cada cliente es `provincia_id`. Compárala con el número, no con el nombre.",
+     "solution": "SELECT nombre, apellido FROM clientes WHERE provincia_id = 4;",
+     "check": "",
+     "setup": "",
+     "starter": "SELECT nombre, apellido\nFROM clientes\nWHERE ",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-14-2",
+     "title": "Artículos de lujo",
+     "prompt": "Para una vitrina especial, la gerente quiere los productos que cuestan **₡20 000 o más**. Muestra su `nombre` y su `precio`, en ese orden.",
+     "hint": "«O más» significa que también entra el que cueste exactamente 20 000: usa `>=`.",
+     "solution": "SELECT nombre, precio FROM productos WHERE precio >= 20000;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-14-3",
+     "title": "Mejores salarios de Ventas",
+     "prompt": "Recursos Humanos revisa la escala salarial del departamento de ventas. Muestra el `nombre`, el `apellido` y el `salario` de quienes trabajan en el departamento `'Ventas'` y ganan **más de** ₡750 000, en ese orden.",
+     "hint": "Son dos condiciones que se deben cumplir a la vez: únelas con `AND`.",
+     "solution": "SELECT nombre, apellido, salario FROM empleados WHERE departamento = 'Ventas' AND salario > 750000;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-14-4",
+     "title": "Salarios de apoyo",
+     "prompt": "Se estudia un aumento para el personal de apoyo. Muestra el `nombre`, el `apellido`, el `departamento` y el `salario` de quienes trabajan en `'Bodega'` o en `'Servicio al cliente'` y ganan **menos de** ₡700 000, en ese orden.",
+     "hint": "Hay un `OR` y un `AND` en la misma condición. ¿Qué parte tiene que ir entre paréntesis para que el límite de salario se aplique a los dos departamentos?",
+     "solution": "SELECT nombre, apellido, departamento, salario FROM empleados WHERE (departamento = 'Bodega' OR departamento = 'Servicio al cliente') AND salario < 700000;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-14-5",
+     "title": "Envíos de septiembre",
+     "prompt": "El encargado de logística quiere revisar los pedidos de **septiembre de 2026** que pagaron envío (`costo_envio` mayor que 0). Muestra el `id`, la `fecha` y el `costo_envio`, en ese orden.",
+     "hint": "Las fechas se comparan como texto `'AAAA-MM-DD'`. Puedes pedir `fecha >= '2026-09-01'` y `fecha <= '2026-09-30'`, y sumar la condición del envío con otro `AND`.",
+     "solution": "SELECT id, fecha, costo_envio FROM pedidos WHERE fecha >= '2026-09-01' AND fecha <= '2026-09-30' AND costo_envio > 0;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-14-6",
+     "title": "Activos que más dejan",
+     "prompt": "Mercadeo quiere promocionar los productos **activos** que dejan una ganancia por unidad (`precio - costo`) de **₡8000 o más**. Muestra el `nombre` y esa ganancia con el alias `ganancia`, en ese orden.",
+     "hint": "Repite el cálculo `precio - costo` en el `WHERE` y une la condición de `activo = 1` con `AND`.",
+     "solution": "SELECT nombre, precio - costo AS ganancia FROM productos WHERE activo = 1 AND precio - costo >= 8000;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Pedidos abiertos con envío",
+    "description": "Un pedido está «abierto» cuando su estado no es `'entregado'` ni `'cancelado'`. Logística quiere llamar a los clientes de los pedidos abiertos que pagaron envío para confirmar la dirección. Escribe una consulta que muestre `id`, `fecha`, `estado`, `metodo_pago` y `costo_envio` de esos pedidos. Hazlo de dos formas distintas (una con `<>` y `AND`, otra con `NOT` y paréntesis) y comprueba que las dos dan las mismas 5 filas.",
+    "hint": "Forma 1: `estado <> 'entregado' AND estado <> 'cancelado' AND costo_envio > 0`. Forma 2: niega el grupo completo con `NOT (estado = 'entregado' OR estado = 'cancelado')` y agrega la condición del envío. Si te salen más de 5 filas, revisa los paréntesis.",
+    "solution": "SELECT id, fecha, estado, metodo_pago, costo_envio\nFROM pedidos\nWHERE estado <> 'entregado' AND estado <> 'cancelado' AND costo_envio > 0;\n\nSELECT id, fecha, estado, metodo_pago, costo_envio\nFROM pedidos\nWHERE NOT (estado = 'entregado' OR estado = 'cancelado') AND costo_envio > 0;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "WHERE",
+     "definition": "Cláusula que va después de `FROM` y deja en el resultado solo las filas que cumplen una condición."
+    },
+    {
+     "term": "condición",
+     "definition": "Expresión que para cada fila es verdadera o falsa, como `precio > 20000`."
+    },
+    {
+     "term": "operadores de comparación",
+     "definition": "Símbolos que comparan dos valores: `=`, `<>`, `<`, `>`, `<=` y `>=`."
+    },
+    {
+     "term": "formato ISO",
+     "definition": "Forma de escribir fechas como `'AAAA-MM-DD'`; permite compararlas y ordenarlas como texto."
+    },
+    {
+     "term": "AND",
+     "definition": "Une dos condiciones y exige que se cumplan las dos."
+    },
+    {
+     "term": "OR",
+     "definition": "Une dos condiciones y se conforma con que se cumpla al menos una."
+    },
+    {
+     "term": "NOT",
+     "definition": "Invierte una condición: lo verdadero pasa a falso y al revés."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQL WHERE Clause (W3Schools)",
+     "url": "https://www.w3schools.com/sql/sql_where.asp"
+    },
+    {
+     "title": "SQL AND Operator (W3Schools)",
+     "url": "https://www.w3schools.com/sql/sql_and.asp"
+    },
+    {
+     "title": "Expresiones y operadores en SQLite (documentación oficial)",
+     "url": "https://www.sqlite.org/lang_expr.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Cuál consulta devuelve los empleados del departamento de ventas?",
+     "code": "",
+     "options": [
+      "SELECT nombre FROM empleados WHERE departamento = Ventas;",
+      "SELECT nombre FROM empleados WHERE departamento = 'Ventas';",
+      "SELECT nombre WHERE departamento = 'Ventas' FROM empleados;",
+      "SELECT nombre FROM empleados WHERE departamento = 'ventas';"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: sin comillas, SQL busca una columna llamada `Ventas` y responde `no such column: Ventas`.",
+      "Correcto: el texto va entre comillas simples y escrito igual que en la tabla.",
+      "No: `WHERE` va después de `FROM`, nunca antes.",
+      "No: la comparación de texto distingue mayúsculas; `'ventas'` no coincide con `'Ventas'` y devuelve 0 filas."
+     ],
+     "explanation": "Los textos van entre comillas simples y deben coincidir exactamente, con mayúsculas y tildes. El orden es `SELECT`, `FROM`, `WHERE`.",
+     "hint": "Revisa tres cosas: comillas, mayúsculas y el orden de las cláusulas."
+    },
+    {
+     "type": "choice",
+     "prompt": "Quieres los pedidos hechos en agosto de 2026. ¿Qué condición es la correcta?",
+     "code": "",
+     "options": [
+      "WHERE fecha = '2026-08'",
+      "WHERE fecha >= '01-08-2026' AND fecha <= '31-08-2026'",
+      "WHERE fecha >= '2026-08-01' OR fecha <= '2026-08-31'",
+      "WHERE fecha >= '2026-08-01' AND fecha <= '2026-08-31'"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `=` exige que el texto sea idéntico, y ninguna fecha es solo `'2026-08'`.",
+      "No: las fechas de la Tienda están en formato `'AAAA-MM-DD'`; con el día primero, la comparación de textos no sigue el calendario.",
+      "No: con `OR` casi todos los pedidos cumplen alguna de las dos condiciones; hace falta que se cumplan ambas.",
+      "Correcto: desde el 1 hasta el 31 de agosto, inclusive, con las dos condiciones unidas por `AND`."
+     ],
+     "explanation": "Un rango de fechas son dos condiciones que deben cumplirse a la vez, escritas en formato `'AAAA-MM-DD'`.",
+     "hint": "Un rango tiene un inicio y un final que deben cumplirse al mismo tiempo."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué devuelve `SELECT nombre FROM productos WHERE categoria_id = 1 OR categoria_id = 2 AND precio > 3000;`?",
+     "code": "",
+     "options": [
+      "Los productos de café y de snacks que cuestan más de ₡3000",
+      "Todos los productos de café, más los snacks de más de ₡3000",
+      "Solo los snacks de más de ₡3000",
+      "Un error, porque no se puede mezclar AND con OR"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: para eso hacen falta paréntesis alrededor del `OR`.",
+      "Correcto: el `AND` se resuelve primero, así que el límite de precio solo se aplica a la categoría 2.",
+      "No: la primera parte del `OR` trae todo el café sin importar el precio.",
+      "No: se pueden mezclar; el problema es que sin paréntesis el resultado puede no ser el que querías."
+     ],
+     "explanation": "SQL evalúa `AND` antes que `OR`. La consulta equivale a `categoria_id = 1 OR (categoria_id = 2 AND precio > 3000)`.",
+     "hint": "¿Cuál se resuelve primero, el `AND` o el `OR`?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Como las fechas de la Tienda se guardan como `'AAAA-MM-DD'`, la condición `fecha < '2026-01-01'` trae todos los pedidos de 2025.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: con el año primero, el orden alfabético coincide con el del calendario, y todos los pedidos son de 2025 o 2026.",
+      "No: precisamente por el formato año-mes-día la comparación de textos funciona como una comparación de fechas."
+     ],
+     "explanation": "En formato ISO el orden de los textos es el mismo orden del calendario, por eso se pueden usar `<`, `>` y compañía con fechas.",
+     "hint": "Compara '2025-12-31' y '2026-01-01' carácter por carácter."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`WHERE NOT activo = 1` y `WHERE activo <> 1` devuelven las mismas filas en la tabla `productos`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: las dos se quedan con los productos cuyo `activo` no es 1, es decir, los inactivos.",
+      "No: «no es igual a 1» y «distinto de 1» dicen lo mismo."
+     ],
+     "explanation": "`NOT` invierte la condición `activo = 1`, que es justo lo que hace `<>`. Las dos devuelven los 5 productos inactivos.",
+     "hint": "Traduce las dos condiciones a palabras."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué nombre devuelve esta consulta?",
+     "code": "SELECT nombre\nFROM productos\nWHERE precio > 30000 AND stock < 10;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Máscara boruca tallada"
+     ],
+     "optionFeedback": [],
+     "explanation": "Solo dos productos pasan de ₡30 000: la máscara boruca (6 unidades) y la hamaca (exactamente 10). La hamaca no cumple `stock < 10`, porque 10 no es menor que 10.",
+     "hint": "Busca los productos de más de ₡30 000 y revisa su stock con cuidado: `<` no incluye el límite."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué apellido devuelve esta consulta?",
+     "code": "SELECT apellido\nFROM empleados\nWHERE departamento = 'Gerencia' AND NOT puesto = 'Gerente general';",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Gamboa"
+     ],
+     "optionFeedback": [],
+     "explanation": "En Gerencia trabajan Laura Méndez (gerente general) y Álvaro Gamboa (analista de datos). El `NOT` descarta a la gerente.",
+     "hint": "Primero averigua quiénes están en Gerencia."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para que devuelva los clientes de Guanacaste (`provincia_id` 5) **y también** los de Limón (`provincia_id` 7).",
+     "code": "SELECT nombre, apellido\nFROM clientes\nWHERE provincia_id = 5 ___ provincia_id = 7;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "OR"
+     ],
+     "optionFeedback": [],
+     "explanation": "Un cliente vive en una sola provincia, así que hace falta `OR`: con `AND` no saldría nadie.",
+     "hint": "¿Puede un mismo cliente tener `provincia_id` 5 y 7 a la vez?"
+    }
+   ]
+  },
+  {
+   "date": "2026-10-15",
+   "kind": "workshop",
+   "title": "Ordenar y limitar",
+   "summary": "Presentar los resultados en el orden que tiene sentido, quedarte con los primeros N, paginar y ver los valores distintos de una columna sin repeticiones.",
+   "objectives": [
+    "Ordenar un resultado con `ORDER BY` de forma ascendente (`ASC`) o descendente (`DESC`).",
+    "Desempatar ordenando por varias columnas y ordenar por una expresión o por su alias.",
+    "Quedarte con las primeras filas con `LIMIT` y saltar filas con `OFFSET` para paginar.",
+    "Listar los valores distintos de una o varias columnas con `DISTINCT`."
+   ],
+   "schedule": [
+    {
+     "label": "Repaso rápido de WHERE con AND y OR",
+     "minutes": 10
+    },
+    {
+     "label": "Tema 1: ORDER BY",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: LIMIT, OFFSET y DISTINCT",
+     "minutes": 65
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "ORDER BY",
+     "concept": "Sin instrucciones, una base de datos devuelve las filas en el orden que le resulte cómodo, y ese orden **no está garantizado**: puede cambiar mañana. Si el orden importa, hay que pedirlo con `ORDER BY`, que va al final de la consulta, después del `WHERE`.\n\n`ORDER BY precio` ordena de menor a mayor (`ASC`, ascendente, es lo predeterminado) y `ORDER BY precio DESC` de mayor a menor. Los textos se ordenan alfabéticamente y las fechas `'AAAA-MM-DD'` cronológicamente.\n\nCuando dos filas empatan en la primera columna, puedes **desempatar** con una segunda: `ORDER BY salario DESC, apellido` ordena por salario y, entre quienes ganan lo mismo, por apellido. Cada columna lleva su propio `ASC` o `DESC`. También puedes ordenar por un cálculo o por su alias: `ORDER BY ganancia DESC` funciona si en el `SELECT` escribiste `precio - costo AS ganancia`. Hasta hoy, las cláusulas se escriben en este orden: `SELECT … FROM … WHERE … ORDER BY …`.",
+     "tip": "Siempre que un reporte se vaya a leer de arriba hacia abajo, ponle `ORDER BY` y piensa en el desempate. Un orden sin desempate puede cambiar entre una ejecución y otra.",
+     "example": "SELECT nombre, apellido, salario\nFROM empleados\nORDER BY salario DESC, apellido;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Ordena de menor a mayor",
+       "body": "Ordena el catálogo por precio. Arriba queda la cajeta de leche, el producto más barato. Fíjate en que no escribiste `ASC`: es el orden predeterminado.",
+       "code": "SELECT nombre, precio\nFROM productos\nORDER BY precio;",
+       "language": "sql"
+      },
+      {
+       "title": "Invierte el orden con DESC",
+       "body": "Ahora del más caro al más barato. Con `DESC` la máscara boruca, de ₡45 000, pasa a la primera fila.",
+       "code": "SELECT nombre, precio\nFROM productos\nORDER BY precio DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "Desempata con una segunda columna",
+       "body": "Hugo Sibaja y Wendy Aguilar ganan lo mismo, ₡610 000. Con `apellido` como segunda columna el empate se resuelve siempre igual: Aguilar antes que Sibaja.",
+       "code": "SELECT nombre, apellido, salario\nFROM empleados\nORDER BY salario DESC, apellido;",
+       "language": "sql"
+      },
+      {
+       "title": "Ordena por fecha",
+       "body": "Ordena al equipo de ventas por fecha de ingreso para ver quién tiene más antigüedad. Combina `WHERE` y `ORDER BY`: primero se filtra y después se ordena.",
+       "code": "SELECT nombre, apellido, fecha_ingreso\nFROM empleados\nWHERE departamento = 'Ventas'\nORDER BY fecha_ingreso;",
+       "language": "sql"
+      },
+      {
+       "title": "Ordena por un cálculo",
+       "body": "Ordena los productos por su ganancia por unidad usando el alias. Arriba queda la máscara boruca, que deja ₡15 750 por unidad; agregar `nombre` como desempate deja el orden fijo.",
+       "code": "SELECT nombre, precio - costo AS ganancia\nFROM productos\nORDER BY ganancia DESC, nombre;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "near \"ORDER\": syntax error",
+       "cause": "`ORDER BY` quedó antes del `WHERE` o después del `LIMIT`. Las cláusulas tienen un orden fijo.",
+       "fix": "Escríbelas así: `SELECT`, `FROM`, `WHERE`, `ORDER BY`, `LIMIT`."
+      },
+      {
+       "error": "`DESC` solo se aplicó a una columna",
+       "cause": "En `ORDER BY salario, apellido DESC` el `DESC` es solo del apellido; el salario sigue ascendente.",
+       "fix": "Escribe la dirección junto a cada columna: `ORDER BY salario DESC, apellido`."
+      },
+      {
+       "error": "Álvaro y Óscar aparecen al final de una lista ordenada por nombre",
+       "cause": "SQLite ordena los textos por el código de cada carácter, y las letras con tilde van después de la z.",
+       "fix": "Es normal en SQLite; tenlo en cuenta al revisar resultados. No es un error de tu consulta."
+      },
+      {
+       "error": "El orden cambia entre ejecuciones o no coincide con la solución",
+       "cause": "Hay empates en la columna de orden y no pusiste desempate.",
+       "fix": "Agrega una segunda columna al `ORDER BY`, como `nombre` o `id`."
+      }
+     ]
+    },
+    {
+     "title": "LIMIT, OFFSET y DISTINCT",
+     "concept": "`LIMIT n` corta el resultado a las primeras `n` filas. Con `ORDER BY` sirve para preguntas de tipo «los 5 más…»: `ORDER BY precio DESC LIMIT 5` son los cinco productos más caros. Sin `ORDER BY`, «los primeros 5» no significa nada, porque el orden no está garantizado.\n\n`OFFSET` salta filas antes de empezar a contar: `LIMIT 8 OFFSET 8` devuelve de la fila 9 a la 16. Así **paginan** las tiendas en línea: la página 1 es `OFFSET 0`, la página 2 es `OFFSET 8`, y así. Cuidado con los empates en el corte: si el quinto y el sexto valen lo mismo, `LIMIT 5` elige uno al azar a menos que desempates.\n\n`DISTINCT` va justo después de `SELECT` y **elimina las filas repetidas** del resultado: `SELECT DISTINCT metodo_pago FROM pedidos` muestra las 4 formas de pago aunque haya 420 pedidos. Con varias columnas, `DISTINCT` elimina las combinaciones repetidas: `SELECT DISTINCT departamento, puesto` muestra cada pareja una sola vez.",
+     "tip": "Antes de escribir un `LIMIT`, ejecuta la consulta sin él y mira las filas cerca del corte. Si hay un empate justo ahí, agrega un desempate o explica en tu reporte que hay empate.",
+     "example": "SELECT nombre, precio\nFROM productos\nORDER BY precio DESC\nLIMIT 5;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Los cinco más caros",
+       "body": "Ordena de mayor a menor precio y corta en 5. El quinto son los audífonos de ₡24 900 y el sexto el molinillo de ₡21 000, así que no hay empate en el corte.",
+       "code": "SELECT nombre, precio\nFROM productos\nORDER BY precio DESC\nLIMIT 5;",
+       "language": "sql"
+      },
+      {
+       "title": "La página siguiente con OFFSET",
+       "body": "Una tienda en línea muestra 8 productos por página. La página 2 salta los primeros 8 y muestra los siguientes 8. Cambia el `OFFSET` a 16 para ver la página 3.",
+       "code": "SELECT nombre, precio\nFROM productos\nWHERE activo = 1\nORDER BY precio, nombre\nLIMIT 8 OFFSET 8;",
+       "language": "sql"
+      },
+      {
+       "title": "Valores distintos de una columna",
+       "body": "¿Qué formas de pago usan los clientes? Sin `DISTINCT` saldrían 420 filas; con él, las 4 formas: tarjeta, sinpe, efectivo y transferencia.",
+       "code": "SELECT DISTINCT metodo_pago\nFROM pedidos;",
+       "language": "sql"
+      },
+      {
+       "title": "Combinaciones distintas",
+       "body": "Con dos columnas, `DISTINCT` elimina las parejas repetidas. Así ves qué puestos existen en cada departamento: salen 10 combinaciones para 14 personas.",
+       "code": "SELECT DISTINCT departamento, puesto\nFROM empleados\nORDER BY departamento, puesto;",
+       "language": "sql"
+      },
+      {
+       "title": "Los clientes más recientes",
+       "body": "Junta todo: ordena por fecha de registro de la más nueva a la más vieja y quédate con 5. Rodrigo Quesada, registrado el 20 de septiembre de 2026, es el cliente más nuevo.",
+       "code": "SELECT nombre, apellido, fecha_registro\nFROM clientes\nORDER BY fecha_registro DESC\nLIMIT 5;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "near \"DISTINCT\": syntax error",
+       "cause": "Se escribió `DISTINCT` delante de cada columna: `SELECT DISTINCT nombre, DISTINCT apellido`.",
+       "fix": "`DISTINCT` va una sola vez, justo después de `SELECT`, y se aplica a la fila completa."
+      },
+      {
+       "error": "`LIMIT 5` devuelve filas distintas a las esperadas",
+       "cause": "No hay `ORDER BY`, o lo hay pero con empates en la quinta posición.",
+       "fix": "Ordena siempre antes de limitar y desempata con una segunda columna."
+      },
+      {
+       "error": "La página 2 repite productos de la página 1",
+       "cause": "El `OFFSET` no es múltiplo del `LIMIT` (por ejemplo `LIMIT 8 OFFSET 5`), o el orden tiene empates y cambia entre consultas.",
+       "fix": "Usa `OFFSET` = tamaño de página × (número de página − 1) y un orden con desempate."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-15-1",
+     "title": "Catálogo por precio",
+     "prompt": "Para imprimir el catálogo, muestra el `nombre` y el `precio` de todos los productos, ordenados del **más caro al más barato** y, si dos cuestan lo mismo, por `nombre` en orden alfabético.",
+     "hint": "Dos columnas en el `ORDER BY`: la primera con `DESC`, la segunda sin nada (ascendente).",
+     "solution": "SELECT nombre, precio FROM productos ORDER BY precio DESC, nombre;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-15-2",
+     "title": "Antigüedad en Ventas",
+     "prompt": "Para el reconocimiento por años de servicio, muestra el `nombre`, el `apellido` y la `fecha_ingreso` de los empleados del departamento `'Ventas'`, ordenados del que **lleva más tiempo** en la empresa al más nuevo.",
+     "hint": "Quien lleva más tiempo es quien tiene la fecha de ingreso más antigua, es decir, la menor.",
+     "solution": "SELECT nombre, apellido, fecha_ingreso FROM empleados WHERE departamento = 'Ventas' ORDER BY fecha_ingreso;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-15-3",
+     "title": "Los cinco más caros",
+     "prompt": "Para la vitrina principal, muestra el `nombre` y el `precio` de los **5 productos más caros**, del más caro al más barato.",
+     "hint": "Ordena de mayor a menor precio y corta con `LIMIT`.",
+     "solution": "SELECT nombre, precio FROM productos ORDER BY precio DESC LIMIT 5;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-15-4",
+     "title": "Puestos de cada departamento",
+     "prompt": "Recursos Humanos quiere el organigrama resumido: muestra cada combinación **distinta** de `departamento` y `puesto` que existe en `empleados`, en ese orden de columnas y sin repetir combinaciones.",
+     "hint": "Un solo `DISTINCT` después de `SELECT` se aplica a las dos columnas juntas.",
+     "solution": "SELECT DISTINCT departamento, puesto FROM empleados;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-15-5",
+     "title": "Últimos pagos por SINPE",
+     "prompt": "Contabilidad concilia las cuentas de SINPE Móvil. Muestra el `id`, la `fecha` y el `costo_envio` de los **5 pedidos más recientes** pagados con `'sinpe'`, del más reciente al más antiguo y, si dos tienen la misma fecha, primero el de `id` mayor.",
+     "hint": "Filtra con `WHERE`, ordena por `fecha DESC, id DESC` y corta con `LIMIT`.",
+     "solution": "SELECT id, fecha, costo_envio FROM pedidos WHERE metodo_pago = 'sinpe' ORDER BY fecha DESC, id DESC LIMIT 5;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-10-15-6",
+     "title": "Segunda página de la tienda",
+     "prompt": "La tienda en línea muestra solo los productos **activos**, del más barato al más caro (y, si empatan en precio, por `nombre`), **8 por página**. Muestra el `nombre` y el `precio` de los productos que aparecen en la **página 2**, en ese orden.",
+     "hint": "La página 2 salta los 8 primeros: `LIMIT 8 OFFSET 8`. No olvides el filtro de activos ni el desempate.",
+     "solution": "SELECT nombre, precio FROM productos WHERE activo = 1 ORDER BY precio, nombre LIMIT 8 OFFSET 8;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "El podio de la ganancia en bodega",
+    "description": "El martes, en el reto, buscaste a ojo qué producto tenía la mayor ganancia guardada en bodega. Ahora hazlo con SQL. Muestra el `nombre`, la ganancia por unidad (`ganancia`) y la ganancia total si se vendiera todo el stock (`ganancia_en_bodega`) de los **3 productos activos** con mayor `ganancia_en_bodega`, de mayor a menor. Luego responde: ¿el producto que más deja por unidad está en el podio? ¿Por qué crees que no?",
+    "hint": "Calcula `(precio - costo) * stock AS ganancia_en_bodega`, filtra `activo = 1`, ordena por ese alias con `DESC` y usa `LIMIT 3`. Para la pregunta, compara con la consulta del tema 1 que ordenaba por ganancia por unidad.",
+    "solution": "SELECT nombre,\n       precio - costo AS ganancia,\n       (precio - costo) * stock AS ganancia_en_bodega\nFROM productos\nWHERE activo = 1\nORDER BY ganancia_en_bodega DESC\nLIMIT 3;\n\n-- La camiseta Pura Vida encabeza el podio con ₡1 040 000: deja ₡5200 por unidad, pero hay 200 en bodega.\n-- La máscara boruca deja ₡15 750 por unidad, pero solo hay 6, así que no entra al podio.",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "ORDER BY",
+     "definition": "Cláusula que ordena el resultado por una o varias columnas o expresiones; va después del `WHERE`."
+    },
+    {
+     "term": "DESC",
+     "definition": "Palabra que invierte el orden de una columna en `ORDER BY`: de mayor a menor. Su contraria, `ASC`, es la predeterminada."
+    },
+    {
+     "term": "desempate",
+     "definition": "Segunda columna del `ORDER BY` que decide el orden entre filas que empatan en la primera."
+    },
+    {
+     "term": "LIMIT",
+     "definition": "Corta el resultado a un número máximo de filas; va al final de la consulta."
+    },
+    {
+     "term": "OFFSET",
+     "definition": "Indica cuántas filas saltar antes de empezar a devolver; se usa junto con `LIMIT` para paginar."
+    },
+    {
+     "term": "DISTINCT",
+     "definition": "Elimina las filas repetidas del resultado; se escribe una sola vez, después de `SELECT`."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQL ORDER BY Keyword (W3Schools)",
+     "url": "https://www.w3schools.com/sql/sql_orderby.asp"
+    },
+    {
+     "title": "SQL SELECT DISTINCT Statement (W3Schools)",
+     "url": "https://www.w3schools.com/sql/sql_distinct.asp"
+    },
+    {
+     "title": "SQL TOP, LIMIT y FETCH FIRST (W3Schools)",
+     "url": "https://www.w3schools.com/sql/sql_top.asp"
+    },
+    {
+     "title": "ORDER BY y LIMIT en la documentación de SQLite",
+     "url": "https://www.sqlite.org/lang_select.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿En qué orden deben escribirse las cláusulas de una consulta?",
+     "code": "",
+     "options": [
+      "SELECT, FROM, ORDER BY, WHERE, LIMIT",
+      "SELECT, WHERE, FROM, ORDER BY, LIMIT",
+      "SELECT, FROM, WHERE, LIMIT, ORDER BY",
+      "SELECT, FROM, WHERE, ORDER BY, LIMIT"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el `WHERE` va antes del `ORDER BY`; primero se filtra y luego se ordena.",
+      "No: `FROM` va inmediatamente después del `SELECT`.",
+      "No: `LIMIT` siempre es lo último; poner `ORDER BY` después da error de sintaxis.",
+      "Correcto: se elige, se dice la tabla, se filtra, se ordena y al final se corta."
+     ],
+     "explanation": "El orden fijo es `SELECT … FROM … WHERE … ORDER BY … LIMIT …`.",
+     "hint": "Piensa en el proceso: ¿se puede cortar en 5 antes de ordenar?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué hace `ORDER BY salario, apellido DESC`?",
+     "code": "",
+     "options": [
+      "Ordena por salario de mayor a menor y luego por apellido de Z a A",
+      "Ordena por salario de menor a mayor y, entre quienes empatan, por apellido de Z a A",
+      "Ordena solo por apellido de Z a A",
+      "Da error porque falta `DESC` en salario"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el `DESC` solo afecta a la columna que tiene justo antes.",
+      "Correcto: `salario` usa el predeterminado `ASC` y `apellido` usa `DESC`.",
+      "No: la primera columna del orden sigue siendo el salario.",
+      "No: es válido; cada columna puede llevar o no su dirección."
+     ],
+     "explanation": "Cada columna del `ORDER BY` tiene su propia dirección; si no se escribe, es `ASC`.",
+     "hint": "¿A cuál columna está pegado el `DESC`?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué devuelve `SELECT DISTINCT departamento FROM empleados;`?",
+     "code": "",
+     "options": [
+      "Las 4 áreas de la empresa, cada una una sola vez",
+      "Los 14 departamentos, uno por empleado",
+      "Solo el primer departamento de la tabla",
+      "El número de departamentos"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: Gerencia, Ventas, Bodega y Servicio al cliente, sin repetir.",
+      "No: eso devolvería la consulta sin `DISTINCT`.",
+      "No: `DISTINCT` no limita, elimina repetidos; para una sola fila se usa `LIMIT 1`.",
+      "No: `DISTINCT` muestra los valores; contarlos es trabajo de `COUNT`, que verás la próxima semana."
+     ],
+     "explanation": "`DISTINCT` deja cada valor distinto una sola vez. Hay 14 empleados pero solo 4 departamentos.",
+     "hint": "¿Qué pasa con las filas repetidas?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si una consulta no tiene `ORDER BY`, las filas siempre salen ordenadas por `id`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: a veces salen así, pero la base no lo garantiza y puede cambiar con un índice nuevo o una consulta más compleja.",
+      "Correcto: sin `ORDER BY` el orden no está garantizado; si te importa, pídelo."
+     ],
+     "explanation": "SQL no promete ningún orden sin `ORDER BY`. Que hoy salgan por `id` es una casualidad del funcionamiento interno.",
+     "hint": "¿Qué dice el tema 1 sobre el orden sin instrucciones?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "`LIMIT 10 OFFSET 20` devuelve las filas de la 21 a la 30.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: salta 20 filas y devuelve las 10 siguientes, de la 21 a la 30.",
+      "No: `OFFSET 20` salta 20, así que la primera fila que se devuelve es la 21."
+     ],
+     "explanation": "`OFFSET` dice cuántas filas saltar y `LIMIT` cuántas devolver. Con 10 por página, esa es la página 3.",
+     "hint": "Si saltas 20, ¿cuál es la primera que ves?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué producto devuelve esta consulta?",
+     "code": "SELECT nombre\nFROM productos\nORDER BY precio\nLIMIT 1;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Cajeta de leche"
+     ],
+     "optionFeedback": [],
+     "explanation": "Ordenando de menor a mayor precio, la primera fila es el producto más barato: la cajeta de leche, de ₡1200.",
+     "hint": "Sin `DESC`, el orden es de menor a mayor."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué producto devuelve esta consulta?",
+     "code": "SELECT nombre\nFROM productos\nORDER BY precio DESC\nLIMIT 1 OFFSET 1;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Hamaca de algodón"
+     ],
+     "optionFeedback": [],
+     "explanation": "Del más caro al más barato: primero la máscara boruca (₡45 000), luego la hamaca de algodón (₡32 000). `OFFSET 1` salta la primera.",
+     "hint": "Es el segundo producto más caro."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para ver cada calificación distinta que han dado los clientes, de la más alta a la más baja.",
+     "code": "SELECT ___ calificacion\nFROM resenas\nORDER BY calificacion DESC;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "DISTINCT"
+     ],
+     "optionFeedback": [],
+     "explanation": "`SELECT DISTINCT calificacion` deja cada valor una sola vez: 5, 4, 3, 2 y 1.",
+     "hint": "Es la palabra que elimina las filas repetidas."
+    }
+   ]
+  },
+  {
+   "date": "2026-10-16",
+   "kind": "workshop",
+   "title": "Filtros especiales",
+   "summary": "Buscar por partes de un texto con LIKE, abreviar listas y rangos con IN y BETWEEN, y aprender a tratar los datos que faltan (NULL) sin caer en la trampa de `= NULL`.",
+   "objectives": [
+    "Buscar textos que empiezan, terminan o contienen algo con `LIKE` y los comodines `%` y `_`.",
+    "Reemplazar cadenas de `OR` por `IN` y rangos de `>=` y `<=` por `BETWEEN`.",
+    "Encontrar datos faltantes con `IS NULL` y datos presentes con `IS NOT NULL`.",
+    "Explicar por qué `= NULL` nunca devuelve filas y cómo afecta `NULL` a los filtros y a los cálculos."
+   ],
+   "schedule": [
+    {
+     "label": "Repaso rápido de ORDER BY y LIMIT",
+     "minutes": 10
+    },
+    {
+     "label": "Tema 1: LIKE, IN y BETWEEN",
+     "minutes": 65
+    },
+    {
+     "label": "Tema 2: NULL, IS NULL e IS NOT NULL",
+     "minutes": 65
+    },
+    {
+     "label": "Práctica: ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "LIKE, IN y BETWEEN",
+     "concept": "Con `=` solo encuentras textos idénticos. Para buscar **por partes** está `LIKE` con dos comodines: `%` significa «cualquier cantidad de caracteres, incluso ninguno» y `_` significa «exactamente un carácter». `nombre LIKE 'Café%'` encuentra lo que empieza con Café, `email LIKE '%@gmail.com'` lo que termina así y `nombre LIKE '%café%'` lo que contiene la palabra en cualquier parte. En SQLite, `LIKE` no distingue mayúsculas de minúsculas en letras sin tilde.\n\n`IN` abrevia una lista de `OR` sobre la misma columna: `metodo_pago IN ('sinpe', 'transferencia')` es igual a `metodo_pago = 'sinpe' OR metodo_pago = 'transferencia'`, pero más corto y sin riesgo de olvidar paréntesis.\n\n`BETWEEN a AND b` abrevia un rango **con los dos extremos incluidos**: `precio BETWEEN 5000 AND 10000` equivale a `precio >= 5000 AND precio <= 10000`. Funciona con números y con fechas `'AAAA-MM-DD'`. Los tres se pueden negar: `NOT LIKE`, `NOT IN` y `NOT BETWEEN`.",
+     "tip": "Cuando uses `BETWEEN` con fechas, escribe el último día completo del rango (`'2026-08-31'`), no el primero del mes siguiente: así no se te cuela un pedido del 1 de septiembre.",
+     "example": "SELECT nombre, precio\nFROM productos\nWHERE nombre LIKE '%café%';",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Lo que empieza con",
+       "body": "Con el `%` al final buscas los productos cuyo nombre empieza con «Café». Salen 4. Compara con el ejemplo del tema, que tiene `%` a los dos lados y encuentra 6, porque también incluye el chorreador y el molinillo de café.",
+       "code": "SELECT nombre, precio\nFROM productos\nWHERE nombre LIKE 'Café%';",
+       "language": "sql"
+      },
+      {
+       "title": "Lo que termina con",
+       "body": "Busca los clientes con correo de Gmail. El `%` va al principio porque no importa qué hay antes de la arroba. Son 34 clientes.",
+       "code": "SELECT nombre, apellido, email\nFROM clientes\nWHERE email LIKE '%@gmail.com';",
+       "language": "sql"
+      },
+      {
+       "title": "Un carácter cualquiera con _",
+       "body": "El comodín `_` ocupa exactamente un carácter. `'Andr_s'` encuentra «Andrés» y también encontraría «Andres» si alguien lo escribió sin tilde, pero no «Andrea», que tiene otra letra al final.",
+       "code": "SELECT nombre, apellido\nFROM clientes\nWHERE nombre LIKE 'Andr_s';",
+       "language": "sql"
+      },
+      {
+       "title": "Una lista con IN",
+       "body": "Busca los clientes de las tres provincias costeras: Guanacaste (5), Puntarenas (6) y Limón (7). Con `IN` escribes la lista entre paréntesis y separada por comas, en vez de tres `OR`.",
+       "code": "SELECT nombre, apellido, provincia_id\nFROM clientes\nWHERE provincia_id IN (5, 6, 7);",
+       "language": "sql"
+      },
+      {
+       "title": "Un rango con BETWEEN",
+       "body": "Busca los pedidos de agosto de 2026. `BETWEEN` incluye el 1 y el 31, así que salen los 24 pedidos del mes completo.",
+       "code": "SELECT id, fecha, metodo_pago\nFROM pedidos\nWHERE fecha BETWEEN '2026-08-01' AND '2026-08-31';",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "`WHERE nombre LIKE 'café'` devuelve 0 filas",
+       "cause": "Sin comodines, `LIKE` busca el texto completo, y ningún producto se llama solo «café».",
+       "fix": "Agrega `%` donde puede haber más texto: `'%café%'`."
+      },
+      {
+       "error": "`LIKE '%CAFÉ%'` no encuentra nada aunque `'%café%'` sí",
+       "cause": "En SQLite `LIKE` ignora mayúsculas solo en letras sin tilde: `C` y `c` son iguales, pero `É` y `é` no.",
+       "fix": "Escribe las letras con tilde en minúscula, como están en los datos, o busca un trozo sin tilde (`'%caf%'`)."
+      },
+      {
+       "error": "near \",\": syntax error en `BETWEEN 5000, 10000`",
+       "cause": "`BETWEEN` usa `AND` entre los dos extremos, no una coma.",
+       "fix": "Escribe `BETWEEN 5000 AND 10000`."
+      },
+      {
+       "error": "near \"1\": syntax error en `IN 1, 2`",
+       "cause": "La lista de `IN` va entre paréntesis.",
+       "fix": "Escribe `IN (1, 2)`."
+      }
+     ]
+    },
+    {
+     "title": "NULL: IS NULL e IS NOT NULL",
+     "concept": "`NULL` significa **«no se sabe»**: el dato falta. No es cero ni un texto vacío. En la Tienda hay clientes sin `email`, sin `telefono` o sin `fecha_nacimiento`; pedidos con `empleado_id` en `NULL`, que son las compras hechas en línea sin vendedor; y una empleada con `jefe_id` en `NULL`: la gerente, que no tiene jefe.\n\nAquí está la trampa: **`= NULL` nunca funciona**. Comparar algo con un valor desconocido da como resultado otro desconocido, y `WHERE` solo deja pasar lo verdadero. Por eso `WHERE telefono = NULL` devuelve 0 filas sin dar error. Para preguntar por datos faltantes existen `IS NULL` y, para los presentes, `IS NOT NULL`.\n\n`NULL` también se cuela en otras partes. Cualquier cálculo con `NULL` da `NULL`: `1500 + NULL` es `NULL`. Y los filtros como `email NOT LIKE '%@gmail.com'` dejan fuera las filas con email en `NULL`, porque de ellas no se sabe si son de Gmail o no. Cuando una columna puede tener `NULL`, pregúntate siempre qué quieres hacer con esas filas.",
+     "tip": "Antes de dar por bueno un resultado, piensa si la columna que filtras tiene `NULL`. Una consulta rápida con `IS NULL` te dice cuántas filas podrían estar quedando fuera sin que te des cuenta.",
+     "example": "SELECT nombre, apellido, email, telefono\nFROM clientes\nWHERE telefono IS NULL;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "Cae en la trampa de = NULL",
+       "body": "Ejecuta esta consulta: no da error, pero devuelve 0 filas aunque hay 7 clientes sin teléfono. Es el error más silencioso de SQL: parece que no hay datos faltantes cuando sí los hay.",
+       "code": "SELECT nombre, apellido\nFROM clientes\nWHERE telefono = NULL;",
+       "language": "sql"
+      },
+      {
+       "title": "Pregunta bien con IS NULL",
+       "body": "Cambia `= NULL` por `IS NULL`. Ahora sí salen los 7 clientes sin teléfono. Fíjate en Daniela Jiménez: tampoco tiene email, así que la tienda no tiene cómo contactarla.",
+       "code": "SELECT nombre, apellido, email\nFROM clientes\nWHERE telefono IS NULL;",
+       "language": "sql"
+      },
+      {
+       "title": "Quédate con los datos presentes",
+       "body": "Para una campaña por correo solo sirven los clientes con email. `IS NOT NULL` deja fuera a los 2 que no lo tienen.",
+       "code": "SELECT nombre, apellido, email\nFROM clientes\nWHERE email IS NOT NULL;",
+       "language": "sql"
+      },
+      {
+       "title": "Lee lo que significa un NULL",
+       "body": "En `pedidos`, `empleado_id` en `NULL` no es un dato perdido: significa que la compra se hizo en línea, sin vendedor. Aquí ves las compras en línea de septiembre de 2026.",
+       "code": "SELECT id, fecha, metodo_pago\nFROM pedidos\nWHERE empleado_id IS NULL\n  AND fecha BETWEEN '2026-09-01' AND '2026-09-30';",
+       "language": "sql"
+      },
+      {
+       "title": "Mira cómo NULL contagia los cálculos",
+       "body": "Sumar un número con `NULL` da `NULL`, porque «1500 más algo desconocido» es desconocido. Lo mismo pasa con una columna: si un dato falta, el cálculo de esa fila también.",
+       "code": "SELECT 1500 + NULL AS resultado;",
+       "language": "sql"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "`WHERE email = NULL` devuelve 0 filas sin dar error",
+       "cause": "Comparar con `NULL` usando `=` o `<>` da desconocido, nunca verdadero.",
+       "fix": "Usa `IS NULL` o `IS NOT NULL`."
+      },
+      {
+       "error": "Faltan filas al filtrar con `<>` o `NOT LIKE`",
+       "cause": "Las filas con `NULL` en esa columna no cumplen ni la condición ni su contraria, así que se quedan fuera.",
+       "fix": "Si también las quieres, agrégalas con `OR columna IS NULL` (con paréntesis si hay más condiciones)."
+      },
+      {
+       "error": "Escribir `'NULL'` entre comillas",
+       "cause": "`'NULL'` es un texto de cuatro letras, no la ausencia de dato.",
+       "fix": "Escribe `NULL` sin comillas y pregúntalo con `IS NULL`."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-10-16-1",
+     "title": "Todo lo que lleva café",
+     "prompt": "Para la feria del café, muestra el `nombre` y el `precio` de todos los productos que tienen la palabra «café» **en cualquier parte** de su nombre, en ese orden.",
+     "hint": "Pon `%` a los dos lados de la palabra. Escribe `café` en minúscula y con tilde.",
+     "solution": "SELECT nombre, precio FROM productos WHERE nombre LIKE '%café%';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-16-2",
+     "title": "Regalos de precio medio",
+     "prompt": "Un cliente busca un regalo de entre ₡5000 y ₡10 000, **ambos incluidos**. Muestra el `nombre` y el `precio` de los productos en ese rango, en ese orden.",
+     "hint": "`BETWEEN` incluye los dos extremos.",
+     "solution": "SELECT nombre, precio FROM productos WHERE precio BETWEEN 5000 AND 10000;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-16-3",
+     "title": "Clientes sin teléfono",
+     "prompt": "Servicio al cliente quiere completar los datos de contacto. Muestra el `nombre`, el `apellido` y el `email` de los clientes que **no tienen teléfono** registrado, en ese orden.",
+     "hint": "El teléfono que falta es `NULL`. Recuerda que `= NULL` no funciona.",
+     "solution": "SELECT nombre, apellido, email FROM clientes WHERE telefono IS NULL;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-16-4",
+     "title": "Cumpleaños por averiguar",
+     "prompt": "Mercadeo quiere enviar un correo para pedir la fecha de nacimiento a quienes no la han dado. Muestra el `nombre`, el `apellido` y el `email` de los clientes que **tienen email** pero **no tienen** `fecha_nacimiento`, en ese orden.",
+     "hint": "Son dos condiciones sobre `NULL` unidas con `AND`: una con `IS NOT NULL` y otra con `IS NULL`.",
+     "solution": "SELECT nombre, apellido, email FROM clientes WHERE email IS NOT NULL AND fecha_nacimiento IS NULL;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-16-5",
+     "title": "Llamadas a la costa",
+     "prompt": "Se prepara una campaña telefónica en las provincias costeras: Guanacaste (`provincia_id` 5), Puntarenas (6) y Limón (7). Muestra el `nombre`, el `apellido` y el `telefono` de los clientes de esas provincias que **tienen teléfono**, en ese orden.",
+     "hint": "Usa `IN` para la lista de provincias y `IS NOT NULL` para el teléfono.",
+     "solution": "SELECT nombre, apellido, telefono FROM clientes WHERE provincia_id IN (5, 6, 7) AND telefono IS NOT NULL;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-10-16-6",
+     "title": "Pagos electrónicos de agosto",
+     "prompt": "Contabilidad revisa los pedidos de **agosto de 2026** pagados con `'sinpe'` o con `'transferencia'`. Muestra el `id`, la `fecha` y el `metodo_pago`, ordenados por `fecha` y, si dos pedidos tienen la misma fecha, por `id`.",
+     "hint": "Combina `BETWEEN` para las fechas, `IN` para los métodos de pago y `ORDER BY` con desempate.",
+     "solution": "SELECT id, fecha, metodo_pago FROM pedidos WHERE fecha BETWEEN '2026-08-01' AND '2026-08-31' AND metodo_pago IN ('sinpe', 'transferencia') ORDER BY fecha, id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    }
+   ],
+   "tasks": [],
+   "taskHints": [],
+   "challenge": {
+    "title": "Auditoría de datos faltantes",
+    "description": "La gerente quiere saber qué tan completos están los datos. Escribe tres consultas: (1) el `nombre` y `apellido` de los clientes con los que la tienda **no tiene ninguna forma de contacto** (ni email ni teléfono); (2) el `id`, la `fecha` y el `metodo_pago` de las compras **en línea** (sin vendedor) que se **cancelaron** en 2026, de la más reciente a la más antigua; (3) el `nombre`, el `apellido` y el `email` de los clientes cuyo correo **no** es de Gmail, comprobando que te salen 44 filas y explicando con un comentario `--` por qué no salen los 2 clientes sin email.",
+    "hint": "(1) Dos `IS NULL` unidos con `AND`. (2) `empleado_id IS NULL`, `estado = 'cancelado'`, `fecha >= '2026-01-01'` y `ORDER BY fecha DESC`. (3) `NOT LIKE '%@gmail.com'`; recuerda lo que pasa con `NULL` en los filtros.",
+    "solution": "SELECT nombre, apellido\nFROM clientes\nWHERE email IS NULL AND telefono IS NULL;\n\nSELECT id, fecha, metodo_pago\nFROM pedidos\nWHERE empleado_id IS NULL\n  AND estado = 'cancelado'\n  AND fecha >= '2026-01-01'\nORDER BY fecha DESC;\n\nSELECT nombre, apellido, email\nFROM clientes\nWHERE email NOT LIKE '%@gmail.com';\n-- Los 2 clientes sin email no salen: de un email NULL no se sabe si es de Gmail o no,\n-- así que la condición no es verdadera y WHERE los deja fuera.",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "LIKE",
+     "definition": "Operador que compara un texto con un patrón que puede tener comodines."
+    },
+    {
+     "term": "comodín",
+     "definition": "Carácter especial de un patrón `LIKE`: `%` vale por cualquier cantidad de caracteres y `_` por exactamente uno."
+    },
+    {
+     "term": "IN",
+     "definition": "Operador que comprueba si un valor está en una lista: `provincia_id IN (5, 6, 7)`."
+    },
+    {
+     "term": "BETWEEN",
+     "definition": "Operador de rango con los dos extremos incluidos: `precio BETWEEN 5000 AND 10000`."
+    },
+    {
+     "term": "NULL",
+     "definition": "Marca de dato faltante o desconocido. No es cero ni texto vacío, y no se compara con `=`."
+    },
+    {
+     "term": "IS NULL",
+     "definition": "Condición que es verdadera cuando la columna no tiene dato; su contraria es `IS NOT NULL`."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQL LIKE Operator (W3Schools)",
+     "url": "https://www.w3schools.com/sql/sql_like.asp"
+    },
+    {
+     "title": "SQL NULL Values: IS NULL e IS NOT NULL (W3Schools)",
+     "url": "https://www.w3schools.com/sql/sql_null_values.asp"
+    },
+    {
+     "title": "Null (SQL) en Wikipedia en español",
+     "url": "https://es.wikipedia.org/wiki/Null_(SQL)"
+    },
+    {
+     "title": "LIKE, IN y BETWEEN en la documentación de SQLite",
+     "url": "https://www.sqlite.org/lang_expr.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "¿Qué patrón encuentra los clientes cuyo correo termina en `@racsa.co.cr`?",
+     "code": "",
+     "options": [
+      "email LIKE '@racsa.co.cr%'",
+      "email = '%@racsa.co.cr'",
+      "email LIKE '%@racsa.co.cr'",
+      "email LIKE '_@racsa.co.cr'"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: así buscas correos que empiezan con `@racsa.co.cr`.",
+      "No: con `=` el `%` no es comodín, se busca literalmente un signo de porcentaje.",
+      "Correcto: cualquier cosa antes y `@racsa.co.cr` al final.",
+      "No: `_` vale por un solo carácter, así que solo encontraría correos como `a@racsa.co.cr`."
+     ],
+     "explanation": "«Termina en» se escribe con `%` al principio del patrón y solo funciona con `LIKE`, no con `=`.",
+     "hint": "¿Dónde va el comodín si no importa lo que hay antes?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Cuál condición es equivalente a `precio BETWEEN 5000 AND 10000`?",
+     "code": "",
+     "options": [
+      "precio > 5000 AND precio < 10000",
+      "precio >= 5000 AND precio <= 10000",
+      "precio >= 5000 OR precio <= 10000",
+      "precio IN (5000, 10000)"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: esa versión deja fuera los productos que cuestan exactamente ₡5000 o ₡10 000.",
+      "Correcto: `BETWEEN` incluye los dos extremos.",
+      "No: con `OR` casi todos los precios cumplen alguna de las dos.",
+      "No: `IN` solo acepta esos dos valores exactos, no lo que hay entre ellos."
+     ],
+     "explanation": "`BETWEEN a AND b` es lo mismo que `>= a AND <= b`: los extremos cuentan.",
+     "hint": "¿Entra un producto de exactamente ₡5000?"
+    },
+    {
+     "type": "choice",
+     "prompt": "En la tabla `pedidos`, ¿qué significa que `empleado_id` sea `NULL`?",
+     "code": "",
+     "options": [
+      "Que el pedido tiene un error y hay que borrarlo",
+      "Que lo atendió el empleado con `id` 0",
+      "Que el pedido se canceló",
+      "Que la compra se hizo en línea, sin vendedor"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: `NULL` no es un error; indica que no hay vendedor asociado.",
+      "No: `NULL` no es cero, y no existe un empleado con `id` 0.",
+      "No: la cancelación se guarda en la columna `estado`.",
+      "Correcto: las compras en línea no tienen vendedor, por eso `empleado_id` queda vacío."
+     ],
+     "explanation": "Un `NULL` puede tener un significado de negocio. En `pedidos`, `empleado_id IS NULL` identifica las compras en línea.",
+     "hint": "¿Quién atiende una compra hecha desde la página web?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "`SELECT * FROM clientes WHERE telefono = NULL;` devuelve los clientes que no tienen teléfono.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: devuelve 0 filas. Comparar con `NULL` usando `=` nunca da verdadero.",
+      "Correcto: devuelve 0 filas sin dar error. Hay que escribir `WHERE telefono IS NULL`."
+     ],
+     "explanation": "`= NULL` siempre da desconocido, y `WHERE` solo deja pasar lo verdadero. La forma correcta es `IS NULL`.",
+     "hint": "Recuerda el primer paso de la guía del tema 2."
+    },
+    {
+     "type": "boolean",
+     "prompt": "`metodo_pago IN ('sinpe', 'efectivo')` da el mismo resultado que `metodo_pago = 'sinpe' OR metodo_pago = 'efectivo'`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: `IN` es una forma abreviada de varios `OR` sobre la misma columna.",
+      "No: son equivalentes; `IN` solo es más corto y más fácil de leer."
+     ],
+     "explanation": "`IN (a, b)` equivale a `= a OR = b`. Además, evita olvidar paréntesis cuando se combina con `AND`.",
+     "hint": "Traduce `IN` a palabras: «está en la lista»."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué apellido devuelve esta consulta?",
+     "code": "SELECT apellido\nFROM empleados\nWHERE jefe_id IS NULL;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Méndez"
+     ],
+     "optionFeedback": [],
+     "explanation": "La única persona sin jefe es la gerente general, Laura Méndez.",
+     "hint": "¿Quién es la única persona de la empresa que no le reporta a nadie?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta?",
+     "code": "SELECT 1500 + NULL AS resultado;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "NULL"
+     ],
+     "optionFeedback": [],
+     "explanation": "Cualquier cálculo con `NULL` da `NULL`: «1500 más algo desconocido» es desconocido.",
+     "hint": "No es 1500."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la consulta para obtener los clientes que **sí** tienen fecha de nacimiento registrada.",
+     "code": "SELECT nombre, apellido\nFROM clientes\nWHERE fecha_nacimiento ___;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "IS NOT NULL"
+     ],
+     "optionFeedback": [],
+     "explanation": "`IS NOT NULL` deja pasar las filas que tienen dato en esa columna.",
+     "hint": "Son tres palabras; la del medio es la negación."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-10-17",
+  "kind": "weekly",
+  "path": "Laboratorio SQL",
+  "description": "Tu primer informe para la gerencia de la Tienda Pura Vida: ocho consultas que responden preguntas reales de la tienda con todo lo que aprendiste esta semana (SELECT, cálculos, WHERE, ORDER BY, LIMIT, DISTINCT, LIKE, IN, BETWEEN y NULL), y una conclusión escrita con lo que descubriste en los datos.",
+  "criteria": [
+   "Las 8 consultas pasan la corrección automática del laboratorio.",
+   "Cada consulta muestra exactamente las columnas pedidas, en el orden pedido, y respeta el orden de filas cuando el enunciado lo exige.",
+   "Las consultas están escritas de forma legible: una cláusula por línea y alias claros en las columnas calculadas.",
+   "La conclusión tiene entre 5 y 10 líneas, cita al menos tres datos concretos sacados de tus consultas y nombra un problema u oportunidad para la tienda."
+  ],
+  "steps": [
+   "Lee las ocho preguntas completas antes de empezar y marca qué herramienta de la semana necesita cada una: ¿filtro, orden, límite, rango, patrón, NULL?",
+   "Para cada pregunta, explora primero la tabla con un `SELECT` sin filtro y revisa los nombres exactos de las columnas en el explorador de la izquierda.",
+   "Construye la consulta por partes: primero `SELECT` y `FROM`, ejecuta; luego agrega el `WHERE`, ejecuta; al final `ORDER BY` y `LIMIT`. Así sabes en qué paso aparece un error.",
+   "Compara tu resultado con el enunciado: columnas, orden de columnas y orden de filas. Si te pide desempate, que esté.",
+   "Cuando tengas la pregunta 8, averigua el nombre de los productos que más se repiten en las quejas con `SELECT * FROM productos WHERE id = …;` y revisa su `stock` y su `activo`.",
+   "Escribe la conclusión: qué descubriste, con números de tus consultas, y qué le recomendarías a la gerente."
+  ],
+  "tips": [
+   "Cuando una consulta devuelva 0 filas, sospecha primero de un texto mal escrito (mayúsculas, tildes) o de un `= NULL`.",
+   "Si una pregunta dice «del más… al más…», necesita `ORDER BY`; si dice «los 5», necesita además `LIMIT`; y si puede haber empates, un desempate.",
+   "Para la conclusión, no repitas las consultas: cuenta lo que significan. «Un solo producto concentra la mitad de las quejas» dice más que una lista de filas."
+  ],
+  "stretch": "Investiga las quejas más a fondo: busca con `LIKE` las reseñas cuyo comentario menciona un golpe o un daño (`'%golpe%'` o `'%dañado%'`), muestra a qué productos pertenecen y escribe en tu conclusión si el problema parece ser de calidad del producto o del empaque y el envío.",
+  "checklist": [
+   "Las 8 consultas pasan la corrección automática.",
+   "Ninguna consulta usa `= NULL`; los datos faltantes se preguntan con `IS NULL` o `IS NOT NULL`.",
+   "Las preguntas con orden tienen `ORDER BY` con su desempate, y `LIMIT` va al final.",
+   "Las columnas calculadas tienen un alias claro, como `ganancia`.",
+   "La conclusión cita al menos tres números o datos concretos y termina con una recomendación.",
+   "Releíste la conclusión buscando errores de ortografía."
+  ],
+  "exercises": [
+   {
+    "id": "s01-1",
+    "title": "Correos de Cartago",
+    "prompt": "La tienda va a invitar por correo a sus clientes de Cartago (`provincia_id` 3) a una venta especial. Muestra el `nombre`, el `apellido` y el `email` de los clientes de Cartago que **tienen email**, en ese orden.",
+    "hint": "Dos condiciones con `AND`: la provincia y el email que no falta.",
+    "solution": "SELECT nombre, apellido, email\nFROM clientes\nWHERE provincia_id = 3 AND email IS NOT NULL;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s01-2",
+    "title": "Inventario abundante",
+    "prompt": "Para planear una promoción de volumen, muestra el `nombre`, el `precio` y el `stock` de los productos **activos** con **100 unidades o más** en bodega, ordenados de mayor a menor `stock` y, si empatan, por `nombre`.",
+    "hint": "Filtra con `activo = 1` y `stock >= 100`, y ordena con dos columnas.",
+    "solution": "SELECT nombre, precio, stock\nFROM productos\nWHERE activo = 1 AND stock >= 100\nORDER BY stock DESC, nombre;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s01-3",
+    "title": "Rentabilidad de la artesanía",
+    "prompt": "La gerente quiere saber cuánto deja cada pieza de artesanía (`categoria_id` 3). Muestra el `nombre`, el `precio`, el `costo` y la ganancia por unidad con el alias `ganancia`, ordenados de la **mayor ganancia a la menor**.",
+    "hint": "Calcula `precio - costo AS ganancia` y ordena por ese alias con `DESC`.",
+    "solution": "SELECT nombre, precio, costo, precio - costo AS ganancia\nFROM productos\nWHERE categoria_id = 3\nORDER BY ganancia DESC;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s01-4",
+    "title": "Clientes jóvenes por WhatsApp",
+    "prompt": "Mercadeo prepara una campaña por WhatsApp para clientes nacidos **del 1 de enero de 2000 en adelante**. Muestra el `nombre`, el `apellido`, el `telefono` y la `fecha_nacimiento` de los que **tienen teléfono**, en ese orden.",
+    "hint": "Las fechas se comparan como texto `'AAAA-MM-DD'`. El teléfono que falta es `NULL`.",
+    "solution": "SELECT nombre, apellido, telefono, fecha_nacimiento\nFROM clientes\nWHERE fecha_nacimiento >= '2000-01-01' AND telefono IS NOT NULL;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s01-5",
+    "title": "Cancelaciones de 2026",
+    "prompt": "Servicio al cliente estudia por qué se cancelan pedidos. Muestra el `id`, la `fecha` y el `metodo_pago` de los pedidos con estado `'cancelado'` hechos **en 2026**, ordenados por `fecha` y, si empatan, por `id`.",
+    "hint": "Puedes usar `BETWEEN '2026-01-01' AND '2026-12-31'` o `fecha >= '2026-01-01'`.",
+    "solution": "SELECT id, fecha, metodo_pago\nFROM pedidos\nWHERE estado = 'cancelado' AND fecha BETWEEN '2026-01-01' AND '2026-12-31'\nORDER BY fecha, id;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s01-6",
+    "title": "Los cinco mejores salarios",
+    "prompt": "Para un estudio de salarios, muestra el `nombre`, el `apellido`, el `puesto` y el `salario` de los **5 empleados mejor pagados** que **no** son del departamento `'Gerencia'`, del salario más alto al más bajo.",
+    "hint": "Excluye Gerencia con `<>`, ordena con `DESC` y corta con `LIMIT`.",
+    "solution": "SELECT nombre, apellido, puesto, salario\nFROM empleados\nWHERE departamento <> 'Gerencia'\nORDER BY salario DESC\nLIMIT 5;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   },
+   {
+    "id": "s01-7",
+    "title": "Productos por revisar",
+    "prompt": "Bodega quiere revisar los productos con problemas: los que están **inactivos** (`activo` = 0) **o** no tienen unidades (`stock` = 0). Muestra el `nombre`, el `stock` y `activo`, en ese orden.",
+    "hint": "Basta con que se cumpla una de las dos condiciones.",
+    "solution": "SELECT nombre, stock, activo\nFROM productos\nWHERE activo = 0 OR stock = 0;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": false
+   },
+   {
+    "id": "s01-8",
+    "title": "Quejas de clientes",
+    "prompt": "La gerente quiere leer todas las reseñas negativas: las de calificación **1 o 2**. Muestra el `id`, el `producto_id`, la `calificacion` y el `comentario`, ordenadas por `producto_id` y, dentro de cada producto, por `id`.",
+    "hint": "Usa `IN (1, 2)` y un `ORDER BY` con dos columnas. Algunas reseñas no tienen comentario: deben salir igual.",
+    "solution": "SELECT id, producto_id, calificacion, comentario\nFROM resenas\nWHERE calificacion IN (1, 2)\nORDER BY producto_id, id;",
+    "check": "",
+    "setup": "",
+    "starter": "",
+    "orderMatters": true
+   }
+  ]
+ }
+}

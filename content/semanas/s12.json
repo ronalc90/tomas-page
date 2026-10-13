@@ -1,0 +1,881 @@
+{
+ "id": "s12",
+ "number": 12,
+ "phaseId": 4,
+ "title": "Cierre",
+ "rangeLabel": "28 dic – 30 dic",
+ "days": [
+  {
+   "date": "2026-12-28",
+   "kind": "workshop",
+   "title": "Repaso de Python y POO",
+   "summary": "Repaso activo, sin apuntes, de todo el Python del curso: fundamentos y colecciones por la mañana; clases, sqlite3 y pruebas después, aplicado a tu proyecto final.",
+   "objectives": [
+    "Resolver sin apuntes ejercicios cortos de texto, condiciones, bucles, funciones, colecciones y archivos CSV, comprobando cada uno con `assert`.",
+    "Escribir una clase con propiedad validada, una jerarquía con `super()` y una dataclass, y explicar cuándo conviene cada una.",
+    "Consultar `tienda.db` desde Python con parámetros `?`, `sqlite3.Row` y transacciones con `with con:`.",
+    "Probar un repositorio con pytest sobre una base `:memory:` y revisar tu proyecto final con esos mismos criterios.",
+    "Hacer una lista concreta de lo que olvidaste para repasarlo antes de la entrega del 30."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Repaso de fundamentos y colecciones",
+     "minutes": 75
+    },
+    {
+     "label": "Tema 2: Repaso de POO y sqlite3",
+     "minutes": 80
+    },
+    {
+     "label": "Práctica: tareas, revisión del proyecto y Repaso SQL",
+     "minutes": 65
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Repaso de fundamentos y colecciones",
+     "concept": "Hoy no hay tema nuevo: repasas, sin apuntes, lo que tu proyecto final usa todos los días. La regla es intentar primero y comprobar después. Para cada ejercicio escribe en papel qué entra y qué sale con un ejemplo concreto, conviértelo en dos o tres `assert`, y solo entonces escribe la función. Si en 15 minutos no sale, anota exactamente dónde te trabaste y sigue: encontrar el hueco es el objetivo.\n\nDe los fundamentos, lo que más vuelve en un programa con datos es poco: f-strings con formato (`f\"₡{monto:,}\"`), condiciones con los bordes bien puestos (`>=` frente a `>`), bucles con acumuladores, funciones que **devuelven** su resultado en vez de imprimirlo, y `try`/`except` para que un dato malo no tumbe el programa.\n\nDe las colecciones, el patrón estrella es la lista de diccionarios: cada diccionario es una fila, como en SQL. Agrupar es `totales[clave] = totales.get(clave, 0) + monto`, filtrar es una comprensión, ordenar es `sorted(..., key=...)` y los valores únicos salen de un conjunto. Para archivos: siempre `with open(...)` y `csv.DictReader` o `csv.DictWriter`.",
+     "tip": "Si no puedes escribir el `assert` de una función, todavía no sabes qué debe devolver: vuelve al enunciado antes de tocar el teclado. Escribir la prueba primero es la forma más barata de pensar.",
+     "example": "import csv\n\n\ndef leer_ventas(ruta: str) -> tuple[list[dict], list[str]]:\n    \"\"\"Lee el CSV de ventas: devuelve las filas válidas y los pedidos con monto inválido.\"\"\"\n    validas, malas = [], []\n    with open(ruta, encoding=\"utf-8\") as f:\n        for fila in csv.DictReader(f):\n            try:\n                fila[\"monto\"] = int(fila[\"monto\"])\n            except ValueError:\n                malas.append(fila[\"pedido\"])\n                continue\n            validas.append(fila)\n    return validas, malas\n\n\ndef total_por_provincia(ventas: list[dict]) -> dict[str, int]:\n    \"\"\"Suma los montos por provincia, de mayor a menor.\"\"\"\n    totales = {}\n    for v in ventas:\n        totales[v[\"provincia\"]] = totales.get(v[\"provincia\"], 0) + v[\"monto\"]\n    return dict(sorted(totales.items(), key=lambda par: par[1], reverse=True))\n\n\n# Un CSV pequeño, creado aquí mismo para que el ejemplo sea completo\nfilas = [\n    {\"pedido\": \"1001\", \"provincia\": \"Heredia\", \"metodo\": \"sinpe\", \"monto\": \"18500\"},\n    {\"pedido\": \"1002\", \"provincia\": \"San José\", \"metodo\": \"tarjeta\", \"monto\": \"42300\"},\n    {\"pedido\": \"1003\", \"provincia\": \"Heredia\", \"metodo\": \"tarjeta\", \"monto\": \"7900\"},\n    {\"pedido\": \"1004\", \"provincia\": \"Limón\", \"metodo\": \"sinpe\", \"monto\": \"pendiente\"},\n    {\"pedido\": \"1005\", \"provincia\": \"San José\", \"metodo\": \"efectivo\", \"monto\": \"12600\"},\n]\nwith open(\"ventas_repaso.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as f:\n    escritor = csv.DictWriter(f, fieldnames=[\"pedido\", \"provincia\", \"metodo\", \"monto\"])\n    escritor.writeheader()\n    escritor.writerows(filas)\n\nvalidas, malas = leer_ventas(\"ventas_repaso.csv\")\ntotales = total_por_provincia(validas)\nassert totales == {\"San José\": 54900, \"Heredia\": 26400}\nassert malas == [\"1004\"]\nfor provincia, total in totales.items():\n    print(f\"{provincia:<10} ₡{total:>6,}\")\nprint(\"Métodos usados:\", sorted({v[\"metodo\"] for v in validas}))\nprint(\"Pedidos con monto inválido:\", malas)\n",
+     "language": "python",
+     "exampleOutput": "San José   ₡54,900\nHeredia    ₡26,400\nMétodos usados: ['efectivo', 'sinpe', 'tarjeta']\nPedidos con monto inválido: ['1004']",
+     "steps": [
+      {
+       "title": "Texto y f-strings",
+       "body": "Escribe `etiqueta(nombre, precio, descuento)` que limpie espacios, ponga en mayúscula la primera letra sin tocar el resto y muestre el precio final con separador de miles y el porcentaje con `:.0%`. No usamos `capitalize()` porque pasa a minúscula todo lo demás: «Costa Rica» quedaría «costa rica».",
+       "code": "def etiqueta(nombre: str, precio: int, descuento: float = 0.0) -> str:\n    \"\"\"Texto para la vitrina: nombre limpio, precio final y el descuento si lo hay.\"\"\"\n    nombre = nombre.strip()\n    final = round(precio * (1 - descuento))\n    texto = f\"{nombre[0].upper() + nombre[1:]}: ₡{final:,}\"\n    if descuento > 0:\n        texto += f\" ({descuento:.0%} menos)\"\n    return texto\n\n\nassert etiqueta(\"  café molido Tarrazú 500 g \", 6500, 0.10) == \"Café molido Tarrazú 500 g: ₡5,850 (10% menos)\"\nassert etiqueta(\"Salsa Lizano 700 ml\", 2450) == \"Salsa Lizano 700 ml: ₡2,450\"\nprint(etiqueta(\"gorra bordada Costa Rica\", 8500, 0.15))\nprint(len(\"Pura Vida\"), \"Pura Vida\".upper(), \"Pura Vida\"[::-1])\n",
+       "language": "python"
+      },
+      {
+       "title": "Decisiones y validación",
+       "body": "Clasifica un pedido por monto y lanza `ValueError` si no tiene sentido. Lo importante son los bordes: prueba 9 999, 10 000, 49 999 y 50 000 con un solo `assert`. Si ordenas los `if` de mayor a menor, cada uno solo necesita una comparación.",
+       "code": "def clasificar_pedido(monto: int) -> str:\n    \"\"\"Clasifica un pedido por monto: pequeño, mediano o grande.\"\"\"\n    if monto <= 0:\n        raise ValueError(f\"Monto inválido: {monto}\")\n    if monto >= 50_000:\n        return \"grande\"\n    if monto >= 10_000:\n        return \"mediano\"\n    return \"pequeño\"\n\n\n# Los bordes primero: 9 999, 10 000, 49 999 y 50 000\nassert [clasificar_pedido(m) for m in (9_999, 10_000, 49_999, 50_000)] == [\"pequeño\", \"mediano\", \"mediano\", \"grande\"]\nfor monto in (18_500, -300):\n    try:\n        print(monto, \"->\", clasificar_pedido(monto))\n    except ValueError as e:\n        print(\"Error:\", e)\n",
+       "language": "python"
+      },
+      {
+       "title": "Bucles, listas y comprensiones",
+       "body": "Recorre una lista de montos con `enumerate` y un acumulador, filtra con una comprensión y saca el top 3 con `sorted(..., reverse=True)[:3]`. Antes de correrlo, predice en papel el total y el promedio.",
+       "code": "montos = [18_500, 42_300, 7_900, 12_600, 3_800, 65_000]\n\ntotal = 0\nfor i, monto in enumerate(montos, start=1):\n    total += monto\n    if monto >= 50_000:\n        print(f\"Pedido {i}: ₡{monto:,} es grande\")\nprint(\"Total:\", total, \"| promedio:\", round(total / len(montos)))\n\nmedianos = [m for m in montos if 10_000 <= m < 50_000]\ntop3 = sorted(montos, reverse=True)[:3]\nprint(\"Medianos:\", medianos)\nprint(\"Top 3:\", top3, \"| el menor:\", min(montos))\n",
+       "language": "python"
+      },
+      {
+       "title": "Diccionarios y conjuntos",
+       "body": "Cuenta pedidos por método de pago con `.get(clave, 0)`, cuenta clientes distintos con un conjunto y usa `&` para ver quién pagó de las dos formas. `max(por_metodo, key=por_metodo.get)` devuelve la clave con el valor más alto.",
+       "code": "pedidos = [\n    {\"cliente\": \"Ana Fallas\", \"provincia\": \"Heredia\", \"metodo\": \"sinpe\"},\n    {\"cliente\": \"José Campos\", \"provincia\": \"Puntarenas\", \"metodo\": \"tarjeta\"},\n    {\"cliente\": \"Ana Fallas\", \"provincia\": \"Heredia\", \"metodo\": \"sinpe\"},\n    {\"cliente\": \"Raquel Mora\", \"provincia\": \"San José\", \"metodo\": \"transferencia\"},\n    {\"cliente\": \"José Campos\", \"provincia\": \"Puntarenas\", \"metodo\": \"sinpe\"},\n]\n\npor_metodo = {}\nfor p in pedidos:\n    por_metodo[p[\"metodo\"]] = por_metodo.get(p[\"metodo\"], 0) + 1\n\nclientes_unicos = {p[\"cliente\"] for p in pedidos}\nmas_usado = max(por_metodo, key=por_metodo.get)\nprint(por_metodo)\nprint(\"Clientes distintos:\", len(clientes_unicos), \"| método más usado:\", mas_usado)\nprint(\"Provincias:\", sorted({p[\"provincia\"] for p in pedidos}))\nprint(\"SINPE y tarjeta a la vez:\", {p[\"cliente\"] for p in pedidos if p[\"metodo\"] == \"sinpe\"} & {p[\"cliente\"] for p in pedidos if p[\"metodo\"] == \"tarjeta\"})\n",
+       "language": "python"
+      },
+      {
+       "title": "Archivos, CSV y el punto de entrada",
+       "body": "Escribe un CSV con `DictWriter`, léelo y organiza el archivo con `main()` y `if __name__ == \"__main__\":`. Es la estructura que debe tener el `main.py` de tu proyecto: funciones arriba, nada suelto que se ejecute al importar.",
+       "code": "import csv\n\n\ndef guardar_resumen(ruta: str, totales: dict[str, int]) -> None:\n    with open(ruta, \"w\", newline=\"\", encoding=\"utf-8\") as f:\n        escritor = csv.DictWriter(f, fieldnames=[\"provincia\", \"total\"])\n        escritor.writeheader()\n        for provincia, total in totales.items():\n            escritor.writerow({\"provincia\": provincia, \"total\": total})\n\n\ndef main() -> None:\n    guardar_resumen(\"resumen.csv\", {\"San José\": 54900, \"Heredia\": 26400})\n    with open(\"resumen.csv\", encoding=\"utf-8\") as f:\n        print(f.read().strip())\n\n\n# Solo corre si ejecutas este archivo; no corre si otro módulo lo importa\nif __name__ == \"__main__\":\n    main()\n",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "TypeError: can only concatenate str (not \"int\") to str",
+       "cause": "Se unió texto y un número con `+`, por ejemplo `\"Total: \" + total`.",
+       "fix": "Usa una f-string (`f\"Total: {total:,}\"`) o convierte con `str(total)`."
+      },
+      {
+       "error": "KeyError: 'Heredia' la primera vez que se acumula",
+       "cause": "Se hizo `totales[provincia] += monto` cuando la clave todavía no existía en el diccionario.",
+       "fix": "Usa `totales[provincia] = totales.get(provincia, 0) + monto`."
+      },
+      {
+       "error": "ValueError: invalid literal for int() with base 10: '₡12,400'",
+       "cause": "El texto del CSV trae símbolo de colón o separadores y `int()` solo acepta dígitos.",
+       "fix": "Limpia antes con `replace(\"₡\", \"\").replace(\",\", \"\")` y envuelve la conversión en `try`/`except ValueError`."
+      },
+      {
+       "error": "FileNotFoundError: [Errno 2] No such file or directory: 'ventas.csv'",
+       "cause": "La terminal está en otra carpeta: las rutas relativas se buscan desde donde ejecutas `python`, no desde donde está el archivo .py.",
+       "fix": "Ejecuta desde la carpeta del proyecto (`cd`) o arma la ruta con `Path(__file__).parent / \"ventas.csv\"`."
+      }
+     ]
+    },
+    {
+     "title": "Repaso de POO y sqlite3",
+     "concept": "La segunda parte del repaso es la columna vertebral de tu proyecto: las clases que representan tus datos y la capa que habla con SQLite.\n\nUna clase junta datos y comportamiento. `__init__` recibe los datos, `self` es el objeto concreto, `__str__` decide cómo se imprime y `@property` expone un atributo protegido (`_estado`) validando cada cambio en su setter. Con herencia (`class Vendedor(Empleado)`) la hija reutiliza al padre con `super().__init__(...)` y sobrescribe solo lo que cambia. `@dataclass` te ahorra `__init__`, `__repr__` y `__eq__` cuando la clase es sobre todo datos.\n\nCon `sqlite3` el ciclo es siempre igual: `connect`, `execute` con parámetros `?` (**nunca** f-strings con datos del usuario: es la puerta de la inyección SQL), `fetchall` o `fetchone`, y `with con:` para que los cambios se confirmen o se deshagan juntos. Con `con.row_factory = sqlite3.Row` lees las columnas por nombre.\n\nEl patrón repositorio une las dos cosas: una clase que es la única que escribe SQL y devuelve objetos. El resto del programa no sabe que existe SQLite, y el repositorio se prueba con pytest sobre una base `:memory:`.",
+     "tip": "Cuando una clase no te salga, empieza por el uso: escribe primero `repo.por_categoria(\"Ropa\")` y el `assert` de lo que debería devolver, y después construye la clase que hace funcionar esas dos líneas.",
+     "example": "import sqlite3\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Producto:\n    nombre: str\n    precio: int\n    stock: int\n\n    @property\n    def agotado(self) -> bool:\n        return self.stock == 0\n\n    def __str__(self) -> str:\n        estado = \"AGOTADO\" if self.agotado else f\"{self.stock} en bodega\"\n        return f\"{self.nombre} (₡{self.precio:,}): {estado}\"\n\n\nclass ProductoRepositorio:\n    \"\"\"La única clase del programa que escribe SQL sobre la tabla productos.\"\"\"\n\n    def __init__(self, con: sqlite3.Connection):\n        self.con = con\n        self.con.row_factory = sqlite3.Row\n\n    def por_categoria(self, categoria: str) -> list[Producto]:\n        filas = self.con.execute(\n            \"\"\"SELECT p.nombre, p.precio, p.stock\n               FROM productos p\n               JOIN categorias c ON c.id = p.categoria_id\n               WHERE c.nombre = ? AND p.activo = 1\n               ORDER BY p.precio DESC\"\"\",\n            (categoria,),\n        ).fetchall()\n        return [Producto(f[\"nombre\"], f[\"precio\"], f[\"stock\"]) for f in filas]\n\n\ncon = sqlite3.connect(\"tienda.db\")\nrepo = ProductoRepositorio(con)\nropa = repo.por_categoria(\"Ropa\")\nfor p in ropa:\n    print(p)\nprint(\"Agotados:\", [p.nombre for p in ropa if p.agotado])\nprint(\"Categoría que no existe:\", repo.por_categoria(\"Juguetes\"))\ncon.close()\n",
+     "language": "python",
+     "exampleOutput": "Sudadera con capucha Tico (₡19,500): 35 en bodega\nCamiseta Pura Vida (₡9,500): 200 en bodega\nGorra bordada Costa Rica (₡8,500): 75 en bodega\nBolso de manta (₡6,500): AGOTADO\nAgotados: ['Bolso de manta']\nCategoría que no existe: []",
+     "steps": [
+      {
+       "title": "Una clase con propiedad que valida",
+       "body": "La clase `Pedido` solo acepta los mismos estados que el `CHECK` de la tabla `pedidos`. Fíjate en que `__init__` asigna `self.estado` (sin guion bajo): así la validación del setter también corre al crear el objeto, no solo al cambiarlo.",
+       "code": "class Pedido:\n    ESTADOS = (\"pendiente\", \"pagado\", \"enviado\", \"entregado\", \"cancelado\")\n\n    def __init__(self, numero: int, estado: str = \"pendiente\"):\n        self.numero = numero\n        self.estado = estado          # pasa por el setter: también se valida al crear\n\n    @property\n    def estado(self) -> str:\n        return self._estado\n\n    @estado.setter\n    def estado(self, nuevo: str) -> None:\n        if nuevo not in self.ESTADOS:\n            raise ValueError(f\"Estado inválido: {nuevo!r}\")\n        self._estado = nuevo\n\n    def __str__(self) -> str:\n        return f\"Pedido #{self.numero} ({self.estado})\"\n\n\np = Pedido(421)\np.estado = \"pagado\"\nprint(p)\ntry:\n    p.estado = \"perdido\"\nexcept ValueError as e:\n    print(\"Rechazado:\", e)\nprint(p.estado)\n",
+       "language": "python"
+      },
+      {
+       "title": "Herencia, super() y polimorfismo",
+       "body": "`Vendedor` hereda de `Empleado`, llama a `super().__init__` y sobrescribe `pago_mensual` para sumar la comisión. El bucle trata a todos igual y cada objeto calcula su pago a su manera: eso es polimorfismo. Los salarios son los de la tabla `empleados`; la comisión es inventada.",
+       "code": "class Empleado:\n    def __init__(self, nombre: str, salario: int):\n        self.nombre = nombre\n        self.salario = salario\n\n    def pago_mensual(self, ventas: int = 0) -> int:\n        return self.salario\n\n    def __str__(self) -> str:\n        return f\"{type(self).__name__} {self.nombre}\"\n\n\nclass Vendedor(Empleado):\n    def __init__(self, nombre: str, salario: int, comision: float):\n        super().__init__(nombre, salario)\n        self.comision = comision\n\n    def pago_mensual(self, ventas: int = 0) -> int:\n        return super().pago_mensual() + round(ventas * self.comision)\n\n\nplanilla = [Empleado(\"Hugo Sibaja\", 610_000), Vendedor(\"Marco Leiva\", 760_000, 0.03)]\nfor e in planilla:\n    print(f\"{e}: ₡{e.pago_mensual(ventas=900_000):,}\")\nprint(isinstance(planilla[1], Empleado), isinstance(planilla[0], Vendedor))\n",
+       "language": "python"
+      },
+      {
+       "title": "Una dataclass con validación",
+       "body": "`LineaPedido` es casi solo datos, así que es una dataclass; `__post_init__` valida después del `__init__` automático y la propiedad `total` usa la misma fórmula que en SQL. Observa cómo se imprime y que dos líneas con los mismos datos son iguales con `==`.",
+       "code": "from dataclasses import dataclass\n\n\n@dataclass\nclass LineaPedido:\n    producto: str\n    cantidad: int\n    precio_unitario: int\n    descuento: float = 0.0\n\n    def __post_init__(self):\n        if self.cantidad <= 0:\n            raise ValueError(\"La cantidad debe ser positiva\")\n        if not 0 <= self.descuento < 1:\n            raise ValueError(\"El descuento es una fracción entre 0 y 1\")\n\n    @property\n    def total(self) -> float:\n        # La misma fórmula que usas en SQL: cantidad * precio_unitario * (1 - descuento)\n        return self.cantidad * self.precio_unitario * (1 - self.descuento)\n\n\nlineas = [LineaPedido(\"Café molido Tarrazú 500 g\", 2, 6500, 0.10), LineaPedido(\"Salsa Lizano 700 ml\", 3, 2450)]\nprint(lineas[1])\nprint(\"Total del pedido:\", round(sum(l.total for l in lineas)))\nprint(LineaPedido(\"Tapa de dulce 1 kg\", 1, 1650) == LineaPedido(\"Tapa de dulce 1 kg\", 1, 1650))\n",
+       "language": "python"
+      },
+      {
+       "title": "Consultas parametrizadas y sqlite3.Row",
+       "body": "Con `tienda.db` en la carpeta, cuenta los clientes de una provincia pasando el valor con `?` y lee las columnas por nombre gracias a `sqlite3.Row`. La segunda consulta muestra por qué `?` te protege: el texto malicioso se compara como un valor, no se ejecuta como SQL.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\ncon.row_factory = sqlite3.Row\n\nprovincia = \"Heredia\"            # imagina que viene de input()\nfila = con.execute(\n    \"\"\"SELECT COUNT(*) AS clientes, MIN(c.fecha_registro) AS primero\n       FROM clientes c JOIN provincias p ON p.id = c.provincia_id\n       WHERE p.nombre = ?\"\"\",\n    (provincia,),                # tupla de un elemento: la coma es obligatoria\n).fetchone()\nprint(f\"{provincia}: {fila['clientes']} clientes, el primero se registró el {fila['primero']}\")\n\nmalicioso = \"x' OR '1'='1\"\nn = con.execute(\"SELECT COUNT(*) FROM provincias WHERE nombre = ?\", (malicioso,)).fetchone()[0]\nprint(\"Con ? el texto malicioso no encuentra nada:\", n)\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "Transacciones con with con: y executemany",
+       "body": "Inserta varias filas de una vez con `executemany` dentro de `with con:`. Si una fila del lote viola una restricción, `with con:` hace `rollback` de todo el lote: al final solo quedan las 2 filas del primer bloque. Es exactamente lo que quieres al cargar un CSV.",
+       "code": "import sqlite3\n\ncon = sqlite3.connect(\":memory:\")\ncon.execute(\"CREATE TABLE abonos (id INTEGER PRIMARY KEY, cliente TEXT NOT NULL, monto INTEGER NOT NULL CHECK (monto > 0))\")\n\nwith con:  # todo el bloque es una transacción: si nada falla, commit\n    con.executemany(\"INSERT INTO abonos (cliente, monto) VALUES (?, ?)\",\n                    [(\"Ana Fallas\", 15000), (\"José Campos\", 8000)])\n\ntry:\n    with con:  # la segunda fila viola el CHECK: se deshace el lote completo\n        con.executemany(\"INSERT INTO abonos (cliente, monto) VALUES (?, ?)\",\n                        [(\"Raquel Mora\", 5000), (\"Diego Jiménez\", -200)])\nexcept sqlite3.IntegrityError as e:\n    print(\"Lote rechazado:\", e)\n\nprint(con.execute(\"SELECT COUNT(*), SUM(monto) FROM abonos\").fetchone())\n",
+       "language": "python"
+      },
+      {
+       "title": "Probar el repositorio con pytest y :memory:",
+       "body": "Este archivo va en `tests/` de tu proyecto y supone que la clase está en `repositorio.py`. La fixture crea una base en memoria con tres productos pensados para probar cada regla (uno inactivo, uno agotado). Córrelo con `python -m pytest -q`: no se ejecuta aquí porque necesita tu módulo.",
+       "code": "# tests/test_repositorio.py  (córrelo con: python -m pytest -q)\nimport sqlite3\n\nimport pytest\n\nfrom repositorio import ProductoRepositorio\n\n\n@pytest.fixture\ndef repo():\n    con = sqlite3.connect(\":memory:\")\n    con.executescript(\"\"\"\n        CREATE TABLE categorias (id INTEGER PRIMARY KEY, nombre TEXT);\n        CREATE TABLE productos (id INTEGER PRIMARY KEY, nombre TEXT, categoria_id INTEGER,\n                                precio INTEGER, stock INTEGER, activo INTEGER);\n        INSERT INTO categorias VALUES (1, 'Ropa');\n        INSERT INTO productos VALUES (1, 'Camiseta', 1, 9500, 10, 1), (2, 'Bolso', 1, 6500, 0, 1),\n                                     (3, 'Pañoleta', 1, 5500, 4, 0);\n    \"\"\")\n    yield ProductoRepositorio(con)\n    con.close()\n\n\ndef test_solo_activos_y_de_mayor_a_menor_precio(repo):\n    assert [p.nombre for p in repo.por_categoria(\"Ropa\")] == [\"Camiseta\", \"Bolso\"]\n\n\ndef test_categoria_inexistente_devuelve_lista_vacia(repo):\n    assert repo.por_categoria(\"Juguetes\") == []\n\n\ndef test_detecta_agotados(repo):\n    assert [p.nombre for p in repo.por_categoria(\"Ropa\") if p.agotado] == [\"Bolso\"]\n",
+       "language": "python",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 1, and there are 7 supplied.",
+       "cause": "Se pasó `(\"Heredia\")` o `\"Heredia\"` en vez de una tupla: Python lo toma como una secuencia de 7 letras.",
+       "fix": "Escribe la coma de la tupla de un elemento: `(\"Heredia\",)`, o usa una lista: `[\"Heredia\"]`."
+      },
+      {
+       "error": "Los INSERT funcionan pero al reabrir la base los datos no están",
+       "cause": "Nunca se confirmó la transacción: sin `commit()` los cambios se pierden al cerrar la conexión.",
+       "fix": "Envuelve las escrituras en `with con:` (hace commit si todo sale bien y rollback si hay error) o llama a `con.commit()`."
+      },
+      {
+       "error": "RecursionError: maximum recursion depth exceeded en un setter",
+       "cause": "Dentro del setter de `estado` se escribió `self.estado = nuevo`, que vuelve a llamar al mismo setter sin fin.",
+       "fix": "Dentro del setter guarda en el atributo protegido: `self._estado = nuevo`."
+      },
+      {
+       "error": "TypeError: Empleado.__init__() missing 1 required positional argument: 'salario'",
+       "cause": "La clase hija llamó a `super().__init__(nombre)` sin todos los argumentos que pide el padre.",
+       "fix": "Pasa al padre exactamente lo que pide su `__init__`: `super().__init__(nombre, salario)`, y después agrega lo propio de la hija."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-28-1",
+     "title": "Vendedores del 2026",
+     "prompt": "La gerente quiere cerrar el año revisando a los vendedores. Para cada empleado que atendió pedidos no cancelados con fecha en 2026, muestra su nombre completo (nombre y apellido separados por un espacio), cuántos pedidos distintos atendió y sus ventas netas (suma de `cantidad * precio_unitario * (1 - descuento)`, redondeada a 0 decimales), en ese orden.",
+     "hint": "Une `empleados`, `pedidos` y `detalle_pedido`. Como cada pedido tiene varias líneas, cuenta los pedidos con `COUNT(DISTINCT p.id)`. Agrupa por el id del empleado.",
+     "solution": "SELECT e.nombre || ' ' || e.apellido AS vendedor,\n       COUNT(DISTINCT p.id) AS pedidos,\n       ROUND(SUM(d.cantidad * d.precio_unitario * (1 - d.descuento))) AS ventas\nFROM empleados e\nJOIN pedidos p ON p.empleado_id = e.id\nJOIN detalle_pedido d ON d.pedido_id = p.id\nWHERE p.estado <> 'cancelado'\n  AND p.fecha BETWEEN '2026-01-01' AND '2026-12-31'\nGROUP BY e.id;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-28-2",
+     "title": "Clientes que se enfriaron",
+     "prompt": "Servicio al cliente quiere llamar a quienes compraron antes pero no han vuelto este año. Muestra el `nombre`, el `apellido` y la fecha de la última compra de los clientes que tienen al menos un pedido no cancelado, pero ninguno (no cancelado) con fecha de 2026 en adelante.",
+     "hint": "Agrupa los pedidos no cancelados por cliente y quédate con los grupos cuya fecha máxima es anterior a '2026-01-01'. La condición sobre `MAX` va en `HAVING`.",
+     "solution": "SELECT c.nombre, c.apellido, MAX(p.fecha) AS ultima_compra\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id\nWHERE p.estado <> 'cancelado'\nGROUP BY c.id\nHAVING MAX(p.fecha) < '2026-01-01';",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Crea `repaso/fundamentos.py` en la carpeta de tu proyecto y, sin apuntes y con cronómetro, escribe estas funciones con docstring y al menos dos `assert` cada una: `etiqueta(nombre, precio, descuento)`, `clasificar_pedido(monto)` (con `ValueError` si el monto no es positivo), `top(montos, n)`, `contar_por(filas, campo)` sobre una lista de diccionarios y `leer_csv(ruta)` que devuelva filas válidas y pedidos con monto inválido. Anota al lado de cada una cuántos minutos te tomó.",
+    "Crea `repaso/poo.py` con tres piezas: la clase `Pedido` con la propiedad `estado` que solo acepta los cinco estados de la tienda; `Empleado` y `Vendedor(Empleado)` con `pago_mensual` sobrescrito; y la dataclass `LineaPedido` con `__post_init__` y la propiedad `total`. Comprueba cada una con `assert`, incluido un caso que debe lanzar `ValueError`.",
+    "Escribe `repaso/repositorio.py` con `ProductoRepositorio` sobre `tienda.db` y tres métodos parametrizados: `por_categoria(nombre)`, `bajo_stock(minimo)` y `mas_vendidos(n)` (este último con JOIN a `detalle_pedido` y sin contar pedidos cancelados). Luego `repaso/tests/test_repositorio.py` con una fixture `:memory:` y al menos cinco pruebas. Deja `python -m pytest -q` en verde.",
+    "Revisa el código de tu proyecto final con la lista de hoy: ninguna consulta con f-string ni concatenación de datos, toda escritura dentro de `with con:`, funciones que devuelven en vez de imprimir, docstring en cada clase, `if __name__ == \"__main__\":` en el archivo principal y cero `print` de depuración. Corrige lo que encuentres y haz un commit «Revisión de calidad del código».",
+    "Al final de `repaso/fundamentos.py` escribe, como comentario, la lista de lo que olvidaste o hiciste distinto (por ejemplo «olvidé la coma en `(provincia,)`»), ordenada por tema. Elige los dos puntos más flojos y vuelve a resolverlos desde cero en un archivo aparte sin mirar tu primera versión."
+   ],
+   "taskHints": [
+    "Para `contar_por`, el patrón es `conteo[f[campo]] = conteo.get(f[campo], 0) + 1`. Para `leer_csv`, abre con `with open(ruta, encoding=\"utf-8\")`, usa `csv.DictReader` y convierte el monto dentro de `try`/`except ValueError`.",
+    "En `Pedido`, el `__init__` debe asignar `self.estado` (sin guion bajo) para que valide desde el principio, y el setter guarda en `self._estado`. En `Vendedor`, la primera línea del `__init__` es `super().__init__(nombre, salario)`.",
+    "`mas_vendidos(n)` puede ser `SELECT p.nombre, SUM(d.cantidad) AS unidades ... GROUP BY p.id ORDER BY unidades DESC, p.nombre LIMIT ?` con `(n,)`. En la fixture crea solo las columnas que tus consultas usan y datos pensados para cada caso borde.",
+    "Busca en tu proyecto con el buscador del editor: `execute(f`, `\" +`, `print(` y `.commit(`. Cada resultado es un lugar para revisar. Corre las pruebas después de cada cambio, no al final.",
+    "Sé específico: «olvidé X» sirve para estudiar; «me fue mal» no. Si la segunda versión te sale más corta y clara, el tema ya quedó; si no, ese tema va primero en el repaso de mañana."
+   ],
+   "challenge": {
+    "title": "Inventario: que SQL y Python digan lo mismo",
+    "description": "Escribe la dataclass `Producto(nombre, categoria, costo, stock)` con la propiedad `valor` (costo por stock) y un `InventarioRepositorio` sobre `tienda.db` con dos métodos: `activos()`, que devuelve los productos activos como objetos, y `valor_por_categoria()`, que calcula en SQL el valor del inventario a costo por categoría (solo productos activos). Después escribe `valor_en_python(productos)`, que calcula lo mismo en Python puro con un diccionario, comprueba con `assert` que los dos resultados son idénticos e imprime el reporte de mayor a menor valor con el total.",
+    "hint": "En SQL: `SUM(p.costo * p.stock)` con `GROUP BY c.nombre` y `WHERE p.activo = 1`. En Python: `totales[p.categoria] = totales.get(p.categoria, 0) + p.valor`. Dos diccionarios con las mismas claves y valores son iguales con `==` aunque el orden sea distinto.",
+    "solution": "import sqlite3\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Producto:\n    nombre: str\n    categoria: str\n    costo: int\n    stock: int\n\n    @property\n    def valor(self) -> int:\n        return self.costo * self.stock\n\n\nclass InventarioRepositorio:\n    def __init__(self, con: sqlite3.Connection):\n        self.con = con\n        self.con.row_factory = sqlite3.Row\n\n    def activos(self) -> list[Producto]:\n        filas = self.con.execute(\n            \"\"\"SELECT p.nombre, c.nombre AS categoria, p.costo, p.stock\n               FROM productos p JOIN categorias c ON c.id = p.categoria_id\n               WHERE p.activo = 1\"\"\"\n        ).fetchall()\n        return [Producto(f[\"nombre\"], f[\"categoria\"], f[\"costo\"], f[\"stock\"]) for f in filas]\n\n    def valor_por_categoria(self) -> dict[str, int]:\n        filas = self.con.execute(\n            \"\"\"SELECT c.nombre, SUM(p.costo * p.stock)\n               FROM productos p JOIN categorias c ON c.id = p.categoria_id\n               WHERE p.activo = 1\n               GROUP BY c.nombre\"\"\"\n        ).fetchall()\n        return {nombre: total for nombre, total in filas}\n\n\ndef valor_en_python(productos: list[Producto]) -> dict[str, int]:\n    totales = {}\n    for p in productos:\n        totales[p.categoria] = totales.get(p.categoria, 0) + p.valor\n    return totales\n\n\ncon = sqlite3.connect(\"tienda.db\")\nrepo = InventarioRepositorio(con)\nen_sql = repo.valor_por_categoria()\nen_python = valor_en_python(repo.activos())\nassert en_sql == en_python, \"SQL y Python no coinciden\"\nfor categoria, valor in sorted(en_sql.items(), key=lambda par: par[1], reverse=True):\n    print(f\"{categoria:<17} ₡{valor:>10,}\")\nprint(f\"{'Total':<17} ₡{sum(en_sql.values()):>10,}\")\ncon.close()\n",
+    "language": "python"
+   },
+   "glossary": [
+    {
+     "term": "Lista de diccionarios",
+     "definition": "Forma de guardar datos tabulares en Python: cada diccionario es una fila y cada clave una columna, igual que lo que devuelve `csv.DictReader`."
+    },
+    {
+     "term": "Propiedad",
+     "definition": "Método marcado con `@property` que se usa como atributo (`p.estado`); con un setter permite validar cada cambio del atributo protegido."
+    },
+    {
+     "term": "super()",
+     "definition": "Función que, dentro de una clase hija, da acceso a los métodos del padre; se usa sobre todo para llamar a su `__init__`."
+    },
+    {
+     "term": "Dataclass",
+     "definition": "Clase decorada con `@dataclass` que genera sola `__init__`, `__repr__` y `__eq__` a partir de sus campos anotados."
+    },
+    {
+     "term": "Consulta parametrizada",
+     "definition": "Consulta con marcadores `?` cuyos valores se pasan aparte en una tupla; evita la inyección SQL y los problemas con comillas."
+    },
+    {
+     "term": "Transacción",
+     "definition": "Grupo de cambios que se confirma completo (commit) o se deshace completo (rollback); en sqlite3 se maneja con `with con:`."
+    },
+    {
+     "term": "Patrón repositorio",
+     "definition": "Clase que concentra todo el SQL de una tabla o tema y devuelve objetos de Python, para que el resto del programa no dependa de la base."
+    }
+   ],
+   "resources": [
+    {
+     "title": "Python: estructuras de datos (listas, diccionarios, conjuntos)",
+     "url": "https://docs.python.org/es/3/tutorial/datastructures.html"
+    },
+    {
+     "title": "Python: clases",
+     "url": "https://docs.python.org/es/3/tutorial/classes.html"
+    },
+    {
+     "title": "Python: sqlite3",
+     "url": "https://docs.python.org/es/3/library/sqlite3.html"
+    },
+    {
+     "title": "pytest: primeros pasos",
+     "url": "https://docs.pytest.org/en/stable/getting-started.html"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Tu programa recibe el nombre de una provincia que escribe el usuario. ¿Cuál es la forma correcta de usarlo en la consulta?",
+     "code": "",
+     "options": [
+      "con.execute(f\"SELECT * FROM provincias WHERE nombre = '{nombre}'\")",
+      "con.execute(\"SELECT * FROM provincias WHERE nombre = ?\", (nombre))",
+      "con.execute(\"SELECT * FROM provincias WHERE nombre = ?\", (nombre,))",
+      "con.execute(\"SELECT * FROM provincias WHERE nombre = %s\", nombre)"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: pegar el dato con una f-string permite la inyección SQL y además falla con nombres que llevan comilla.",
+      "Casi: sin la coma, `(nombre)` es solo un texto entre paréntesis y sqlite3 lo toma como varias letras.",
+      "Correcto: el `?` marca el lugar del valor y la tupla de un elemento lleva la coma.",
+      "No: `%s` es el marcador de otras bibliotecas; sqlite3 usa `?` y espera una secuencia."
+     ],
+     "explanation": "Los parámetros con `?` separan el SQL de los datos: sqlite3 trata el valor siempre como un valor, nunca como código. La tupla de un elemento necesita la coma.",
+     "hint": "Piensa en dos cosas: qué marcador usa sqlite3 y cómo se escribe una tupla de un solo elemento."
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué hace `with con:` cuando `con` es una conexión de sqlite3?",
+     "code": "",
+     "options": [
+      "Abre y cierra la conexión automáticamente",
+      "Confirma los cambios del bloque si no hubo error y los deshace todos si hubo una excepción",
+      "Hace que cada INSERT del bloque se guarde por separado aunque otro falle",
+      "Activa las claves foráneas dentro del bloque"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: es la trampa clásica. En sqlite3, `with con:` maneja la transacción, pero NO cierra la conexión; para eso está `con.close()`.",
+      "Correcto: es una transacción: commit al salir bien, rollback si algo falla.",
+      "No: es justo lo contrario; el bloque es todo o nada.",
+      "No: las claves foráneas se activan con `PRAGMA foreign_keys = ON`."
+     ],
+     "explanation": "En sqlite3, la conexión usada en un `with` funciona como transacción: todo el bloque se confirma junto o se deshace junto.",
+     "hint": "Recuerda el paso de executemany: ¿cuántas filas del lote con el monto negativo quedaron guardadas?"
+    },
+    {
+     "type": "choice",
+     "prompt": "¿Qué te da `@dataclass` automáticamente en una clase con los campos `producto`, `cantidad` y `precio_unitario`?",
+     "code": "",
+     "options": [
+      "Validación de tipos: lanza error si `cantidad` no es int",
+      "Una tabla de SQLite con esas columnas",
+      "Propiedades con setter para cada campo",
+      "`__init__`, `__repr__` y `__eq__` construidos a partir de los campos"
+     ],
+     "correctIndex": 3,
+     "accepted": [],
+     "optionFeedback": [
+      "No: las anotaciones de tipo no se verifican al ejecutar; si quieres validar, usa `__post_init__`.",
+      "No: una dataclass no sabe nada de bases de datos; eso lo hace tu repositorio.",
+      "No: los campos son atributos normales; las propiedades las escribes tú.",
+      "Correcto: por eso puedes crear, imprimir y comparar objetos sin escribir esos métodos."
+     ],
+     "explanation": "`@dataclass` genera el constructor, la representación y la comparación por igualdad a partir de los campos anotados. La validación sigue siendo tu trabajo en `__post_init__`.",
+     "hint": "Piensa en qué métodos tuviste que escribir a mano en la clase `Pedido` y no en `LineaPedido`."
+    },
+    {
+     "type": "boolean",
+     "prompt": "Si una clase define `@property def saldo(self)` sin setter, la línea `cuenta.saldo = 0` lanza `AttributeError`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: sin setter la propiedad es de solo lectura y asignarle un valor es un error.",
+      "No: sin `@saldo.setter`, Python no sabe cómo asignar y lanza AttributeError."
+     ],
+     "explanation": "Una propiedad sin setter es de solo lectura. Para permitir cambios validados se agrega `@saldo.setter`.",
+     "hint": "¿Qué método se ejecutaría al asignar, si nadie lo escribió?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Una función que muestra el resultado con `print` sirve igual que una que lo devuelve con `return` para escribir `assert total_por_provincia(ventas) == {...}`.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: una función sin `return` devuelve `None`, así que el assert compara `None` con el diccionario y falla.",
+      "Correcto: `print` solo muestra en pantalla; para comparar, combinar o probar el resultado, la función debe devolverlo."
+     ],
+     "explanation": "Las funciones de tu proyecto deben devolver sus resultados; imprimir es tarea de quien las llama (por ejemplo `main`).",
+     "hint": "¿Qué devuelve una función que no tiene `return`?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código? Escribe las dos líneas.",
+     "code": "pedidos = [(\"sinpe\", 18500), (\"tarjeta\", 42300), (\"sinpe\", 7900), (\"efectivo\", 12600)]\ntotales = {}\nfor metodo, monto in pedidos:\n    totales[metodo] = totales.get(metodo, 0) + monto\ngrandes = [m for _, m in pedidos if m >= 12600]\nprint(totales[\"sinpe\"], len(totales))\nprint(grandes[-1], sorted(totales)[0])",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "26400 3\n12600 efectivo",
+      "26400 3 12600 efectivo"
+     ],
+     "optionFeedback": [],
+     "explanation": "SINPE suma 18 500 + 7 900 = 26 400 y hay 3 métodos distintos. Los montos de 12 600 o más son 18 500, 42 300 y 12 600, así que el último es 12 600; `sorted` sobre un diccionario ordena sus claves y la primera alfabéticamente es «efectivo».",
+     "hint": "Acumula por método, filtra con `>=` (el borde cuenta) y recuerda que `sorted(diccionario)` ordena las claves."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué imprime este código? Escribe las dos líneas.",
+     "code": "class Empleado:\n    def __init__(self, nombre, salario):\n        self.nombre = nombre\n        self.salario = salario\n\n    def pago(self):\n        return self.salario\n\n\nclass Vendedor(Empleado):\n    def __init__(self, nombre, salario, bono):\n        super().__init__(nombre, salario)\n        self.bono = bono\n\n    def pago(self):\n        return super().pago() + self.bono\n\n\nequipo = [Empleado(\"Wendy\", 610000), Vendedor(\"Bryan\", 700000, 50000)]\nprint(sum(e.pago() for e in equipo))\nprint(type(equipo[1]).__name__, isinstance(equipo[1], Empleado))",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "1360000\nVendedor True",
+      "1360000 Vendedor True"
+     ],
+     "optionFeedback": [],
+     "explanation": "Wendy cobra 610 000 y Bryan 700 000 + 50 000 = 750 000: en total 1 360 000. `type(...).__name__` da el nombre de la clase real del objeto, y un Vendedor también es un Empleado.",
+     "hint": "Calcula cada pago por separado; el de Vendedor llama al del padre y le suma el bono."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa para poder leer las columnas por nombre, como `fila[\"nombre\"]`.",
+     "code": "import sqlite3\n\ncon = sqlite3.connect(\"tienda.db\")\ncon.row_factory = sqlite3.___\nfila = con.execute(\"SELECT nombre, precio FROM productos WHERE id = ?\", (1,)).fetchone()\nprint(fila[\"nombre\"], fila[\"precio\"])",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "Row"
+     ],
+     "optionFeedback": [],
+     "explanation": "Con `row_factory = sqlite3.Row` cada fila se comporta como una tupla y también como un diccionario de solo lectura: `fila[\"nombre\"]` o `fila[0]`.",
+     "hint": "Es una clase del módulo sqlite3 con nombre de una sola palabra en inglés: fila."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-29",
+   "kind": "workshop",
+   "title": "Repaso de SQL avanzado y presentación",
+   "summary": "Seis consultas exigentes sobre la Tienda (CTE, ventanas, subconsultas correlacionadas y una tabla con reglas) y la preparación de la presentación de 5 minutos de tu proyecto.",
+   "objectives": [
+    "Resolver sin apuntes consultas con CTE encadenadas, funciones de ventana (ROW_NUMBER, RANK, LAG, SUM OVER) y subconsultas correlacionadas.",
+    "Diseñar una tabla con PRIMARY KEY, NOT NULL, CHECK, DEFAULT y REFERENCES, y comprobar que rechaza los datos inválidos.",
+    "Explicar en voz alta una consulta en orden de ejecución, sin leerla.",
+    "Armar el guion de 5 minutos y `demo.py` de tu proyecto, y ensayarlo con cronómetro hasta que quepa."
+   ],
+   "schedule": [
+    {
+     "label": "Tema 1: Repaso de CTE, ventanas y diseño",
+     "minutes": 70
+    },
+    {
+     "label": "Práctica: 6 ejercicios en el laboratorio",
+     "minutes": 70
+    },
+    {
+     "label": "Tema 2: Presentar tu proyecto en 5 minutos",
+     "minutes": 75
+    },
+    {
+     "label": "Reto y evaluación",
+     "minutes": 30
+    }
+   ],
+   "topics": [
+    {
+     "title": "Repaso de CTE, ventanas y diseño",
+     "concept": "Las consultas que más impresionan en una entrevista o en tu presentación son las de la fase 2, y también las que más se olvidan. Hoy las repasas con un método: escribe la pregunta como comentario, decide qué tabla intermedia necesitas y constrúyela paso a paso, ejecutando cada CTE antes de agregar la siguiente.\n\n`WITH` le pone nombre a un resultado intermedio para leer una consulta larga de arriba abajo. Una subconsulta correlacionada mira la fila de afuera (`WHERE e2.departamento = e.departamento`) y `NOT EXISTS` responde «lo que no tiene». Las funciones de ventana (`OVER`) calculan sobre un grupo **sin juntar las filas**: `PARTITION BY` define el grupo, `ORDER BY` el orden, y con eso salen rankings, acumulados y el valor anterior con `LAG`. Como se calculan después del `WHERE`, para filtrar por una ventana necesitas una CTE.\n\nEn diseño, las restricciones son la última defensa de tus datos: `NOT NULL`, `UNIQUE`, `CHECK`, `DEFAULT` y `REFERENCES`. Un dato inválido que la base rechaza es un error que nunca llega a tus reportes.",
+     "tip": "Cuando una consulta con varias CTE da un resultado raro, no la mires entera: cambia el `SELECT` final por `SELECT * FROM` la primera CTE, revisa sus filas, y avanza una CTE a la vez hasta encontrar dónde se torció.",
+     "example": "-- ¿Cuál fue el pedido más caro que atendió cada vendedor?\nWITH montos AS (                      -- 1. monto neto de cada pedido atendido en tienda\n  SELECT p.id, p.empleado_id, p.fecha,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS monto\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.estado <> 'cancelado' AND p.empleado_id IS NOT NULL\n  GROUP BY p.id\n),\nranking AS (                          -- 2. numerar los pedidos de cada vendedor, del más caro al más barato\n  SELECT montos.*,\n         ROW_NUMBER() OVER (PARTITION BY empleado_id ORDER BY monto DESC, id) AS puesto\n  FROM montos\n)\nSELECT e.nombre || ' ' || e.apellido AS vendedor, r.id AS pedido, r.fecha, ROUND(r.monto) AS monto\nFROM ranking r\nJOIN empleados e ON e.id = r.empleado_id\nWHERE r.puesto = 1                    -- 3. ahora sí se puede filtrar por la ventana\nORDER BY monto DESC;",
+     "language": "sql",
+     "exampleOutput": "",
+     "steps": [
+      {
+       "title": "CTE encadenadas: de pedidos a métodos de pago",
+       "body": "La primera CTE calcula el monto de cada pedido de 2026; la segunda agrupa por método de pago; el `SELECT` final saca porcentaje y ticket promedio. SINPE Móvil queda primero con el 42.7 % de las ventas, por delante de la tarjeta, aunque la tarjeta tiene más pedidos. ¿Por qué? Mira el ticket.",
+       "code": "-- Participación de cada método de pago en las ventas de 2026\nWITH por_pedido AS (\n  SELECT p.id, p.metodo_pago,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS monto\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\n  GROUP BY p.id\n),\npor_metodo AS (\n  SELECT metodo_pago, COUNT(*) AS pedidos, SUM(monto) AS total\n  FROM por_pedido\n  GROUP BY metodo_pago\n)\nSELECT metodo_pago, pedidos, ROUND(total) AS total,\n       ROUND(100.0 * total / (SELECT SUM(total) FROM por_metodo), 1) AS porcentaje,\n       ROUND(total / pedidos) AS ticket_promedio\nFROM por_metodo\nORDER BY total DESC;",
+       "language": "sql"
+      },
+      {
+       "title": "ROW_NUMBER, RANK y DENSE_RANK ante empates",
+       "body": "Hay dos productos de ₡6,500 y dos de ₡4,500. `ROW_NUMBER` siempre numera 1, 2, 3 (y necesita un desempate para ser estable), `RANK` les da el mismo puesto y salta el siguiente, y `DENSE_RANK` les da el mismo puesto sin saltos. Elige según la pregunta: «los 2 primeros» exactos es `ROW_NUMBER`.",
+       "code": "SELECT nombre, precio,\n       ROW_NUMBER() OVER (ORDER BY precio DESC, nombre) AS fila,\n       RANK()       OVER (ORDER BY precio DESC) AS rank,\n       DENSE_RANK() OVER (ORDER BY precio DESC) AS dense_rank\nFROM productos\nWHERE precio BETWEEN 4000 AND 7000\nORDER BY precio DESC, nombre;",
+       "language": "sql"
+      },
+      {
+       "title": "LAG y acumulados con marco",
+       "body": "Por trimestre de 2025: el cambio frente al trimestre anterior con `LAG` (el primero queda NULL porque no tiene anterior) y el acumulado del año con `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`. El cuarto trimestre casi duplica al tercero: noviembre y diciembre son los meses fuertes.",
+       "code": "WITH trimestres AS (\n  SELECT (CAST(strftime('%m', p.fecha) AS INTEGER) + 2) / 3 AS trimestre,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ingresos\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.estado <> 'cancelado' AND p.fecha BETWEEN '2025-01-01' AND '2025-12-31'\n  GROUP BY trimestre\n)\nSELECT trimestre,\n       ROUND(ingresos) AS ingresos,\n       ROUND(ingresos - LAG(ingresos) OVER (ORDER BY trimestre)) AS cambio,\n       ROUND(SUM(ingresos) OVER (ORDER BY trimestre\n                                 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) AS acumulado\nFROM trimestres\nORDER BY trimestre;",
+       "language": "sql"
+      },
+      {
+       "title": "Subconsulta correlacionada y NOT EXISTS",
+       "body": "La primera consulta compara a cada empleado con el promedio de su propio departamento: salen los cuatro jefes, incluida la gerente. La segunda encuentra los 6 productos activos sin ventas en 2026. Ejecuta cada una por separado y lee la subconsulta como «para esta fila de afuera…».",
+       "code": "-- Empleados que ganan más que el promedio de SU departamento\nSELECT e.nombre || ' ' || e.apellido AS empleado, e.departamento, e.salario\nFROM empleados e\nWHERE e.salario > (SELECT AVG(e2.salario)\n                   FROM empleados e2\n                   WHERE e2.departamento = e.departamento);\n\n-- Productos activos que no se han vendido en todo 2026\nSELECT pr.nombre\nFROM productos pr\nWHERE pr.activo = 1\n  AND NOT EXISTS (SELECT 1\n                  FROM detalle_pedido d\n                  JOIN pedidos p ON p.id = d.pedido_id\n                  WHERE d.producto_id = pr.id\n                    AND p.estado <> 'cancelado'\n                    AND p.fecha >= '2026-01-01');",
+       "language": "sql"
+      },
+      {
+       "title": "Diseño: una tabla que se defiende sola",
+       "body": "La tabla `devoluciones` usa las cinco herramientas: clave primaria, `NOT NULL`, `CHECK` con una lista cerrada de motivos, `CHECK` de cantidad positiva y `REFERENCES` hacia el detalle del pedido. Inserta una devolución válida y compruébala con un JOIN.",
+       "code": "CREATE TABLE devoluciones (\n  id          INTEGER PRIMARY KEY,\n  detalle_id  INTEGER NOT NULL REFERENCES detalle_pedido(id),\n  fecha       TEXT    NOT NULL,\n  motivo      TEXT    NOT NULL CHECK (motivo IN ('defecto', 'talla', 'arrepentimiento')),\n  cantidad    INTEGER NOT NULL CHECK (cantidad > 0)\n);\n\nINSERT INTO devoluciones (detalle_id, fecha, motivo, cantidad) VALUES (1, '2025-01-10', 'defecto', 1);\n\nSELECT dv.id, pr.nombre AS producto, dv.motivo, dv.cantidad, d.cantidad AS vendidas\nFROM devoluciones dv\nJOIN detalle_pedido d ON d.id = dv.detalle_id\nJOIN productos pr ON pr.id = d.producto_id;",
+       "language": "sql"
+      },
+      {
+       "title": "Comprobar que la restricción funciona",
+       "body": "Una restricción que nunca probaste es una promesa. Ejecuta, después del paso anterior, este INSERT con un motivo que no está en la lista: SQLite lo rechaza y la tabla queda intacta. Haz lo mismo con una cantidad de 0.",
+       "code": "-- Este INSERT falla a propósito: 'cambio de idea' no es un motivo permitido\nINSERT INTO devoluciones (detalle_id, fecha, motivo, cantidad)\nVALUES (2, '2025-01-12', 'cambio de idea', 1);\n-- Error: CHECK constraint failed: motivo IN ('defecto', 'talla', 'arrepentimiento')",
+       "language": "sql",
+       "noRun": true
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "misuse of window function ROW_NUMBER()",
+       "cause": "Se usó la ventana en el `WHERE` (por ejemplo `WHERE ROW_NUMBER() OVER (...) <= 2`). Las ventanas se calculan después del `WHERE`.",
+       "fix": "Calcula la ventana en una CTE con un alias (`AS puesto`) y filtra afuera: `SELECT ... FROM ranking WHERE puesto <= 2`."
+      },
+      {
+       "error": "El porcentaje sale 0 en casi todas las filas",
+       "cause": "División entera: `100 * total / suma_total` con enteros descarta los decimales antes de redondear.",
+       "fix": "Multiplica por `100.0` (con punto) para que SQLite haga la división con decimales."
+      },
+      {
+       "error": "El top 2 por grupo devuelve 3 filas en un grupo, o cambia entre ejecuciones",
+       "cause": "Se usó `RANK` con un empate en el segundo puesto, o `ROW_NUMBER` sin desempate en el `ORDER BY` de la ventana.",
+       "fix": "Usa `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY valor DESC, nombre)`: el desempate hace el resultado estable."
+      },
+      {
+       "error": "CHECK constraint failed: porcentaje BETWEEN 5 AND 50",
+       "cause": "Se intentó guardar un valor que la tabla prohíbe. No es un error del SQL: es la restricción haciendo su trabajo.",
+       "fix": "Corrige el dato, no la restricción. Si la regla de negocio cambió, recrea la tabla con la regla nueva."
+      }
+     ]
+    },
+    {
+     "title": "Presentar tu proyecto en 5 minutos",
+     "concept": "Cinco minutos son pocos: se planean al segundo. Una estructura que funciona tiene seis bloques: la pregunta que responde tu proyecto (30 s), los datos y el diagrama de tablas (45 s), la demo en vivo (75 s), una consulta SQL explicada (60 s), el código Python (45 s) y el cierre con la respuesta principal y qué aprendiste (45 s).\n\nDe SQL muestra **una sola** consulta, la mejor: una CTE, un JOIN de varias tablas o una ventana, y explícala en orden de ejecución, no leyéndola. De Python muestra la arquitectura en una frase («el repositorio es la única clase que habla con SQLite»), una clase concreta y `pytest` en verde. Nadie necesita ver todo tu código; necesita ver que entiendes cada decisión.\n\nLa demo no se improvisa: `demo.py` ejecuta en orden lo que vas a mostrar, con un encabezado por parte. Ensaya tres veces con cronómetro (la primera siempre pasa de 7 minutos) y prepara respuestas cortas a las preguntas típicas: por qué SQLite, cómo evitas la inyección SQL, cómo sabes que los números están bien y qué harías con más tiempo.",
+     "tip": "Abre todo antes de empezar: la terminal en la carpeta del proyecto, el editor en la consulta que vas a explicar y la gráfica ya generada. Si algo falla en vivo, di en una frase qué debería verse y sigue con el guion.",
+     "example": "GUION = [\n    (30, \"La pregunta\", \"Qué problema resuelve el proyecto y para quién\"),\n    (45, \"Los datos\", \"De dónde salen, cuántas filas y el diagrama de tablas\"),\n    (75, \"Demo en vivo\", \"python demo.py: dos respuestas y la gráfica\"),\n    (60, \"Una consulta SQL\", \"La CTE o el JOIN más interesante, en orden de ejecución\"),\n    (45, \"El código Python\", \"El repositorio, una clase y pytest en verde\"),\n    (45, \"Cierre\", \"La respuesta principal, qué aprendí y qué haría distinto\"),\n]\n\n\ndef reloj(segundos: int) -> str:\n    return f\"{segundos // 60}:{segundos % 60:02d}\"\n\n\ninicio = 0\nfor duracion, parte, que_decir in GUION:\n    print(f\"{reloj(inicio)}-{reloj(inicio + duracion)}  {parte:<17} {que_decir}\")\n    inicio += duracion\nassert inicio == 300, f\"El guion dura {inicio} segundos, no 300\"\nprint(\"Total:\", reloj(inicio))\n",
+     "language": "python",
+     "exampleOutput": "0:00-0:30  La pregunta       Qué problema resuelve el proyecto y para quién\n0:30-1:15  Los datos         De dónde salen, cuántas filas y el diagrama de tablas\n1:15-2:30  Demo en vivo      python demo.py: dos respuestas y la gráfica\n2:30-3:30  Una consulta SQL  La CTE o el JOIN más interesante, en orden de ejecución\n3:30-4:15  El código Python  El repositorio, una clase y pytest en verde\n4:15-5:00  Cierre            La respuesta principal, qué aprendí y qué haría distinto\nTotal: 5:00",
+     "steps": [
+      {
+       "title": "demo.py: la consulta estrella en pantalla",
+       "body": "Guarda la consulta que vas a explicar en una constante y que `demo.py` la ejecute con un encabezado por parte. Este ejemplo usa `tienda.db`; en tu proyecto usa tu base y tus clases reales. Ropa, Tecnología y Artesanía suman casi el 59 % de las ventas: una respuesta así es la que se dice en voz alta.",
+       "code": "import sqlite3\n\nCONSULTA_ESTRELLA = \"\"\"\nWITH por_categoria AS (\n  SELECT c.nombre AS categoria,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ingresos\n  FROM detalle_pedido d\n  JOIN pedidos p ON p.id = d.pedido_id\n  JOIN productos pr ON pr.id = d.producto_id\n  JOIN categorias c ON c.id = pr.categoria_id\n  WHERE p.estado <> 'cancelado'\n  GROUP BY c.id\n)\nSELECT categoria, ROUND(ingresos),\n       ROUND(100.0 * ingresos / (SELECT SUM(ingresos) FROM por_categoria), 1)\nFROM por_categoria\nORDER BY ingresos DESC\nLIMIT 3\"\"\"\n\n\ndef parte(titulo: str) -> None:\n    print()\n    print(titulo.upper())\n    print(\"-\" * len(titulo))\n\n\ncon = sqlite3.connect(\"tienda.db\")\nparte(\"1. La pregunta\")\nprint(\"¿Qué categorías sostienen las ventas de la Tienda Pura Vida?\")\nparte(\"2. La respuesta, con SQL\")\nfor categoria, ingresos, pct in con.execute(CONSULTA_ESTRELLA):\n    print(f\"{categoria:<12} ₡{ingresos:>12,.0f} {pct:>5.1f} %\")\ncon.close()\n",
+       "language": "python"
+      },
+      {
+       "title": "Qué mostrar de SQL: una consulta, explicada por partes",
+       "body": "Escribe la explicación como comentarios numerados en el orden en que SQLite ejecuta: FROM y JOIN, WHERE, GROUP BY, la CTE, el SELECT y por último ORDER BY y LIMIT. Ensaya decirla sin mirar el código: si necesitas leer, todavía no es tuya.",
+       "code": "-- Cómo explicarla en voz alta, en orden de ejecución (no en orden de escritura):\n-- 1. FROM y JOIN: parto de las líneas de pedido y las uno con su pedido, su producto y su categoría.\n-- 2. WHERE: descarto las líneas de pedidos cancelados.\n-- 3. GROUP BY: junto las líneas por categoría y sumo el total neto de cada línea.\n-- 4. La CTE se llama por_categoria: es una tabla intermedia con una fila por categoría.\n-- 5. SELECT final: calculo el porcentaje dividiendo entre el total de todas las categorías (subconsulta).\n-- 6. ORDER BY y LIMIT: muestro las tres categorías que más venden.\nWITH por_categoria AS (\n  SELECT c.nombre AS categoria,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ingresos\n  FROM detalle_pedido d\n  JOIN pedidos p ON p.id = d.pedido_id\n  JOIN productos pr ON pr.id = d.producto_id\n  JOIN categorias c ON c.id = pr.categoria_id\n  WHERE p.estado <> 'cancelado'\n  GROUP BY c.id\n)\nSELECT categoria, ROUND(ingresos) AS ingresos,\n       ROUND(100.0 * ingresos / (SELECT SUM(ingresos) FROM por_categoria), 1) AS porcentaje\nFROM por_categoria\nORDER BY ingresos DESC\nLIMIT 3;",
+       "language": "sql"
+      },
+      {
+       "title": "Qué mostrar de Python: arquitectura, una clase y las pruebas",
+       "body": "Durante la presentación escribes solo tres comandos; el resto es hablar. Mientras corre `pytest`, explica en una frase cómo está organizado el código (modelos, repositorio, reportes, gráfica) y por qué elegiste esa división.",
+       "code": "cd ~/proyecto-final\npython demo.py                 # la demostración, en el orden del guion\npython -m pytest -q            # las pruebas en verde, en vivo\ngit log --oneline | head -5    # el historial: el proyecto se construyó paso a paso\n",
+       "language": "bash",
+       "noRun": true
+      },
+      {
+       "title": "Preguntas típicas con respuestas cortas",
+       "body": "Escribe una respuesta de una o dos frases para cada pregunta probable y comprueba que se dice en menos de 20 segundos. Las respuestas de ejemplo son genéricas: cámbialas por lo que de verdad hiciste en tu proyecto.",
+       "code": "PREGUNTAS = {\n    \"¿Por qué SQLite y no un CSV o Excel?\":\n        \"Porque necesitaba relacionar tablas y consultarlas con JOIN, y SQLite valida los datos con restricciones.\",\n    \"¿Cómo evitas la inyección SQL?\":\n        \"Todas las consultas usan parámetros con signo de pregunta; nunca armo SQL con f-strings.\",\n    \"¿Cómo sabes que los números están bien?\":\n        \"Comparo cada resultado de Python con la misma consulta en SQL y tengo pruebas con pytest sobre una base en memoria.\",\n    \"¿Qué harías con un mes más?\":\n        \"Una interfaz web sencilla y cargar datos reales cada semana de forma automática.\",\n    \"¿Qué fue lo más difícil?\":\n        \"Diseñar las tablas: cambié el diagrama dos veces hasta que quedó en tercera forma normal.\",\n}\n\nPALABRAS_POR_SEGUNDO = 2.5\nfor pregunta, respuesta in PREGUNTAS.items():\n    segundos = len(respuesta.split()) / PALABRAS_POR_SEGUNDO\n    estado = \"ok\" if segundos <= 20 else \"muy larga\"\n    print(f\"{segundos:4.1f} s  {estado:<9} {pregunta}\")\n",
+       "language": "python"
+      },
+      {
+       "title": "Ensayar con cronómetro y recortar",
+       "body": "Anota cuánto duró cada bloque en el ensayo y compáralo con el plan. Recorta primero la demo y los datos (son los que más se estiran), nunca la consulta ni el cierre, que es lo que más se recuerda.",
+       "code": "PLAN = {\"La pregunta\": 30, \"Los datos\": 45, \"Demo en vivo\": 75, \"Una consulta SQL\": 60,\n        \"El código Python\": 45, \"Cierre\": 45}\nENSAYO = {\"La pregunta\": 40, \"Los datos\": 70, \"Demo en vivo\": 110, \"Una consulta SQL\": 75,\n          \"El código Python\": 50, \"Cierre\": 30}\n\ntotal = 0\nfor parte, planeado in PLAN.items():\n    real = ENSAYO[parte]\n    total += real\n    marca = \"PASADO\" if real > planeado + 10 else \"\"\n    print(f\"{parte:<17} plan {planeado:>3} s  real {real:>3} s  {marca}\")\nprint(f\"Total {total // 60}:{total % 60:02d} de 5:00. Sobran {total - 300} segundos por recortar.\")\n",
+       "language": "python"
+      }
+     ],
+     "commonErrors": [
+      {
+       "error": "La presentación dura 8 minutos",
+       "cause": "Se explicó el código línea por línea o se mostraron todas las consultas en vez de seguir el guion.",
+       "fix": "Una consulta y una clase, nada más. Ensaya con cronómetro y recorta los bloques marcados como pasados."
+      },
+      {
+       "error": "Algo falla en vivo y la presentación se detiene",
+       "cause": "No se corrió `demo.py` esa misma mañana, en la misma computadora y carpeta que se van a usar.",
+       "fix": "Corre `demo.py` y `pytest` justo antes de presentar y ten una captura de la gráfica por si acaso. Si algo falla, explica qué debería verse y sigue."
+      },
+      {
+       "error": "Se lee la consulta palabra por palabra",
+       "cause": "Faltó ensayar esa parte en concreto; leer no demuestra que entiendes.",
+       "fix": "Explícala en orden de ejecución con la plantilla «parto de…, uno con…, me quedo con…, agrupo por…, calculo… y ordeno por…»."
+      },
+      {
+       "error": "Se muestran pantallas de código pero ningún resultado",
+       "cause": "Se pensó la presentación como un recorrido del código, no como la respuesta a una pregunta.",
+       "fix": "Empieza por la pregunta y muestra primero la respuesta (tabla o gráfica); el código entra después como explicación de cómo llegaste ahí."
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "id": "2026-12-29-1",
+     "title": "Participación por categoría",
+     "prompt": "Para el informe anual, la gerente quiere saber cuánto aporta cada categoría a las ventas. Usando solo pedidos no cancelados, muestra el nombre de la categoría, sus ingresos netos (suma de `cantidad * precio_unitario * (1 - descuento)`, redondeada a 0 decimales) y el porcentaje que representan del total de ingresos de la tienda (redondeado a 1 decimal), en ese orden. Solo aparecen las categorías con ventas.",
+     "hint": "Calcula los ingresos por categoría en una CTE y, en el SELECT final, divide entre `(SELECT SUM(ingresos) FROM tu_cte)`. Multiplica por `100.0`, no por `100`.",
+     "solution": "WITH por_categoria AS (\n  SELECT c.nombre AS categoria,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ingresos\n  FROM detalle_pedido d\n  JOIN pedidos p ON p.id = d.pedido_id\n  JOIN productos pr ON pr.id = d.producto_id\n  JOIN categorias c ON c.id = pr.categoria_id\n  WHERE p.estado <> 'cancelado'\n  GROUP BY c.id\n)\nSELECT categoria,\n       ROUND(ingresos) AS ingresos,\n       ROUND(100.0 * ingresos / (SELECT SUM(ingresos) FROM por_categoria), 1) AS porcentaje\nFROM por_categoria;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-29-2",
+     "title": "Mejor calificados que su categoría",
+     "prompt": "Mercadeo quiere destacar los productos que los clientes valoran más que al resto de su categoría. Muestra el nombre del producto, el nombre de su categoría, el promedio de calificación del producto y el promedio de calificación de todas las reseñas de su categoría (ambos redondeados a 2 decimales), en ese orden, solo para los productos con al menos 3 reseñas cuyo promedio es mayor que el de su categoría. Compara los promedios sin redondear.",
+     "hint": "Agrupa las reseñas por producto. El promedio de la categoría es una subconsulta correlacionada: `(SELECT AVG(r2.calificacion) FROM resenas r2 JOIN productos p2 ON p2.id = r2.producto_id WHERE p2.categoria_id = pr.categoria_id)`. Úsala en el SELECT y en el HAVING.",
+     "solution": "SELECT pr.nombre AS producto,\n       c.nombre AS categoria,\n       ROUND(AVG(r.calificacion), 2) AS promedio_producto,\n       ROUND((SELECT AVG(r2.calificacion)\n              FROM resenas r2\n              JOIN productos p2 ON p2.id = r2.producto_id\n              WHERE p2.categoria_id = pr.categoria_id), 2) AS promedio_categoria\nFROM productos pr\nJOIN categorias c ON c.id = pr.categoria_id\nJOIN resenas r ON r.producto_id = pr.id\nGROUP BY pr.id\nHAVING COUNT(*) >= 3\n   AND AVG(r.calificacion) > (SELECT AVG(r2.calificacion)\n                              FROM resenas r2\n                              JOIN productos p2 ON p2.id = r2.producto_id\n                              WHERE p2.categoria_id = pr.categoria_id);",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-29-3",
+     "title": "Las dos estrellas de cada categoría",
+     "prompt": "Bodega va a reforzar el inventario de los productos que más se mueven. Para cada categoría, muestra los 2 productos con más unidades vendidas en pedidos no cancelados: el nombre de la categoría, el nombre del producto, las unidades vendidas y su puesto (1 o 2) dentro de la categoría, en ese orden. Si dos productos empatan en unidades, va primero el de nombre alfabéticamente menor.",
+     "hint": "Primero una CTE con las unidades por producto; luego otra con `ROW_NUMBER() OVER (PARTITION BY categoria ORDER BY unidades DESC, producto)`; al final filtra `puesto <= 2`. No puedes filtrar la ventana en el mismo nivel donde la calculas.",
+     "solution": "WITH unidades AS (\n  SELECT c.nombre AS categoria, pr.nombre AS producto, SUM(d.cantidad) AS unidades\n  FROM detalle_pedido d\n  JOIN pedidos p ON p.id = d.pedido_id\n  JOIN productos pr ON pr.id = d.producto_id\n  JOIN categorias c ON c.id = pr.categoria_id\n  WHERE p.estado <> 'cancelado'\n  GROUP BY pr.id\n),\nranking AS (\n  SELECT categoria, producto, unidades,\n         ROW_NUMBER() OVER (PARTITION BY categoria ORDER BY unidades DESC, producto) AS puesto\n  FROM unidades\n)\nSELECT categoria, producto, unidades, puesto\nFROM ranking\nWHERE puesto <= 2;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-29-4",
+     "title": "Mes a mes en 2026",
+     "prompt": "La gerente quiere ver si las ventas de 2026 crecen o caen de un mes a otro. Con los pedidos no cancelados de 2026, muestra el mes en formato `'AAAA-MM'`, los ingresos netos del mes, los ingresos del mes anterior (ambos redondeados a 0 decimales) y la variación porcentual frente al mes anterior, redondeada a 1 decimal, en ese orden y ordenados por mes. Enero no tiene mes anterior dentro del año: sus dos últimas columnas quedan en NULL.",
+     "hint": "Una CTE con los ingresos por `strftime('%Y-%m', fecha)` y, afuera, `LAG(ingresos) OVER (ORDER BY mes)`. La variación es `100.0 * (actual - anterior) / anterior`: calcúlala con los valores sin redondear.",
+     "solution": "WITH mensual AS (\n  SELECT strftime('%Y-%m', p.fecha) AS mes,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS ingresos\n  FROM pedidos p\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.estado <> 'cancelado' AND p.fecha >= '2026-01-01'\n  GROUP BY mes\n),\ncon_anterior AS (\n  SELECT mes, ingresos, LAG(ingresos) OVER (ORDER BY mes) AS anterior\n  FROM mensual\n)\nSELECT mes,\n       ROUND(ingresos) AS ingresos,\n       ROUND(anterior) AS mes_anterior,\n       ROUND(100.0 * (ingresos - anterior) / anterior, 1) AS variacion_pct\nFROM con_anterior\nORDER BY mes;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": true
+    },
+    {
+     "id": "2026-12-29-5",
+     "title": "Tabla de cupones con reglas",
+     "prompt": "La tienda lanzará cupones en enero y no quiere errores de digitación. Crea la tabla `cupones` con estas columnas, en este orden: `codigo` (texto, clave primaria); `porcentaje` (entero obligatorio, entre 5 y 50, ambos incluidos); `cliente_id` (entero que referencia a `clientes(id)`; NULL significa que el cupón sirve para cualquier cliente); `vence` (texto obligatorio, estrictamente posterior a la fecha de referencia '2026-09-30'); y `usado` (entero obligatorio, 0 por defecto, que solo admite 0 o 1). Luego inserta tres cupones sin indicar `usado`: 'ENERO10', de 10 %, general, que vence '2027-01-31'; 'FIEL25', de 25 %, para el cliente 72, que vence '2027-02-28'; y 'TOPE50', de 50 %, general, que vence '2027-01-15'. El corrector intentará insertar cupones que rompen cada regla y luego mostrará la tabla.",
+     "hint": "Cada regla es una restricción: `PRIMARY KEY`, `NOT NULL`, `CHECK (porcentaje BETWEEN 5 AND 50)`, `REFERENCES clientes(id)`, `CHECK (vence > '2026-09-30')`, `DEFAULT 0` y `CHECK (usado IN (0, 1))`. Recuerda que un CHECK deja pasar NULL: lo obligatorio necesita `NOT NULL`.",
+     "solution": "CREATE TABLE cupones (\n  codigo      TEXT PRIMARY KEY,\n  porcentaje  INTEGER NOT NULL CHECK (porcentaje BETWEEN 5 AND 50),\n  cliente_id  INTEGER REFERENCES clientes(id),\n  vence       TEXT NOT NULL CHECK (vence > '2026-09-30'),\n  usado       INTEGER NOT NULL DEFAULT 0 CHECK (usado IN (0, 1))\n);\n\nINSERT INTO cupones (codigo, porcentaje, cliente_id, vence) VALUES\n  ('ENERO10', 10, NULL, '2027-01-31'),\n  ('FIEL25', 25, 72, '2027-02-28'),\n  ('TOPE50', 50, NULL, '2027-01-15');",
+     "check": "INSERT OR IGNORE INTO cupones (codigo, porcentaje, cliente_id, vence) VALUES ('MEGA80', 80, NULL, '2027-01-31');\nINSERT OR IGNORE INTO cupones (codigo, porcentaje, cliente_id, vence) VALUES ('MINI2', 2, NULL, '2027-01-31');\nINSERT OR IGNORE INTO cupones (codigo, porcentaje, cliente_id, vence) VALUES ('SINPCT', NULL, NULL, '2027-01-31');\nINSERT OR IGNORE INTO cupones (codigo, porcentaje, cliente_id, vence) VALUES ('HOY10', 10, NULL, '2026-09-30');\nINSERT OR IGNORE INTO cupones (codigo, porcentaje, cliente_id, vence) VALUES ('SINFECHA', 10, NULL, NULL);\nINSERT OR IGNORE INTO cupones (codigo, porcentaje, cliente_id, vence) VALUES ('ENERO10', 30, NULL, '2027-03-31');\nINSERT OR IGNORE INTO cupones (codigo, porcentaje, cliente_id, vence, usado) VALUES ('RARO5', 5, NULL, '2027-01-31', 2);\nINSERT OR IGNORE INTO cupones (codigo, porcentaje, cliente_id, vence) VALUES ('BORDE5', 5, NULL, '2026-10-01');\nSELECT codigo, porcentaje, cliente_id, vence, usado FROM cupones;",
+     "setup": "",
+     "starter": "CREATE TABLE cupones (\n  \n);\n\nINSERT INTO cupones (codigo, porcentaje, cliente_id, vence) VALUES\n  ",
+     "orderMatters": false
+    },
+    {
+     "id": "2026-12-29-6",
+     "title": "El mejor cliente de cada provincia",
+     "prompt": "Para premiar la lealtad, la tienda enviará un regalo al cliente que más ha comprado en cada provincia. Con los pedidos no cancelados, muestra el nombre de la provincia, el nombre completo del cliente (nombre y apellido separados por un espacio), lo que gastó en total (ingresos netos, redondeado a 0 decimales) y qué porcentaje representa del total vendido a clientes de su provincia (redondeado a 1 decimal), en ese orden. Una fila por provincia.",
+     "hint": "CTE 1: total por cliente con su provincia. CTE 2: sobre esa, `RANK() OVER (PARTITION BY provincia ORDER BY total DESC)` y `SUM(total) OVER (PARTITION BY provincia)`. Al final filtra el puesto 1 y divide.",
+     "solution": "WITH por_cliente AS (\n  SELECT pv.nombre AS provincia,\n         cl.nombre || ' ' || cl.apellido AS cliente,\n         SUM(d.cantidad * d.precio_unitario * (1 - d.descuento)) AS total\n  FROM clientes cl\n  JOIN provincias pv ON pv.id = cl.provincia_id\n  JOIN pedidos p ON p.cliente_id = cl.id\n  JOIN detalle_pedido d ON d.pedido_id = p.id\n  WHERE p.estado <> 'cancelado'\n  GROUP BY cl.id\n),\nranking AS (\n  SELECT provincia, cliente, total,\n         RANK() OVER (PARTITION BY provincia ORDER BY total DESC) AS puesto,\n         SUM(total) OVER (PARTITION BY provincia) AS total_provincia\n  FROM por_cliente\n)\nSELECT provincia, cliente, ROUND(total) AS total,\n       ROUND(100.0 * total / total_provincia, 1) AS porcentaje\nFROM ranking\nWHERE puesto = 1;",
+     "check": "",
+     "setup": "",
+     "starter": "",
+     "orderMatters": false
+    }
+   ],
+   "tasks": [
+    "Escribe el guion de tu presentación como comentario al inicio de `demo.py` (seis bloques con segundos que sumen 300) y programa `demo.py` para que muestre, en ese orden y con un encabezado por parte, la pregunta, dos respuestas en tabla, tu consulta estrella impresa desde una constante y la ruta de la gráfica. Elige la consulta estrella y escribe su explicación en orden de ejecución como comentarios numerados. Córrelo dos veces desde una terminal nueva.",
+    "Haz tres ensayos completos con cronómetro y con todo abierto como el día de la entrega; graba el segundo con el celular y anota tres cosas que corregir. Escribe en `PRESENTACION.md` tus respuestas (una o dos frases) a cinco preguntas típicas: por qué SQLite, cómo evitas la inyección SQL, cómo sabes que los números están bien, qué fue lo más difícil y qué harías con un mes más. Haz commit y push."
+   ],
+   "taskHints": [
+    "Reutiliza el patrón del paso 1 del tema 2: una función `parte(titulo)` y la consulta en una constante como `CONSULTA_ESTRELLA`. Si `demo.py` necesita la base, ábrela con la misma ruta que usa tu `main.py` para que no haya sorpresas.",
+    "La primera vez casi siempre pasa de 7 minutos: recorta la demo y los datos, no la consulta ni el cierre. Para las respuestas usa hechos de tu proyecto («comparé el total de Python contra un SUM en SQL»), no frases generales."
+   ],
+   "challenge": {
+    "title": "¿Cuánto tarda un cliente en volver?",
+    "description": "Con los pedidos no cancelados, calcula para cada cliente cuántos días pasaron entre su primera y su segunda compra. Devuelve una sola fila con: cuántos clientes compraron al menos una vez, cuántos volvieron a comprar, el promedio de días hasta la segunda compra (redondeado a 0 decimales) y qué porcentaje de los que volvieron lo hizo en 90 días o menos (1 decimal). Si dos pedidos de un cliente tienen la misma fecha, el de menor id cuenta como anterior. Después escribe, como comentarios, qué le recomendarías a la tienda con ese dato.",
+    "hint": "Numera las compras de cada cliente con `ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY fecha, id)`, une la CTE consigo misma (n = 1 con n = 2) y resta con `julianday`. `SUM(dias <= 90)` cuenta cuántas comparaciones son verdaderas.",
+    "solution": "-- ¿Cuánto tarda un cliente en volver a comprar?\nWITH compras AS (                 -- cada compra válida, numerada por cliente en orden de fecha\n  SELECT cliente_id, fecha,\n         ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY fecha, id) AS n\n  FROM pedidos\n  WHERE estado <> 'cancelado'\n),\nsegunda AS (                      -- días entre la primera y la segunda compra\n  SELECT c1.cliente_id,\n         julianday(c2.fecha) - julianday(c1.fecha) AS dias\n  FROM compras c1\n  JOIN compras c2 ON c2.cliente_id = c1.cliente_id\n  WHERE c1.n = 1 AND c2.n = 2\n)\nSELECT (SELECT COUNT(DISTINCT cliente_id) FROM compras) AS clientes_que_compraron,\n       COUNT(*) AS volvieron,\n       ROUND(AVG(dias)) AS dias_promedio,\n       ROUND(100.0 * SUM(dias <= 90) / COUNT(*), 1) AS pct_en_90_dias\nFROM segunda;",
+    "language": "sql"
+   },
+   "glossary": [
+    {
+     "term": "CTE",
+     "definition": "Resultado intermedio con nombre que se define con `WITH nombre AS (...)` al inicio de una consulta; se pueden encadenar varias separadas por comas."
+    },
+    {
+     "term": "Función de ventana",
+     "definition": "Cálculo con `OVER (...)` que mira un grupo de filas (la ventana) sin juntarlas: cada fila conserva su lugar y recibe el resultado."
+    },
+    {
+     "term": "PARTITION BY",
+     "definition": "Parte de `OVER` que divide las filas en grupos independientes; el ranking o la suma se reinicia en cada grupo."
+    },
+    {
+     "term": "LAG",
+     "definition": "Función de ventana que trae el valor de la fila anterior según el `ORDER BY` de la ventana; en la primera fila devuelve NULL."
+    },
+    {
+     "term": "Subconsulta correlacionada",
+     "definition": "Subconsulta que usa columnas de la consulta externa, por lo que su resultado cambia para cada fila de afuera."
+    },
+    {
+     "term": "CHECK",
+     "definition": "Restricción en una columna o tabla que la base verifica en cada INSERT y UPDATE; rechaza la fila si la condición es falsa (no si es NULL)."
+    },
+    {
+     "term": "Guion",
+     "definition": "Plan de la presentación dividido en bloques con su duración en segundos, lo que se muestra y lo que se dice; los bloques suman 300 segundos."
+    }
+   ],
+   "resources": [
+    {
+     "title": "SQLite: la cláusula WITH (CTE)",
+     "url": "https://www.sqlite.org/lang_with.html"
+    },
+    {
+     "title": "SQLite: funciones de ventana",
+     "url": "https://www.sqlite.org/windowfunctions.html"
+    },
+    {
+     "title": "SQLite: CREATE TABLE y restricciones",
+     "url": "https://www.sqlite.org/lang_createtable.html"
+    },
+    {
+     "title": "GitHub: acerca de los README",
+     "url": "https://docs.github.com/es/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes"
+    }
+   ],
+   "questions": [
+    {
+     "type": "choice",
+     "prompt": "Quieres los 3 productos más caros de cada categoría con `ROW_NUMBER() OVER (PARTITION BY categoria_id ORDER BY precio DESC, id) AS puesto`. ¿Dónde filtras `puesto <= 3`?",
+     "code": "",
+     "options": [
+      "En el WHERE de la misma consulta donde calculas la ventana",
+      "En el HAVING, porque es un cálculo sobre grupos",
+      "En una consulta externa, después de calcular la ventana en una CTE o subconsulta",
+      "En el ORDER BY, con LIMIT 3"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: el WHERE se evalúa antes que las ventanas; SQLite responde «misuse of window function» o no reconoce el alias.",
+      "No: HAVING filtra grupos de GROUP BY, y las ventanas tampoco existen todavía en ese momento.",
+      "Correcto: la CTE calcula la ventana con un alias y la consulta de afuera ya puede filtrar por él.",
+      "No: LIMIT 3 corta el resultado completo, no 3 por categoría."
+     ],
+     "explanation": "Las funciones de ventana se calculan después de WHERE, GROUP BY y HAVING. Para filtrar por ellas hay que envolverlas en una CTE o subconsulta.",
+     "hint": "Recuerda el orden lógico de ejecución: ¿en qué momento existe el valor de la ventana?"
+    },
+    {
+     "type": "choice",
+     "prompt": "Cuatro productos tienen precios 9500, 6500, 6500 y 5500. Ordenados de mayor a menor, ¿qué puestos les da `RANK()`?",
+     "code": "",
+     "options": [
+      "1, 2, 3, 4",
+      "1, 2, 2, 3",
+      "1, 2, 2, 4",
+      "1, 1, 2, 3"
+     ],
+     "correctIndex": 2,
+     "accepted": [],
+     "optionFeedback": [
+      "No: eso es ROW_NUMBER, que no reconoce empates.",
+      "No: eso es DENSE_RANK, que no deja huecos después de un empate.",
+      "Correcto: los dos de 6500 comparten el puesto 2 y el siguiente salta al 4.",
+      "No: el primero no empata con nadie; solo los dos de 6500 comparten puesto."
+     ],
+     "explanation": "RANK da el mismo puesto a los empates y salta tantas posiciones como filas empataron; DENSE_RANK no salta; ROW_NUMBER nunca repite.",
+     "hint": "Piensa como en una carrera: si dos llegan segundos, ¿en qué puesto llega el siguiente?"
+    },
+    {
+     "type": "choice",
+     "prompt": "En tu presentación de 5 minutos, ¿qué es lo más valioso que puedes mostrar de la parte SQL?",
+     "code": "",
+     "options": [
+      "Todas las consultas del proyecto, una tras otra, para demostrar cuánto trabajaste",
+      "Una consulta interesante, con su resultado, explicada en orden de ejecución sin leerla",
+      "El archivo .sql completo con el esquema de la base",
+      "Una consulta copiada de internet que sea muy larga"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: en 5 minutos eso se vuelve una lista que nadie sigue, y no deja tiempo para explicar ninguna.",
+      "Correcto: una consulta bien explicada demuestra más dominio que diez leídas.",
+      "No: el esquema se resume mejor con el diagrama de tablas en el bloque de los datos.",
+      "No: lo que se evalúa es que entiendas y puedas explicar tu propio trabajo."
+     ],
+     "explanation": "Mostrar menos y explicarlo mejor: una consulta, su resultado y el porqué de cada cláusula.",
+     "hint": "¿Qué demuestra más que entiendes SQL: cantidad o explicación?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "En una subconsulta correlacionada como `WHERE e.salario > (SELECT AVG(e2.salario) FROM empleados e2 WHERE e2.departamento = e.departamento)`, la subconsulta se evalúa, conceptualmente, una vez por cada fila de la consulta externa.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 0,
+     "accepted": [],
+     "optionFeedback": [
+      "Correcto: depende de `e.departamento`, así que su resultado cambia según la fila de afuera.",
+      "No: una subconsulta que solo se calcula una vez es la no correlacionada; esta usa una columna de la fila externa."
+     ],
+     "explanation": "Una subconsulta es correlacionada cuando usa columnas de la consulta externa; por eso se piensa como «para cada fila de afuera, calcula…».",
+     "hint": "Fíjate en `e.departamento` dentro de la subconsulta: ¿de qué tabla viene `e`?"
+    },
+    {
+     "type": "boolean",
+     "prompt": "Con `porcentaje INTEGER CHECK (porcentaje BETWEEN 5 AND 50)`, SQLite rechaza un INSERT con `porcentaje` NULL.",
+     "code": "",
+     "options": [
+      "Verdadero",
+      "Falso"
+     ],
+     "correctIndex": 1,
+     "accepted": [],
+     "optionFeedback": [
+      "No: un CHECK que da NULL no cuenta como falso, así que la fila entra con porcentaje NULL.",
+      "Correcto: para que el valor sea obligatorio hace falta además `NOT NULL`."
+     ],
+     "explanation": "Un CHECK solo rechaza cuando la condición es falsa; con NULL la condición es desconocida y la fila pasa. Por eso las columnas obligatorias llevan `NOT NULL` además del CHECK.",
+     "hint": "¿Qué da `NULL BETWEEN 5 AND 50`: verdadero, falso o ninguno de los dos?"
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta? (Cuántos productos tiene la categoría con más productos.)",
+     "code": "SELECT MAX(puesto)\nFROM (SELECT ROW_NUMBER() OVER (PARTITION BY categoria_id ORDER BY precio DESC, id) AS puesto\n      FROM productos);",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "7"
+     ],
+     "optionFeedback": [],
+     "explanation": "ROW_NUMBER numera los productos de cada categoría desde 1; el número más alto es el tamaño de la categoría más grande. «Snacks y dulces» y «Tecnología» tienen 7 productos cada una.",
+     "hint": "El último puesto de cada categoría es igual a cuántos productos tiene."
+    },
+    {
+     "type": "output",
+     "prompt": "¿Qué devuelve esta consulta? Los precios de los productos 1, 2 y 3 son 6500, 12500 y 3800.",
+     "code": "SELECT precio - LAG(precio) OVER (ORDER BY id) AS cambio\nFROM productos\nWHERE id IN (1, 2, 3)\nORDER BY id DESC\nLIMIT 1;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "-8700"
+     ],
+     "optionFeedback": [],
+     "explanation": "LAG trae el precio de la fila anterior según `ORDER BY id`: para el producto 3 es el del producto 2. 3800 − 12500 = −8700. El ORDER BY DESC final solo decide cuál fila se muestra primero.",
+     "hint": "Calcula el cambio de cada fila y luego mira cuál queda primero con `ORDER BY id DESC`."
+    },
+    {
+     "type": "fill",
+     "prompt": "Completa la palabra clave que convierte a SUM en una función de ventana para obtener el acumulado.",
+     "code": "SELECT fecha, costo_envio,\n       SUM(costo_envio) ___ (ORDER BY fecha, id) AS acumulado\nFROM pedidos;",
+     "options": [],
+     "correctIndex": 0,
+     "accepted": [
+      "OVER"
+     ],
+     "optionFeedback": [],
+     "explanation": "`OVER (...)` define la ventana: sin ella, SUM sería un agregado que junta todas las filas en una; con ella, cada fila conserva su lugar y recibe la suma hasta ese punto.",
+     "hint": "Es la misma palabra que acompaña a ROW_NUMBER, RANK y LAG."
+    }
+   ]
+  }
+ ],
+ "deliverable": {
+  "dueDate": "2026-12-30",
+  "kind": "final",
+  "path": "Repositorio del proyecto final en GitHub",
+  "description": "«Proyecto final»: tu aplicación propia, terminada y publicada en GitHub, que guarda datos en SQLite, responde preguntas de negocio con SQL, los analiza y presenta con Python, y se defiende en una presentación de 5 minutos. Es la prueba de que puedes llevar una idea desde el diseño de las tablas hasta una respuesta clara.",
+  "criteria": [
+   "El repositorio es público, tiene un historial de commits con mensajes descriptivos a lo largo del proyecto y un README que explica la pregunta de negocio, el diagrama o la descripción de las tablas, cómo instalar y ejecutar el programa y cómo correr las pruebas.",
+   "La base SQLite está en tercera forma normal, con claves primarias, claves foráneas y al menos dos restricciones `CHECK` o `UNIQUE` con sentido de negocio, y se puede reconstruir desde cero con un script del repositorio (esquema y carga de datos).",
+   "El código Python está organizado en módulos con clases (al menos una dataclass o clase con propiedad y un repositorio que concentra el SQL), usa siempre parámetros `?` y `with con:` al escribir, y `python -m pytest -q` pasa con al menos 8 pruebas sobre una base `:memory:`.",
+   "Hay al menos 5 consultas SQL documentadas (la pregunta en un comentario, la consulta y el resultado esperado), y al menos dos usan herramientas de la fase 2: CTE, función de ventana o subconsulta correlacionada.",
+   "El programa genera al menos una gráfica con título, ejes con etiquetas y unidades, guardada como imagen en el repositorio y mostrada en el README.",
+   "La presentación dura 5 minutos o menos, muestra el programa corriendo, explica sin leer una consulta en orden de ejecución y una clase, y cierra con la respuesta principal y qué aprendiste; el enlace a la grabación o la constancia de la presentación en vivo está en el README."
+  ],
+  "steps": [
+   "Congela el alcance: desde hoy no agregas funciones nuevas, solo terminas, pruebas y pules lo que ya existe. Haz una lista de lo pendiente y ordénala según los criterios.",
+   "Reconstruye la base desde cero con tu script (borra el .db y vuelve a crearlo) y corre tus consultas: si algo depende de un dato que agregaste a mano, el script está incompleto.",
+   "Revisa el código con la lista del lunes: parámetros `?`, `with con:`, funciones que devuelven, docstrings, `if __name__ == \"__main__\":` y nada de `print` de depuración. Completa las pruebas hasta tener 8 o más y déjalas en verde.",
+   "Documenta tus consultas en `consultas.sql` (o en el README): la pregunta como comentario, la consulta y el resultado esperado. Marca cuáles usan CTE, ventanas o subconsultas correlacionadas.",
+   "Genera la gráfica final desde el programa, guárdala en la carpeta del proyecto y agrégala al README con una frase que diga qué muestra.",
+   "Escribe el README completo: título, la pregunta de negocio, la respuesta principal en una frase, tablas, instalación (`pip install -r requirements.txt`), cómo ejecutar, cómo correr las pruebas, la gráfica y qué aprendiste.",
+   "Ensaya la presentación con `demo.py` y cronómetro hasta que quepa en 5 minutos; preséntala en vivo o grábala y pon el enlace en el README.",
+   "Clona el repositorio en una carpeta nueva y sigue tu propio README al pie de la letra: si no funciona para ti desde cero, no funcionará para quien lo revise. Haz el último commit y push."
+  ],
+  "tips": [
+   "El revisor empieza por el README: si en 30 segundos no entiende qué pregunta responde tu proyecto y cómo correrlo, todo lo demás pierde valor. Escríbelo para alguien que nunca vio tu código.",
+   "Valida tus números dos veces: el total que calcula Python debe coincidir con un `SUM` en SQL. Un dato que no cuadra en la presentación pesa más que una función que falta.",
+   "Mejor un proyecto pequeño y sólido que uno grande a medias: cinco preguntas bien respondidas, probadas y explicadas valen más que diez a medio terminar.",
+   "Deja la grabación o el ensayo final para la mañana del 30, con todo ya en GitHub: así los nervios no te hacen romper nada a última hora."
+  ],
+  "stretch": "Marca la versión entregada con `git tag v1.0` y `git push --tags`, agrega un `Makefile` o un script `ejecutar.sh` que reconstruya la base, corra las pruebas y genere la gráfica con un solo comando, y escribe en el README una sección de «ideas futuras» con tres mejoras y la tabla o clase que tocaría cada una.",
+  "checklist": [
+   "Cloné el repositorio en una carpeta nueva, seguí el README y todo funcionó sin pasos ocultos.",
+   "El script de la base crea el esquema y carga los datos desde cero; el .db se puede borrar y regenerar.",
+   "`python -m pytest -q` pasa con 8 pruebas o más y ninguna depende del archivo .db real.",
+   "Ninguna consulta se arma con f-strings ni concatenación; toda escritura va dentro de `with con:`.",
+   "Las 5 consultas documentadas tienen su pregunta y su resultado esperado, y al menos dos usan CTE, ventanas o subconsultas correlacionadas.",
+   "La gráfica tiene título, etiquetas y unidades, está en el repositorio y se ve en el README.",
+   "La presentación cabe en 5 minutos y el enlace a la grabación (o la fecha de la presentación en vivo) está en el README.",
+   "`git status` está limpio, el último commit está en GitHub y no subí archivos de más (entornos virtuales, `__pycache__`, contraseñas)."
+  ],
+  "exercises": []
+ }
+}
