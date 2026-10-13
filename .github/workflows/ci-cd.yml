@@ -182,7 +182,7 @@ jobs:
   deploy:
     name: Desplegar en Railway
     needs: [verify, docker]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.RAILWAY_SERVICE != ''
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.RAILWAY_SERVICE != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -205,16 +205,35 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway up --ci --service "${{ vars.RAILWAY_SERVICE }}" --environment production
 
-      - name: Verificar que la versión nueva responde
+      - name: Dirección pública
+        id: url
         env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           APP_URL: ${{ vars.APP_URL }}
+        run: |
+          # Si todavía no hay APP_URL, Railway genera (o devuelve) el dominio público del servicio.
+          url="$APP_URL"
+          if [ -z "$url" ]; then
+            out=$(railway domain --service "${{ vars.RAILWAY_SERVICE }}" --environment production 2>&1 || true)
+            echo "$out"
+            url=$(echo "$out" | grep -oE 'https://[A-Za-z0-9.-]+\.up\.railway\.app' | head -1)
+            if [ -n "$url" ]; then
+              echo "::notice title=Dirección de la app::$url (guárdala en GitHub como variable APP_URL)"
+            fi
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Verificar que la versión nueva responde
+        if: steps.url.outputs.url != ''
+        env:
+          APP_URL: ${{ steps.url.outputs.url }}
         run: |
           expected="${GITHUB_SHA::7}"
           for i in $(seq 1 40); do
             body=$(curl -fsS "$APP_URL/api/health" || true)
             echo "$body"
             if echo "$body" | grep -q "\"version\":\"$expected\""; then
-              echo "Versión $expected en línea."
+              echo "Versión $expected en línea en $APP_URL"
               exit 0
             fi
             sleep 15
