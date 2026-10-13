@@ -178,13 +178,16 @@ jobs:
           done
           exit 1
 
-  # Se activa cuando el proyecto de Railway esté configurado (variable RAILWAY_SERVICE en GitHub).
+  # Despliega en cada push a main (o a mano). Necesita el secreto RAILWAY_TOKEN en el entorno production.
   deploy:
     name: Desplegar en Railway
     needs: [verify, docker]
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.RAILWAY_SERVICE != ''
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # El secreto RAILWAY_TOKEN vive en el entorno production; el servicio se llama tomas-page salvo que la variable diga otra cosa.
+      RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE || 'tomas-page' }}
     environment:
       name: production
       url: ${{ vars.APP_URL }}
@@ -203,7 +206,7 @@ jobs:
       - name: Desplegar
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --ci --service "${{ vars.RAILWAY_SERVICE }}" --environment production
+        run: railway up --ci --service "$RAILWAY_SERVICE" --environment production
 
       - name: Dirección pública
         id: url
@@ -214,7 +217,7 @@ jobs:
           # Si todavía no hay APP_URL, Railway genera (o devuelve) el dominio público del servicio.
           url="$APP_URL"
           if [ -z "$url" ]; then
-            out=$(railway domain --service "${{ vars.RAILWAY_SERVICE }}" --environment production 2>&1 || true)
+            out=$(railway domain --service "$RAILWAY_SERVICE" --environment production 2>&1 || true)
             echo "$out"
             url=$(echo "$out" | grep -oE 'https://[A-Za-z0-9.-]+\.up\.railway\.app' | head -1)
             if [ -n "$url" ]; then
