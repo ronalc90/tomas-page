@@ -1,13 +1,13 @@
 import { Fragment, useState } from "react";
 import { Link, useParams } from "react-router";
-import { formatShort } from "@tomas/shared";
+import { formatMinutes, formatShort } from "@tomas/shared";
 import { Calendar, CalendarLegend } from "../../components/Calendar";
 import { Empty, ErrorState, Loading, PacePill, PageHeader, ProgressBar, Stat, StatusPill, SubmissionPill } from "../../components/ui";
 import { dateTime, percent, relativeTime } from "../../lib/format";
 import { usePlan, useStudent } from "../../lib/queries";
-import { ActivityFeed } from "./shared";
+import { ActivityFeed, SqlLog } from "./shared";
 
-type Tab = "talleres" | "entregables" | "actividad";
+type Tab = "talleres" | "sql" | "entregables" | "actividad";
 
 export function StudentDetailPage() {
   const { id = "" } = useParams();
@@ -21,6 +21,22 @@ export function StudentDetailPage() {
   if (error) return <ErrorState error={error} retry={() => void refetch()} />;
   const d = data!;
   const t = d.progress.totals;
+  const revealed = d.exercises.filter((e) => e.state.revealed).length;
+  // Ejercicios agrupados por taller o entregable, lo más reciente primero.
+  const titleOf = new Map(d.days.map((x) => [x.date, x.title]));
+  const deliverableOf = new Map(d.deliverables.map((x) => [x.id, x]));
+  const groupMap = new Map<string, { key: string; label: string; sort: string; items: typeof d.exercises }>();
+  for (const e of d.exercises) {
+    const key = e.date ?? e.deliverableId ?? "otros";
+    const dv = e.deliverableId ? deliverableOf.get(e.deliverableId) : undefined;
+    const label = e.date ? `${formatShort(e.date)} · ${titleOf.get(e.date) ?? ""}` : dv ? `${formatShort(dv.dueDate)} · ${dv.title}` : key;
+    const sort = e.date ?? dv?.dueDate ?? "";
+    const g = groupMap.get(key) ?? { key, label, sort, items: [] };
+    g.items.push(e);
+    groupMap.set(key, g);
+  }
+  const groups = [...groupMap.values()].sort((a, b) => b.sort.localeCompare(a.sort));
+  const attempts = d.exercises.reduce((a, e) => a + e.state.attempts, 0);
   const days = d.days.filter((x) =>
     filter === "todos" ? true : filter === "atrasados" ? x.state.status === "overdue" : x.date <= d.progress.today,
   );
@@ -43,11 +59,17 @@ export function StudentDetailPage() {
         actions={<PacePill pace={d.progress.pace} />}
       />
 
-      <dl className="stats">
+      <dl className="stats six">
         <Stat label="Avance total" value={percent(t.completion)} sub={`${t.overdue} pendientes atrasados`} />
         <Stat label="Talleres" value={`${t.workshopsDone}/${t.workshops}`} sub={t.streak > 1 ? `Racha de ${t.streak}` : `${t.expectedByToday} esperados a hoy (con entregables)`} />
+        <Stat
+          label="Ejercicios SQL"
+          value={`${t.exercisesSolved}/${t.exercisesTotal}`}
+          sub={`${revealed} ${revealed === 1 ? "solución vista" : "soluciones vistas"} · ${attempts} intentos`}
+        />
         <Stat label="Evaluaciones" value={percent(t.quizAverage)} sub={`Primer intento: ${percent(t.firstTryAverage)}`} />
         <Stat label="Entregables" value={`${t.deliverablesSubmitted}/${t.deliverables}`} sub={`${t.deliverablesApproved} aprobados`} />
+        <Stat label="Estudio" value={formatMinutes(d.student.weekMinutes)} sub={`últimos 7 días · ${formatMinutes(t.studyMinutes)} en total`} />
       </dl>
       <ProgressBar value={t.completion} label="Avance total" />
 
@@ -81,9 +103,9 @@ export function StudentDetailPage() {
 
       <div className="row between">
         <div className="tabs" role="tablist" aria-label="Detalle">
-          {(["talleres", "entregables", "actividad"] as Tab[]).map((k) => (
+          {(["talleres", "sql", "entregables", "actividad"] as Tab[]).map((k) => (
             <button key={k} role="tab" type="button" aria-selected={tab === k} onClick={() => setTab(k)}>
-              {{ talleres: "Talleres", entregables: "Entregables", actividad: "Actividad" }[k]}
+              {{ talleres: "Talleres", sql: "SQL enviado", entregables: "Entregables", actividad: "Actividad" }[k]}
             </button>
           ))}
         </div>
@@ -114,13 +136,23 @@ export function StudentDetailPage() {
                     <th>Fecha</th>
                     <th>Taller</th>
                     <th>Estado</th>
+                    <th className="num">Ejercicios</th>
+                    <th className="num" title="Intentos sumados de los ejercicios SQL del día">
+                      Intentos SQL
+                    </th>
+                    <th className="num" title="Ejercicios en los que vio la solución">
+                      Soluciones
+                    </th>
                     <th className="num">Tareas</th>
-                    <th className="num">Intentos</th>
+                    <th className="num" title="Intentos de la evaluación">
+                      Evaluación
+                    </th>
                     <th className="num">1er intento</th>
                     <th className="num">Mejor</th>
                     <th className="num" title="Pistas destapadas en el último intento">
                       Pistas
                     </th>
+                    <th className="num">Estudio</th>
                     <th>Reto</th>
                     <th>Evidencia</th>
                   </tr>
@@ -141,13 +173,17 @@ export function StudentDetailPage() {
                         <td>
                           <StatusPill status={row.state.status} />
                         </td>
-                        <td className="num">
-                          {row.state.tasksDone}/{row.state.tasksTotal}
-                        </td>
+                        <td className="num">{row.state.exercisesTotal ? `${row.state.exercisesDone}/${row.state.exercisesTotal}` : "–"}</td>
+                        <td className="num">{row.exerciseAttempts || "–"}</td>
+                        <td className="num">{row.solutionsRevealed ? <span className="pill overdue">{row.solutionsRevealed}</span> : "–"}</td>
+                        <td className="num">{row.state.tasksTotal ? `${row.state.tasksDone}/${row.state.tasksTotal}` : "–"}</td>
                         <td className="num">{row.state.attempts || "–"}</td>
                         <td className="num">{row.firstScore === null ? "–" : `${row.firstScore}/${row.state.total}`}</td>
                         <td className="num">{row.state.attempts ? `${row.state.best}/${row.state.total}` : "–"}</td>
                         <td className="num">{row.state.attempts ? row.hintsUsed : "–"}</td>
+                        <td className="num" style={{ whiteSpace: "nowrap" }}>
+                          {row.studyMinutes ? formatMinutes(row.studyMinutes) : "–"}
+                        </td>
                         <td>{row.challengeDone ? <span className="pill done">Hecho</span> : <span className="muted">–</span>}</td>
                         <td>
                           {row.evidence.trim() ? (
@@ -161,7 +197,7 @@ export function StudentDetailPage() {
                       </tr>
                       {open === row.date && (
                         <tr>
-                          <td colSpan={10}>
+                          <td colSpan={14}>
                             <pre className="evidence-view">{row.evidence}</pre>
                           </td>
                         </tr>
@@ -171,6 +207,24 @@ export function StudentDetailPage() {
                 </tbody>
               </table>
             </div>
+          )}
+        </div>
+      )}
+
+      {tab === "sql" && (
+        <div className="card stack">
+          <p className="muted" style={{ fontSize: 14 }}>
+            El último SQL que envió a comprobar en cada ejercicio, del más reciente al más antiguo del plan.
+          </p>
+          {groups.length === 0 ? (
+            <SqlLog items={[]} />
+          ) : (
+            groups.map((g) => (
+              <section key={g.key} className="stack tight">
+                <h3 style={{ fontSize: "1.05rem" }}>{g.label}</h3>
+                <SqlLog items={g.items} />
+              </section>
+            ))
           )}
         </div>
       )}

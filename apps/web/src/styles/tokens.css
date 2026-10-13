@@ -36,6 +36,7 @@
   /* Serie de gráficas (validadas: separación para daltonismo y contraste) */
   --viz-1: #12876a;
   --viz-2: #b8690a;
+  --viz-3: #4f5fc9;
 
   --shadow-sm: 0 1px 2px rgba(22, 32, 43, 0.06);
   --shadow-md: 0 6px 24px rgba(22, 32, 43, 0.1);
@@ -86,6 +87,7 @@
     --on-phase: #0f151c;
     --viz-1: #2fa184;
     --viz-2: #ba7a1c;
+    --viz-3: #7f8ff0;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
@@ -124,6 +126,7 @@
   --on-phase: #0f151c;
   --viz-1: #2fa184;
   --viz-2: #ba7a1c;
+  --viz-3: #7f8ff0;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);

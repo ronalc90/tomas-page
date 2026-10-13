@@ -1,4 +1,8 @@
-import type { AdminQuestion, Challenge, CommonError, GlossaryItem, Language, QuestionType, Resource, ScheduleBlock, Topic, TutorialStep } from "@tomas/shared";
+import { useState } from "react";
+import type { AdminQuestion, Challenge, CommonError, GlossaryItem, Language, QuestionType, Resource, ScheduleBlock, SqlExercise, Topic, TutorialStep } from "@tomas/shared";
+import { cleanEngine } from "../../sql/engine";
+import type { RunResponse } from "../../sql/protocol";
+import { RunOutput, runSummary } from "../../sql/RunOutput";
 import { CodeBlock } from "../../components/CodeBlock";
 import { QUESTION_TYPE_LABEL } from "@tomas/shared";
 import { Icon } from "../../components/Icon";
@@ -436,7 +440,7 @@ export function TopicsEditor({ topics, onChange, errors }: { topics: Topic[]; on
               Vista previa del ejemplo
             </summary>
             <div style={{ marginTop: 12 }}>
-              <CodeBlock code={t.example} language={t.language} output={t.exampleOutput} />
+              <CodeBlock code={t.example} language={t.language} output={t.exampleOutput} runnable={false} />
             </div>
           </details>
           <h3 style={{ margin: "8px 0 0", fontSize: "1.05rem" }}>Guía paso a paso ({t.steps.length} pasos)</h3>
@@ -449,5 +453,140 @@ export function TopicsEditor({ topics, onChange, errors }: { topics: Topic[]; on
         <Icon name="plus" size={16} /> Agregar tema
       </button>
     </>
+  );
+}
+
+export const emptyExercise = (id: string): SqlExercise => ({
+  id,
+  title: "",
+  prompt: "",
+  hint: "",
+  solution: "",
+  check: "",
+  setup: "",
+  starter: "",
+  orderMatters: false,
+});
+
+/** Siguiente id libre con el prefijo del día o del entregable: "2026-10-13-7", "s01-9". */
+export function nextExerciseId(prefix: string, list: SqlExercise[]): string {
+  let n = list.length + 1;
+  const used = new Set(list.map((e) => e.id));
+  while (used.has(`${prefix}-${n}`)) n += 1;
+  return `${prefix}-${n}`;
+}
+
+function TrySolution({ exercise }: { exercise: SqlExercise }) {
+  const [res, setRes] = useState<RunResponse | null>(null);
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      setRes(await cleanEngine().run({ mode: "clean", sql: exercise.solution, setup: exercise.setup, check: exercise.check }));
+    } catch {
+      setRes(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="stack tight">
+      <div className="ex-edit-actions">
+        <button type="button" className="btn secondary small" disabled={busy || !exercise.solution.trim()} onClick={() => void run()}>
+          <Icon name="play" size={16} /> {busy ? "Probando…" : "Probar la solución"}
+        </button>
+        {res && <span className="muted small">{runSummary(res)}</span>}
+      </div>
+      {res && <RunOutput res={res} label={`Resultado de la solución de ${exercise.id}`} compact max={60} />}
+    </div>
+  );
+}
+
+/** Editor de los ejercicios SQL de un día (o de un entregable). */
+export function ExercisesEditor({
+  exercises,
+  onChange,
+  idPrefix,
+  errors,
+}: {
+  exercises: SqlExercise[];
+  onChange: (list: SqlExercise[]) => void;
+  /** Prefijo de los ids nuevos: la fecha del día o el id del entregable. */
+  idPrefix: string;
+  errors: Record<string, string>;
+}) {
+  const set = (i: number, patch: Partial<SqlExercise>) => onChange(exercises.map((e, k) => (k === i ? { ...e, ...patch } : e)));
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= exercises.length) return;
+    const next = [...exercises];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+  const e = (i: number, k: string) => errors[`exercises.${i}.${k}`];
+  return (
+    <div className="stack">
+      {exercises.map((ex, i) => (
+        <div className="editor-item" key={i}>
+          <div className="row between">
+            <h3>
+              Ejercicio {i + 1} <span className="mono muted small">{ex.id}</span>
+            </h3>
+            <div className="row">
+              <button type="button" className="btn ghost small icon" aria-label={`Subir ejercicio ${i + 1}`} disabled={i === 0} onClick={() => move(i, -1)}>
+                <Icon name="up" size={16} />
+              </button>
+              <button type="button" className="btn ghost small icon" aria-label={`Bajar ejercicio ${i + 1}`} disabled={i === exercises.length - 1} onClick={() => move(i, 1)}>
+                <Icon name="down" size={16} />
+              </button>
+              <button type="button" className="btn ghost small" onClick={() => onChange(exercises.filter((_, k) => k !== i))}>
+                <Icon name="trash" size={16} /> Quitar
+              </button>
+            </div>
+          </div>
+          <div className="form-grid">
+            <Field id={`ex${i}-title`} label={`Título del ejercicio ${i + 1}`} error={e(i, "title")}>
+              <input id={`ex${i}-title`} className="input" value={ex.title} onChange={(ev) => set(i, { title: ev.target.value })} />
+            </Field>
+            <Field id={`ex${i}-id`} label="Id (único en todo el plan)" hint="Si cambias el id, el avance del estudiante en este ejercicio no se conecta." error={e(i, "id")}>
+              <input id={`ex${i}-id`} className="input code" value={ex.id} onChange={(ev) => set(i, { id: ev.target.value.trim().toLowerCase() })} />
+            </Field>
+          </div>
+          <Field id={`ex${i}-prompt`} label="Enunciado" hint="Di exactamente qué columnas y en qué orden; si el orden de las filas cuenta, di cómo ordenar y cómo desempatar." error={e(i, "prompt")}>
+            <textarea id={`ex${i}-prompt`} className="textarea" rows={3} value={ex.prompt} onChange={(ev) => set(i, { prompt: ev.target.value })} />
+          </Field>
+          <Field id={`ex${i}-hint`} label="Pista" error={e(i, "hint")}>
+            <input id={`ex${i}-hint`} className="input" value={ex.hint} onChange={(ev) => set(i, { hint: ev.target.value })} />
+          </Field>
+          <Field id={`ex${i}-solution`} label="Solución (con ella se calcula el resultado esperado)" error={e(i, "solution")}>
+            <textarea id={`ex${i}-solution`} className="textarea code" rows={4} value={ex.solution} onChange={(ev) => set(i, { solution: ev.target.value })} />
+          </Field>
+          <label className="check" style={{ justifySelf: "start" }}>
+            <input type="checkbox" checked={ex.orderMatters} onChange={(ev) => set(i, { orderMatters: ev.target.checked })} />
+            <span>El orden de las filas cuenta (la solución necesita ORDER BY con desempate)</span>
+          </label>
+          <details>
+            <summary className="muted" style={{ cursor: "pointer", fontSize: 14 }}>
+              Avanzado: código inicial, setup y check {ex.setup || ex.check || ex.starter ? "(en uso)" : ""}
+            </summary>
+            <div className="stack" style={{ marginTop: 12 }}>
+              <Field id={`ex${i}-starter`} label="Código inicial en el editor (opcional)">
+                <textarea id={`ex${i}-starter`} className="textarea code" rows={2} value={ex.starter} onChange={(ev) => set(i, { starter: ev.target.value })} />
+              </Field>
+              <Field id={`ex${i}-setup`} label="Setup: SQL que se corre antes, sobre la copia limpia (opcional)" error={e(i, "setup")}>
+                <textarea id={`ex${i}-setup`} className="textarea code" rows={2} value={ex.setup} onChange={(ev) => set(i, { setup: ev.target.value })} />
+              </Field>
+              <Field id={`ex${i}-check`} label="Check: SELECT que muestra el efecto, para ejercicios que modifican datos (opcional)" error={e(i, "check")}>
+                <textarea id={`ex${i}-check`} className="textarea code" rows={2} value={ex.check} onChange={(ev) => set(i, { check: ev.target.value })} />
+              </Field>
+            </div>
+          </details>
+          <TrySolution exercise={ex} />
+        </div>
+      ))}
+      <button type="button" className="btn secondary small" style={{ justifySelf: "start" }} onClick={() => onChange([...exercises, emptyExercise(nextExerciseId(idPrefix, exercises))])} disabled={exercises.length >= 12}>
+        <Icon name="plus" size={16} /> Agregar ejercicio
+      </button>
+    </div>
   );
 }

@@ -7,7 +7,7 @@ import { ErrorState, Field, Loading, PageHeader } from "../../components/ui";
 import { ApiError, errorMessage } from "../../lib/api";
 import { relativeTime } from "../../lib/format";
 import { useAdminDay, useSaveAdminDay } from "../../lib/queries";
-import { ChallengeEditor, emptyQuestion, GlossaryEditor, QuestionEditor, ResourcesEditor, ScheduleEditor, TextList, TopicsEditor } from "./LessonEditors";
+import { ChallengeEditor, emptyQuestion, ExercisesEditor, GlossaryEditor, QuestionEditor, ResourcesEditor, ScheduleEditor, TextList, TopicsEditor } from "./LessonEditors";
 
 export function DayEditorPage() {
   const { date = "" } = useParams();
@@ -57,6 +57,7 @@ export function DayEditorPage() {
         glossary: f.glossary.filter((g) => g.term.trim() || g.definition.trim()),
         resources: f.resources.filter((r) => r.title.trim() || r.url.trim()),
         questions: f.questions,
+        exercises: f.exercises.map((e) => ({ ...e, id: e.id.trim(), title: e.title.trim(), prompt: e.prompt.trim(), hint: e.hint.trim(), solution: e.solution.trim() })),
       });
       setDirty(false);
       toast("Cambios guardados. El estudiante ya los ve.");
@@ -118,6 +119,17 @@ export function DayEditorPage() {
 
           <section className="card stack">
             <div className="row between">
+              <h2 style={{ fontSize: "1.2rem" }}>Ejercicios SQL ({f.exercises.length})</h2>
+            </div>
+            <p className="muted" style={{ fontSize: 14 }}>
+              Se califican solos: se compara el resultado del estudiante con el de la solución (los valores, no los nombres de las columnas). Al
+              guardar se comprueba que cada solución corre y devuelve filas.
+            </p>
+            <ExercisesEditor exercises={f.exercises} onChange={(exercises) => update({ exercises })} idPrefix={f.date} errors={fields} />
+          </section>
+
+          <section className="card stack">
+            <div className="row between">
               <h2 style={{ fontSize: "1.2rem" }}>Tareas del taller</h2>
               <button type="button" className="btn secondary small" onClick={() => update({ tasks: [...f.tasks, ""], taskHints: [...f.tasks.map((_, k) => f.taskHints[k] ?? ""), ""] })} disabled={f.tasks.length >= 10}>
                 <Icon name="plus" size={16} /> Agregar tarea
@@ -150,7 +162,7 @@ export function DayEditorPage() {
                   type="button"
                   className="btn ghost small icon"
                   aria-label={`Quitar tarea ${i + 1}`}
-                  disabled={f.tasks.length <= 1}
+                  disabled={f.tasks.length <= 1 && f.exercises.length === 0}
                   onClick={() => update({ tasks: f.tasks.filter((_, k) => k !== i), taskHints: f.taskHints.filter((_, k) => k !== i) })}
                 >
                   <Icon name="trash" size={16} />

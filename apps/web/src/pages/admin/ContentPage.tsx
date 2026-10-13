@@ -115,6 +115,7 @@ export function ContentPage() {
                       <span className="when">{formatShort(d.date)}</span>
                       <span>{d.title}</span>
                       <span className="muted" style={{ fontSize: 13 }}>
+                        {d.exerciseCount ? `${d.exerciseCount} ejercicios · ` : ""}
                         {d.questionCount} preguntas · editado {relativeTime(d.updatedAt)}
                       </span>
                     </Link>
@@ -138,6 +139,7 @@ export function ContentPage() {
                       </span>
                     </span>
                     <span className="muted" style={{ fontSize: 13 }}>
+                      {week.deliverable.exercises.length ? `${week.deliverable.exercises.length} ejercicios · ` : ""}
                       {week.deliverable.criteria.length} criterios · Editar
                     </span>
                   </button>

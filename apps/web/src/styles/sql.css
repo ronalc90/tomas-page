@@ -718,6 +718,9 @@ kbd {
 /* Admin: último SQL */
 
 .sql-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: grid;
   gap: 12px;
 }
@@ -805,4 +808,12 @@ kbd {
   flex-wrap: wrap;
   gap: 4px;
   margin-left: auto;
+}
+
+.feed .dot.exercise_solved {
+  background: var(--viz-3);
+}
+
+.feed .dot.solution_revealed {
+  background: var(--warn);
 }

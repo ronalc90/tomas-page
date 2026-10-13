@@ -7,6 +7,7 @@ import { ErrorState, Field, Loading, PageHeader, SubmissionPill } from "../../co
 import { ApiError, errorMessage } from "../../lib/api";
 import { dateTime, splitLinks } from "../../lib/format";
 import { useReview, useSubmitReview } from "../../lib/queries";
+import { SqlLog } from "./shared";
 
 export function ReviewDetailPage() {
   const { userId = "", deliverableId = "" } = useParams();
@@ -65,9 +66,21 @@ export function ReviewDetailPage() {
         </ul>
       </section>
 
+      {d.exercises.length > 0 && (
+        <section className="card stack">
+          <div className="row between">
+            <h2 style={{ fontSize: "1.2rem" }}>Preguntas del informe</h2>
+            <span className="muted" style={{ fontSize: 14 }}>
+              {d.exercises.filter((e) => e.state.solved).length} de {d.exercises.length} resueltas · se califican solas
+            </span>
+          </div>
+          <SqlLog items={d.exercises} />
+        </section>
+      )}
+
       <section className="card stack">
         <div className="row between">
-          <h2 style={{ fontSize: "1.2rem" }}>Evidencia</h2>
+          <h2 style={{ fontSize: "1.2rem" }}>{d.exercises.length > 0 ? "Conclusión" : "Evidencia"}</h2>
           <span className="muted" style={{ fontSize: 14 }}>
             Enviado {dateTime(sub?.submittedAt)}
           </span>
