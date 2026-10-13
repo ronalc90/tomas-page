@@ -1,0 +1,6 @@
+[
+  {"id": 1, "name": "SQL: consultas", "rangeLabel": "13 oct – 31 oct", "goal": "Responder preguntas de negocio sobre una base real: filtrar, calcular, agrupar y unir tablas sin copiar."},
+  {"id": 2, "name": "SQL: avanzado y diseño", "rangeLabel": "2 nov – 21 nov", "goal": "Usar subconsultas, CTE y funciones de ventana; crear y modificar tablas con seguridad, y diseñar una base de datos bien normalizada."},
+  {"id": 3, "name": "Python y fundamentos de programación", "rangeLabel": "23 nov – 5 dic", "goal": "Escribir programas en Python que deciden, repiten, usan funciones, colecciones y archivos."},
+  {"id": 4, "name": "Python + SQL y proyecto final", "rangeLabel": "7 dic – 30 dic", "goal": "Combinar POO, Python y SQL en una aplicación propia que guarda datos, los analiza y los presenta."}
+]
