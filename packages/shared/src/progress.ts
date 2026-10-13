@@ -14,35 +14,74 @@ import type {
  * Reglas de avance, en un solo lugar para que el estudiante y el
  * administrador vean exactamente lo mismo.
  *
- * - Un taller está completo cuando todas sus tareas están marcadas y la mejor
- *   nota de la evaluación alcanza la nota mínima (passScore).
- * - Un entregable cuenta como entregado cuando está enviado o aprobado.
+ * - Un taller está completo cuando todas sus tareas están marcadas, todos sus
+ *   ejercicios SQL están resueltos y la mejor nota de la evaluación alcanza la
+ *   nota mínima (passScore).
+ * - Un entregable cuenta como entregado cuando está enviado o aprobado (para
+ *   enviarlo, sus ejercicios deben estar resueltos).
  * - Lo que tiene fecha anterior a hoy y no está completo queda atrasado.
  */
 
 export interface ProgressPlanInput {
   phases: { id: number; name: string }[];
   weeks: { id: string; phaseId: number }[];
-  days: { date: string; weekId: string; kind: DayKind; title: string; taskCount: number; questionCount: number }[];
-  deliverables: { id: string; weekId: string; dueDate: string; title: string }[];
+  days: {
+    date: string;
+    weekId: string;
+    kind: DayKind;
+    title: string;
+    taskCount: number;
+    questionCount: number;
+    exerciseIds?: string[];
+  }[];
+  deliverables: { id: string; weekId: string; dueDate: string; title: string; exerciseIds?: string[] }[];
 }
 
 export interface ProgressUserInput {
   days: Record<string, { tasks: boolean[]; completedAt: string | null; hasEvidence: boolean }>;
   quizzes: Record<string, { attempts: number; best: number; first: number }>;
   submissions: Record<string, { status: SubmissionStatus; touched: boolean }>;
+  /** Avance por ejercicio (id → intentos y si está resuelto). */
+  exercises?: Record<string, { attempts: number; solved: boolean }>;
+  /** Minutos de estudio por fecha. */
+  study?: Record<string, number>;
 }
 
-export function isWorkshopDone(
-  taskCount: number,
-  tasks: boolean[] | undefined,
-  best: number | undefined,
-  questionCount: number,
-  passScore: number,
-): boolean {
-  const done = (tasks ?? []).slice(0, taskCount).filter(Boolean).length;
-  const needed = Math.min(passScore, questionCount);
-  return done >= taskCount && (questionCount === 0 || (best ?? 0) >= needed);
+export interface WorkshopCheck {
+  taskCount: number;
+  tasks: boolean[] | undefined;
+  questionCount: number;
+  best: number | undefined;
+  passScore: number;
+  exercisesTotal: number;
+  exercisesSolved: number;
+}
+
+/** Tareas marcadas, ejercicios resueltos y evaluación aprobada. */
+export function isWorkshopDone(w: WorkshopCheck): boolean {
+  const done = (w.tasks ?? []).slice(0, w.taskCount).filter(Boolean).length;
+  const needed = Math.min(w.passScore, w.questionCount);
+  return (
+    done >= w.taskCount &&
+    w.exercisesSolved >= w.exercisesTotal &&
+    (w.questionCount === 0 || (w.best ?? 0) >= needed)
+  );
+}
+
+/** Cuántos de estos ejercicios están resueltos y si alguno tiene intentos. */
+export function exerciseCounts(
+  ids: string[] | undefined,
+  progress: ProgressUserInput["exercises"],
+): { solved: number; total: number; attempted: boolean } {
+  const list = ids ?? [];
+  let solved = 0;
+  let attempted = false;
+  for (const id of list) {
+    const p = progress?.[id];
+    if (p?.solved) solved += 1;
+    if (p && p.attempts > 0) attempted = true;
+  }
+  return { solved, total: list.length, attempted };
 }
 
 export function computeProgress(
@@ -75,6 +114,8 @@ export function computeProgress(
   let firstSum = 0;
   let expectedByToday = 0;
   let overdue = 0;
+  let exercisesSolved = 0;
+  let exercisesTotal = 0;
   const workshopTimeline: { date: string; done: boolean }[] = [];
 
   for (const day of [...plan.days].sort((a, b) => a.date.localeCompare(b.date))) {
@@ -88,6 +129,8 @@ export function computeProgress(
         status: "rest",
         tasksDone: 0,
         tasksTotal: 0,
+        exercisesDone: 0,
+        exercisesTotal: 0,
         attempts: 0,
         best: 0,
         total: 0,
@@ -97,8 +140,19 @@ export function computeProgress(
     }
 
     workshops += 1;
-    const done = isWorkshopDone(day.taskCount, record?.tasks, quiz?.best, total, passScore);
-    const started = tasksDone > 0 || (quiz?.attempts ?? 0) > 0 || (record?.hasEvidence ?? false);
+    const ex = exerciseCounts(day.exerciseIds, user.exercises);
+    exercisesSolved += ex.solved;
+    exercisesTotal += ex.total;
+    const done = isWorkshopDone({
+      taskCount: day.taskCount,
+      tasks: record?.tasks,
+      questionCount: total,
+      best: quiz?.best,
+      passScore,
+      exercisesTotal: ex.total,
+      exercisesSolved: ex.solved,
+    });
+    const started = tasksDone > 0 || ex.attempted || ex.solved > 0 || (quiz?.attempts ?? 0) > 0 || (record?.hasEvidence ?? false);
     let status: ItemStatus;
     if (done) status = "done";
     else if (day.date < today) status = "overdue";
@@ -123,6 +177,8 @@ export function computeProgress(
       status,
       tasksDone,
       tasksTotal: day.taskCount,
+      exercisesDone: ex.solved,
+      exercisesTotal: ex.total,
       attempts: quiz?.attempts ?? 0,
       best: quiz?.best ?? 0,
       total,
@@ -135,11 +191,14 @@ export function computeProgress(
   let approved = 0;
   for (const d of plan.deliverables) {
     const sub = user.submissions[d.id];
+    const ex = exerciseCounts(d.exerciseIds, user.exercises);
+    exercisesSolved += ex.solved;
+    exercisesTotal += ex.total;
     const delivered = sub?.status === "submitted" || sub?.status === "approved";
     let status: ItemStatus;
     if (delivered) status = "done";
     else if (d.dueDate < today) status = "overdue";
-    else status = sub && (sub.touched || sub.status === "changes_requested") ? "in_progress" : "pending";
+    else status = (sub && (sub.touched || sub.status === "changes_requested")) || ex.attempted || ex.solved > 0 ? "in_progress" : "pending";
 
     if (delivered) submitted += 1;
     if (sub?.status === "approved") approved += 1;
@@ -149,7 +208,7 @@ export function computeProgress(
       pending.push({ type: "deliverable", ref: d.id, date: d.dueDate, title: d.title });
     }
     bump(phaseOfWeek.get(d.weekId), delivered);
-    deliverables[d.id] = { status, submission: sub?.status ?? null };
+    deliverables[d.id] = { status, submission: sub?.status ?? null, exercisesDone: ex.solved, exercisesTotal: ex.total };
   }
 
   pending.sort((a, b) => a.date.localeCompare(b.date) || a.type.localeCompare(b.type));
@@ -196,10 +255,14 @@ export function computeProgress(
       streak,
       overdue,
       expectedByToday,
+      exercisesSolved,
+      exercisesTotal,
+      studyMinutes: Object.values(user.study ?? {}).reduce((a, b) => a + b, 0),
     },
     days,
     deliverables,
     phases,
     pending,
+    study: { ...(user.study ?? {}) },
   };
 }

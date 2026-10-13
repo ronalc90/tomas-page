@@ -49,6 +49,7 @@ export interface PlanDay {
   /** Títulos de los temas del día (vacío en festivos). */
   topics: string[];
   taskCount: number;
+  exerciseCount: number;
 }
 
 export interface PlanDeliverable {
@@ -83,6 +84,9 @@ export interface DayState {
   status: ItemStatus;
   tasksDone: number;
   tasksTotal: number;
+  /** Ejercicios SQL resueltos del día y cuántos tiene. */
+  exercisesDone: number;
+  exercisesTotal: number;
   attempts: number;
   best: number;
   total: number;
@@ -92,6 +96,8 @@ export interface DayState {
 export interface DeliverableState {
   status: ItemStatus;
   submission: SubmissionStatus | null;
+  exercisesDone: number;
+  exercisesTotal: number;
 }
 
 export interface PendingItem {
@@ -124,6 +130,11 @@ export interface ProgressTotals {
   streak: number;
   overdue: number;
   expectedByToday: number;
+  /** Ejercicios SQL resueltos y total del plan (talleres y entregables). */
+  exercisesSolved: number;
+  exercisesTotal: number;
+  /** Minutos de estudio registrados en total. */
+  studyMinutes: number;
 }
 
 export interface ProgressView {
@@ -137,6 +148,8 @@ export interface ProgressView {
   deliverables: Record<string, DeliverableState>;
   phases: PhaseProgress[];
   pending: PendingItem[];
+  /** Minutos de estudio por fecha (AAAA-MM-DD). */
+  study: Record<string, number>;
 }
 
 // ---------- Día (vista del estudiante) ----------
@@ -265,6 +278,8 @@ export interface DayResponse {
   date: string;
   day: DayContent | null;
   questions: QuestionView[];
+  /** Ejercicios SQL del taller, con el avance del estudiante. */
+  exercises: ExerciseView[];
   progress: { tasks: boolean[]; evidence: string; challengeDone: boolean; completedAt: string | null };
   quiz: { attempts: number; best: number; last: QuizResult | null };
   state: DayState;
@@ -289,6 +304,8 @@ export interface DeliverableView {
   tips: string[];
   stretch: string;
   checklist: string[];
+  /** Ejercicios SQL del entregable: todos deben estar resueltos para poder enviarlo. */
+  exercises: ExerciseView[];
   state: DeliverableState;
   submission: {
     status: SubmissionStatus;
@@ -299,6 +316,120 @@ export interface DeliverableView {
     feedback: string;
     reviewerName: string | null;
   } | null;
+}
+
+// ---------- Ejercicios SQL ----------
+
+/** Un valor de una celda de resultado: texto, número o NULL. */
+export type SqlValue = string | number | null;
+
+/** Resultado de una consulta: nombres de columna y filas. */
+export interface SqlResult {
+  columns: string[];
+  rows: SqlValue[][];
+}
+
+/** Ejercicio SQL tal como está en el contenido (incluye la solución). */
+export interface SqlExercise {
+  /** "2026-10-13-1" en los talleres, "s01-1" en los entregables. Único en todo el plan. */
+  id: string;
+  title: string;
+  prompt: string;
+  hint: string;
+  solution: string;
+  /** SELECT que muestra el efecto en los ejercicios que modifican datos ("" si no aplica). */
+  check: string;
+  /** SQL que se corre antes, sobre la copia limpia de la base ("" si no aplica). */
+  setup: string;
+  /** Código inicial del editor ("" si no aplica). */
+  starter: string;
+  orderMatters: boolean;
+}
+
+export interface ExerciseState {
+  attempts: number;
+  solved: boolean;
+  solvedAt: string | null;
+  revealed: boolean;
+  /** Último SQL que el estudiante envió a comprobar. */
+  lastSql: string | null;
+}
+
+/** Lo que ve el estudiante de un ejercicio. La solución llega solo si ya lo resolvió o la pidió. */
+export interface ExerciseView {
+  id: string;
+  title: string;
+  prompt: string;
+  hint: string;
+  starter: string;
+  setup: string;
+  orderMatters: boolean;
+  /** Resultado esperado (hasta 50 filas). null solo si la solución del contenido falla. */
+  expected: SqlResult | null;
+  expectedRowCount: number;
+  state: ExerciseState;
+  solution: string | null;
+}
+
+export interface ExerciseCheckResult {
+  correct: boolean;
+  message: string;
+  /** Lo que devolvió el SQL del estudiante (o el `check` en ejercicios que modifican datos). */
+  result: SqlResult | null;
+  /** Error de SQLite explicado en español, con el mensaje original. */
+  error: string | null;
+  state: ExerciseState;
+  solution: string | null;
+}
+
+export interface ExerciseRevealResult {
+  solution: string;
+  state: ExerciseState;
+}
+
+// ---------- Archivo del plan (plan.json) ----------
+
+export interface PlanFileDay {
+  date: string;
+  kind: DayKind;
+  title: string;
+  summary?: string;
+  objectives?: string[];
+  schedule?: ScheduleBlock[];
+  topics?: Topic[];
+  tasks?: string[];
+  taskHints?: string[];
+  challenge?: Challenge | null;
+  glossary?: GlossaryItem[];
+  resources?: Resource[];
+  questions?: AdminQuestion[];
+  exercises?: Partial<SqlExercise>[];
+}
+
+export interface PlanFileDeliverable {
+  dueDate: string;
+  kind: DeliverableKind;
+  path: string;
+  description: string;
+  criteria: string[];
+  steps?: string[];
+  tips?: string[];
+  stretch?: string;
+  checklist?: string[];
+  exercises?: Partial<SqlExercise>[];
+}
+
+export interface PlanFile {
+  phases: PlanPhase[];
+  weeks: {
+    id: string;
+    number: number;
+    phaseId: number;
+    title: string;
+    rangeLabel: string;
+    days: PlanFileDay[];
+    deliverable: PlanFileDeliverable | null;
+  }[];
 }
 
 // ---------- Administración ----------
@@ -322,6 +453,8 @@ export interface StudentRow {
   lastActivityAt: string | null;
   totals: ProgressTotals;
   pace: Pace;
+  /** Minutos de estudio en los últimos 7 días. */
+  weekMinutes: number;
 }
 
 export interface AdminOverview {
@@ -329,7 +462,17 @@ export interface AdminOverview {
   students: StudentRow[];
   pendingReviews: number;
   activity: ActivityItem[];
-  weeklyActivity: { week: string; label: string; workshops: number; quizzes: number }[];
+  weeklyActivity: WeeklyPoint[];
+}
+
+export interface WeeklyPoint {
+  /** Lunes de la semana (AAAA-MM-DD). */
+  week: string;
+  label: string;
+  workshops: number;
+  quizzes: number;
+  exercises: number;
+  minutes: number;
 }
 
 export interface StudentDayRow {
@@ -343,12 +486,30 @@ export interface StudentDayRow {
   challengeDone: boolean;
   /** Pistas de la evaluación destapadas en el mejor intento más reciente. */
   hintsUsed: number;
+  /** Intentos sumados de los ejercicios SQL del día. */
+  exerciseAttempts: number;
+  /** Ejercicios del día en los que vio la solución. */
+  solutionsRevealed: number;
+  /** Minutos de estudio registrados ese día. */
+  studyMinutes: number;
+}
+
+/** Avance de un estudiante en un ejercicio, para el panel de administración. */
+export interface StudentExerciseRow {
+  id: string;
+  title: string;
+  /** Fecha del taller o id del entregable. */
+  date: string | null;
+  deliverableId: string | null;
+  state: ExerciseState;
 }
 
 export interface StudentDetail {
   student: StudentRow;
   progress: ProgressView;
   days: StudentDayRow[];
+  /** Solo los ejercicios en los que el estudiante ya hizo algo. */
+  exercises: StudentExerciseRow[];
   deliverables: DeliverableView[];
   activity: ActivityItem[];
 }
@@ -387,6 +548,7 @@ export interface AdminQuestion {
 
 export interface AdminDay extends DayContent {
   questions: AdminQuestion[];
+  exercises: SqlExercise[];
   updatedAt: string | null;
 }
 
@@ -402,6 +564,7 @@ export interface AdminDeliverable {
   tips: string[];
   stretch: string;
   checklist: string[];
+  exercises: SqlExercise[];
 }
 
 export interface ContentWeek {
@@ -410,7 +573,7 @@ export interface ContentWeek {
   phaseId: number;
   title: string;
   rangeLabel: string;
-  days: { date: string; kind: DayKind; title: string; questionCount: number; updatedAt: string | null }[];
+  days: { date: string; kind: DayKind; title: string; questionCount: number; exerciseCount: number; updatedAt: string | null }[];
   deliverable: AdminDeliverable | null;
 }
 

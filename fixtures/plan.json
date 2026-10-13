@@ -1,0 +1,1300 @@
+{
+ "phases": [
+  {
+   "id": 1,
+   "name": "SQL: consultas",
+   "rangeLabel": "13 oct – 31 oct",
+   "goal": "Responder preguntas de negocio sobre una base real: filtrar, calcular, agrupar y unir tablas sin copiar."
+  },
+  {
+   "id": 2,
+   "name": "SQL: avanzado y diseño",
+   "rangeLabel": "2 nov – 21 nov",
+   "goal": "Usar subconsultas, CTE y funciones de ventana; crear y modificar tablas con seguridad, y diseñar una base de datos bien normalizada."
+  },
+  {
+   "id": 3,
+   "name": "Python y fundamentos de programación",
+   "rangeLabel": "23 nov – 5 dic",
+   "goal": "Escribir programas en Python que deciden, repiten, usan funciones, colecciones y archivos."
+  },
+  {
+   "id": 4,
+   "name": "Python + SQL y proyecto final",
+   "rangeLabel": "7 dic – 30 dic",
+   "goal": "Combinar POO, Python y SQL en una aplicación propia que guarda datos, los analiza y los presenta."
+  }
+ ],
+ "weeks": [
+  {
+   "id": "s01",
+   "number": 1,
+   "phaseId": 1,
+   "title": "Tus primeras consultas",
+   "rangeLabel": "13 oct – 17 oct",
+   "days": [
+    {
+     "date": "2026-10-13",
+     "kind": "workshop",
+     "title": "Bases de datos y SELECT",
+     "summary": "Día de prueba: bases de datos y select con ejercicios en el laboratorio.",
+     "objectives": [
+      "Leer una tabla con SELECT",
+      "Elegir columnas",
+      "Comprobar resultados"
+     ],
+     "schedule": [
+      {
+       "label": "Tema 1",
+       "minutes": 70
+      },
+      {
+       "label": "Tema 2",
+       "minutes": 70
+      },
+      {
+       "label": "Práctica en el laboratorio",
+       "minutes": 70
+      },
+      {
+       "label": "Evaluación",
+       "minutes": 30
+      }
+     ],
+     "topics": [
+      {
+       "title": "SELECT y FROM",
+       "concept": "**SELECT y FROM** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre, precio\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "nombre                     | precio\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   6500\nCafé en grano Naranjo 1 kg |  12500\nCafé molido Orosi 250 g    |   3800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      },
+      {
+       "title": "Alias y expresiones",
+       "concept": "**Alias y expresiones** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre AS producto, precio - costo AS margen\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "producto                   | margen\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   2900\nCafé en grano Naranjo 1 kg |   5250\nCafé molido Orosi 250 g    |   1800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      }
+     ],
+     "exercises": [
+      {
+       "id": "2026-10-13-1",
+       "title": "Catálogo básico",
+       "prompt": "La gerente quiere ver el catálogo: muestra el `nombre` y el `precio` de todos los productos, en ese orden.",
+       "hint": "Empieza por el FROM.",
+       "solution": "SELECT nombre, precio FROM productos;",
+       "check": "",
+       "setup": "",
+       "starter": "SELECT\nFROM productos;",
+       "orderMatters": false
+      },
+      {
+       "id": "2026-10-13-2",
+       "title": "Los más caros",
+       "prompt": "Muestra el `nombre` y el `precio` de los 5 productos más caros, ordenados de mayor a menor precio y, si empatan, por nombre.",
+       "hint": "Empieza por el FROM.",
+       "solution": "SELECT nombre, precio FROM productos ORDER BY precio DESC, nombre LIMIT 5;",
+       "check": "",
+       "setup": "",
+       "starter": "",
+       "orderMatters": true
+      },
+      {
+       "id": "2026-10-13-3",
+       "title": "Anotar un pendiente",
+       "prompt": "Hay una tabla de trabajo `pendientes(id, nota)`. Agrega la nota 'Revisar inventario'.",
+       "hint": "Usa INSERT INTO … VALUES.",
+       "solution": "INSERT INTO pendientes (nota) VALUES ('Revisar inventario');",
+       "check": "SELECT nota FROM pendientes ORDER BY id;",
+       "setup": "CREATE TABLE pendientes (id INTEGER PRIMARY KEY, nota TEXT NOT NULL);",
+       "starter": "",
+       "orderMatters": false
+      }
+     ],
+     "tasks": [],
+     "taskHints": [],
+     "challenge": {
+      "title": "Reto de prueba",
+      "description": "Muestra las 3 provincias con el nombre más largo.",
+      "hint": "Usa LENGTH.",
+      "solution": "SELECT nombre FROM provincias ORDER BY LENGTH(nombre) DESC, nombre LIMIT 3;",
+      "language": "sql"
+     },
+     "glossary": [
+      {
+       "term": "tabla",
+       "definition": "Conjunto de filas con las mismas columnas."
+      },
+      {
+       "term": "columna",
+       "definition": "Un dato de cada fila, con nombre y tipo."
+      },
+      {
+       "term": "consulta",
+       "definition": "Una pregunta a la base de datos escrita en SQL."
+      },
+      {
+       "term": "fila",
+       "definition": "Un registro de la tabla."
+      }
+     ],
+     "resources": [
+      {
+       "title": "SELECT en SQLite",
+       "url": "https://www.sqlite.org/lang_select.html"
+      },
+      {
+       "title": "Expresiones en SQLite",
+       "url": "https://www.sqlite.org/lang_expr.html"
+      }
+     ],
+     "questions": [
+      {
+       "type": "choice",
+       "prompt": "¿Qué hace SELECT?",
+       "code": "",
+       "options": [
+        "Muestra columnas",
+        "Borra filas",
+        "Crea tablas",
+        "Nada"
+       ],
+       "correctIndex": 0,
+       "accepted": [],
+       "optionFeedback": [
+        "Correcto.",
+        "No borra.",
+        "No crea.",
+        "Sí hace algo."
+       ],
+       "explanation": "SELECT muestra columnas de una tabla.",
+       "hint": "Piensa en ver datos."
+      },
+      {
+       "type": "boolean",
+       "prompt": "Una consulta SELECT cambia los datos de la tabla.",
+       "code": "",
+       "options": [
+        "Verdadero",
+        "Falso"
+       ],
+       "correctIndex": 1,
+       "accepted": [],
+       "optionFeedback": [
+        "No: SELECT solo lee.",
+        "Correcto: solo lee."
+       ],
+       "explanation": "SELECT solo lee los datos.",
+       "hint": "¿Lees o escribes?"
+      },
+      {
+       "type": "output",
+       "prompt": "¿Qué devuelve esta consulta?",
+       "code": "SELECT COUNT(*) FROM provincias;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "7"
+       ],
+       "optionFeedback": [],
+       "explanation": "Hay 7 provincias.",
+       "hint": "Cuenta las provincias de Costa Rica."
+      },
+      {
+       "type": "fill",
+       "prompt": "Completa para traer todas las columnas.",
+       "code": "SELECT ___ FROM productos;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "*"
+       ],
+       "optionFeedback": [],
+       "explanation": "El asterisco trae todas las columnas.",
+       "hint": "Un solo carácter."
+      }
+     ]
+    },
+    {
+     "date": "2026-10-14",
+     "kind": "workshop",
+     "title": "Filtrar con WHERE",
+     "summary": "Día de prueba: filtrar con where con ejercicios en el laboratorio.",
+     "objectives": [
+      "Leer una tabla con SELECT",
+      "Elegir columnas",
+      "Comprobar resultados"
+     ],
+     "schedule": [
+      {
+       "label": "Tema 1",
+       "minutes": 70
+      },
+      {
+       "label": "Tema 2",
+       "minutes": 70
+      },
+      {
+       "label": "Práctica en el laboratorio",
+       "minutes": 70
+      },
+      {
+       "label": "Evaluación",
+       "minutes": 30
+      }
+     ],
+     "topics": [
+      {
+       "title": "WHERE",
+       "concept": "**WHERE** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre, precio\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "nombre                     | precio\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   6500\nCafé en grano Naranjo 1 kg |  12500\nCafé molido Orosi 250 g    |   3800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      },
+      {
+       "title": "AND y OR",
+       "concept": "**AND y OR** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre AS producto, precio - costo AS margen\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "producto                   | margen\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   2900\nCafé en grano Naranjo 1 kg |   5250\nCafé molido Orosi 250 g    |   1800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      }
+     ],
+     "exercises": [
+      {
+       "id": "2026-10-14-1",
+       "title": "Clientes de Heredia",
+       "prompt": "Muestra el `nombre` y el `apellido` de los clientes de Heredia (provincia 4).",
+       "hint": "Empieza por el FROM.",
+       "solution": "SELECT nombre, apellido FROM clientes WHERE provincia_id = 4;",
+       "check": "",
+       "setup": "",
+       "starter": "",
+       "orderMatters": false
+      },
+      {
+       "id": "2026-10-14-2",
+       "title": "Productos baratos",
+       "prompt": "Muestra el `nombre` de los productos que cuestan menos de ₡5 000.",
+       "hint": "Empieza por el FROM.",
+       "solution": "SELECT nombre FROM productos WHERE precio < 5000;",
+       "check": "",
+       "setup": "",
+       "starter": "",
+       "orderMatters": false
+      }
+     ],
+     "tasks": [
+      "Escribe en tu cuaderno qué hace WHERE.",
+      "Explica con tus palabras la diferencia entre = y <>."
+     ],
+     "taskHints": [
+      "Pista de la tarea 1.",
+      "Pista de la tarea 2."
+     ],
+     "challenge": {
+      "title": "Reto de prueba",
+      "description": "Muestra las 3 provincias con el nombre más largo.",
+      "hint": "Usa LENGTH.",
+      "solution": "SELECT nombre FROM provincias ORDER BY LENGTH(nombre) DESC, nombre LIMIT 3;",
+      "language": "sql"
+     },
+     "glossary": [
+      {
+       "term": "tabla",
+       "definition": "Conjunto de filas con las mismas columnas."
+      },
+      {
+       "term": "columna",
+       "definition": "Un dato de cada fila, con nombre y tipo."
+      },
+      {
+       "term": "consulta",
+       "definition": "Una pregunta a la base de datos escrita en SQL."
+      },
+      {
+       "term": "fila",
+       "definition": "Un registro de la tabla."
+      }
+     ],
+     "resources": [
+      {
+       "title": "SELECT en SQLite",
+       "url": "https://www.sqlite.org/lang_select.html"
+      },
+      {
+       "title": "Expresiones en SQLite",
+       "url": "https://www.sqlite.org/lang_expr.html"
+      }
+     ],
+     "questions": [
+      {
+       "type": "choice",
+       "prompt": "¿Qué hace SELECT?",
+       "code": "",
+       "options": [
+        "Muestra columnas",
+        "Borra filas",
+        "Crea tablas",
+        "Nada"
+       ],
+       "correctIndex": 0,
+       "accepted": [],
+       "optionFeedback": [
+        "Correcto.",
+        "No borra.",
+        "No crea.",
+        "Sí hace algo."
+       ],
+       "explanation": "SELECT muestra columnas de una tabla.",
+       "hint": "Piensa en ver datos."
+      },
+      {
+       "type": "boolean",
+       "prompt": "Una consulta SELECT cambia los datos de la tabla.",
+       "code": "",
+       "options": [
+        "Verdadero",
+        "Falso"
+       ],
+       "correctIndex": 1,
+       "accepted": [],
+       "optionFeedback": [
+        "No: SELECT solo lee.",
+        "Correcto: solo lee."
+       ],
+       "explanation": "SELECT solo lee los datos.",
+       "hint": "¿Lees o escribes?"
+      },
+      {
+       "type": "output",
+       "prompt": "¿Qué devuelve esta consulta?",
+       "code": "SELECT COUNT(*) FROM provincias;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "7"
+       ],
+       "optionFeedback": [],
+       "explanation": "Hay 7 provincias.",
+       "hint": "Cuenta las provincias de Costa Rica."
+      },
+      {
+       "type": "fill",
+       "prompt": "Completa para traer todas las columnas.",
+       "code": "SELECT ___ FROM productos;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "*"
+       ],
+       "optionFeedback": [],
+       "explanation": "El asterisco trae todas las columnas.",
+       "hint": "Un solo carácter."
+      }
+     ]
+    },
+    {
+     "date": "2026-10-15",
+     "kind": "workshop",
+     "title": "Repaso en Python",
+     "summary": "Día de prueba: repaso en python con ejercicios en el laboratorio.",
+     "objectives": [
+      "Leer una tabla con SELECT",
+      "Elegir columnas",
+      "Comprobar resultados"
+     ],
+     "schedule": [
+      {
+       "label": "Tema 1",
+       "minutes": 70
+      },
+      {
+       "label": "Tema 2",
+       "minutes": 70
+      },
+      {
+       "label": "Práctica en el laboratorio",
+       "minutes": 70
+      },
+      {
+       "label": "Evaluación",
+       "minutes": 30
+      }
+     ],
+     "topics": [
+      {
+       "title": "print",
+       "concept": "**print** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre, precio\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "nombre                     | precio\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   6500\nCafé en grano Naranjo 1 kg |  12500\nCafé molido Orosi 250 g    |   3800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      },
+      {
+       "title": "Variables",
+       "concept": "**Variables** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre AS producto, precio - costo AS margen\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "producto                   | margen\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   2900\nCafé en grano Naranjo 1 kg |   5250\nCafé molido Orosi 250 g    |   1800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      }
+     ],
+     "exercises": [],
+     "tasks": [
+      "Instala Python.",
+      "Corre un programa que imprima tu nombre.",
+      "Guarda el archivo hola.py."
+     ],
+     "taskHints": [
+      "Pista de la tarea 1.",
+      "Pista de la tarea 2.",
+      "Pista de la tarea 3."
+     ],
+     "challenge": {
+      "title": "Reto de prueba",
+      "description": "Muestra las 3 provincias con el nombre más largo.",
+      "hint": "Usa LENGTH.",
+      "solution": "SELECT nombre FROM provincias ORDER BY LENGTH(nombre) DESC, nombre LIMIT 3;",
+      "language": "sql"
+     },
+     "glossary": [
+      {
+       "term": "tabla",
+       "definition": "Conjunto de filas con las mismas columnas."
+      },
+      {
+       "term": "columna",
+       "definition": "Un dato de cada fila, con nombre y tipo."
+      },
+      {
+       "term": "consulta",
+       "definition": "Una pregunta a la base de datos escrita en SQL."
+      },
+      {
+       "term": "fila",
+       "definition": "Un registro de la tabla."
+      }
+     ],
+     "resources": [
+      {
+       "title": "SELECT en SQLite",
+       "url": "https://www.sqlite.org/lang_select.html"
+      },
+      {
+       "title": "Expresiones en SQLite",
+       "url": "https://www.sqlite.org/lang_expr.html"
+      }
+     ],
+     "questions": [
+      {
+       "type": "choice",
+       "prompt": "¿Qué hace SELECT?",
+       "code": "",
+       "options": [
+        "Muestra columnas",
+        "Borra filas",
+        "Crea tablas",
+        "Nada"
+       ],
+       "correctIndex": 0,
+       "accepted": [],
+       "optionFeedback": [
+        "Correcto.",
+        "No borra.",
+        "No crea.",
+        "Sí hace algo."
+       ],
+       "explanation": "SELECT muestra columnas de una tabla.",
+       "hint": "Piensa en ver datos."
+      },
+      {
+       "type": "boolean",
+       "prompt": "Una consulta SELECT cambia los datos de la tabla.",
+       "code": "",
+       "options": [
+        "Verdadero",
+        "Falso"
+       ],
+       "correctIndex": 1,
+       "accepted": [],
+       "optionFeedback": [
+        "No: SELECT solo lee.",
+        "Correcto: solo lee."
+       ],
+       "explanation": "SELECT solo lee los datos.",
+       "hint": "¿Lees o escribes?"
+      },
+      {
+       "type": "output",
+       "prompt": "¿Qué devuelve esta consulta?",
+       "code": "SELECT COUNT(*) FROM provincias;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "7"
+       ],
+       "optionFeedback": [],
+       "explanation": "Hay 7 provincias.",
+       "hint": "Cuenta las provincias de Costa Rica."
+      },
+      {
+       "type": "fill",
+       "prompt": "Completa para traer todas las columnas.",
+       "code": "SELECT ___ FROM productos;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "*"
+       ],
+       "optionFeedback": [],
+       "explanation": "El asterisco trae todas las columnas.",
+       "hint": "Un solo carácter."
+      }
+     ]
+    },
+    {
+     "date": "2026-10-16",
+     "kind": "holiday",
+     "title": "Feriado de prueba",
+     "summary": "Feriado: hoy no hay taller."
+    }
+   ],
+   "deliverable": {
+    "dueDate": "2026-10-17",
+    "kind": "weekly",
+    "path": "Laboratorio SQL",
+    "description": "Informe con consultas de la semana y una conclusión escrita.",
+    "criteria": [
+     "Resolviste los ejercicios",
+     "Escribiste una conclusión",
+     "Revisaste la ortografía"
+    ],
+    "steps": [
+     "Lee cada pregunta.",
+     "Resuélvela en el laboratorio.",
+     "Escribe tu conclusión."
+    ],
+    "tips": [
+     "Revisa el orden de las columnas.",
+     "Lee el resultado esperado."
+    ],
+    "stretch": "Agrega una consulta propia que responda otra pregunta.",
+    "checklist": [
+     "Todos los ejercicios resueltos",
+     "Conclusión escrita",
+     "Ortografía revisada"
+    ],
+    "exercises": [
+     {
+      "id": "s01-1",
+      "title": "Cuántas provincias",
+      "prompt": "¿Cuántas provincias hay? Devuelve un solo número.",
+      "hint": "Empieza por el FROM.",
+      "solution": "SELECT COUNT(*) FROM provincias;",
+      "check": "",
+      "setup": "",
+      "starter": "",
+      "orderMatters": false
+     },
+     {
+      "id": "s01-2",
+      "title": "Categorías",
+      "prompt": "Muestra el `nombre` de todas las categorías ordenadas alfabéticamente.",
+      "hint": "Empieza por el FROM.",
+      "solution": "SELECT nombre FROM categorias ORDER BY nombre;",
+      "check": "",
+      "setup": "",
+      "starter": "",
+      "orderMatters": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "s02",
+   "number": 2,
+   "phaseId": 1,
+   "title": "Calcular y resumir",
+   "rangeLabel": "19 oct – 24 oct",
+   "days": [
+    {
+     "date": "2026-10-19",
+     "kind": "workshop",
+     "title": "Expresiones y funciones",
+     "summary": "Día de prueba: expresiones y funciones con ejercicios en el laboratorio.",
+     "objectives": [
+      "Leer una tabla con SELECT",
+      "Elegir columnas",
+      "Comprobar resultados"
+     ],
+     "schedule": [
+      {
+       "label": "Tema 1",
+       "minutes": 70
+      },
+      {
+       "label": "Tema 2",
+       "minutes": 70
+      },
+      {
+       "label": "Práctica en el laboratorio",
+       "minutes": 70
+      },
+      {
+       "label": "Evaluación",
+       "minutes": 30
+      }
+     ],
+     "topics": [
+      {
+       "title": "Aritmética",
+       "concept": "**Aritmética** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre, precio\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "nombre                     | precio\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   6500\nCafé en grano Naranjo 1 kg |  12500\nCafé molido Orosi 250 g    |   3800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      },
+      {
+       "title": "Funciones de texto",
+       "concept": "**Funciones de texto** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre AS producto, precio - costo AS margen\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "producto                   | margen\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   2900\nCafé en grano Naranjo 1 kg |   5250\nCafé molido Orosi 250 g    |   1800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      }
+     ],
+     "exercises": [
+      {
+       "id": "2026-10-19-1",
+       "title": "Margen",
+       "prompt": "Muestra el `nombre` y el margen (`precio - costo`) de cada producto.",
+       "hint": "Empieza por el FROM.",
+       "solution": "SELECT nombre, precio - costo FROM productos;",
+       "check": "",
+       "setup": "",
+       "starter": "",
+       "orderMatters": false
+      }
+     ],
+     "tasks": [],
+     "taskHints": [],
+     "challenge": {
+      "title": "Reto de prueba",
+      "description": "Muestra las 3 provincias con el nombre más largo.",
+      "hint": "Usa LENGTH.",
+      "solution": "SELECT nombre FROM provincias ORDER BY LENGTH(nombre) DESC, nombre LIMIT 3;",
+      "language": "sql"
+     },
+     "glossary": [
+      {
+       "term": "tabla",
+       "definition": "Conjunto de filas con las mismas columnas."
+      },
+      {
+       "term": "columna",
+       "definition": "Un dato de cada fila, con nombre y tipo."
+      },
+      {
+       "term": "consulta",
+       "definition": "Una pregunta a la base de datos escrita en SQL."
+      },
+      {
+       "term": "fila",
+       "definition": "Un registro de la tabla."
+      }
+     ],
+     "resources": [
+      {
+       "title": "SELECT en SQLite",
+       "url": "https://www.sqlite.org/lang_select.html"
+      },
+      {
+       "title": "Expresiones en SQLite",
+       "url": "https://www.sqlite.org/lang_expr.html"
+      }
+     ],
+     "questions": [
+      {
+       "type": "choice",
+       "prompt": "¿Qué hace SELECT?",
+       "code": "",
+       "options": [
+        "Muestra columnas",
+        "Borra filas",
+        "Crea tablas",
+        "Nada"
+       ],
+       "correctIndex": 0,
+       "accepted": [],
+       "optionFeedback": [
+        "Correcto.",
+        "No borra.",
+        "No crea.",
+        "Sí hace algo."
+       ],
+       "explanation": "SELECT muestra columnas de una tabla.",
+       "hint": "Piensa en ver datos."
+      },
+      {
+       "type": "boolean",
+       "prompt": "Una consulta SELECT cambia los datos de la tabla.",
+       "code": "",
+       "options": [
+        "Verdadero",
+        "Falso"
+       ],
+       "correctIndex": 1,
+       "accepted": [],
+       "optionFeedback": [
+        "No: SELECT solo lee.",
+        "Correcto: solo lee."
+       ],
+       "explanation": "SELECT solo lee los datos.",
+       "hint": "¿Lees o escribes?"
+      },
+      {
+       "type": "output",
+       "prompt": "¿Qué devuelve esta consulta?",
+       "code": "SELECT COUNT(*) FROM provincias;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "7"
+       ],
+       "optionFeedback": [],
+       "explanation": "Hay 7 provincias.",
+       "hint": "Cuenta las provincias de Costa Rica."
+      },
+      {
+       "type": "fill",
+       "prompt": "Completa para traer todas las columnas.",
+       "code": "SELECT ___ FROM productos;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "*"
+       ],
+       "optionFeedback": [],
+       "explanation": "El asterisco trae todas las columnas.",
+       "hint": "Un solo carácter."
+      }
+     ]
+    },
+    {
+     "date": "2026-10-20",
+     "kind": "workshop",
+     "title": "CASE WHEN",
+     "summary": "Día de prueba: case when con ejercicios en el laboratorio.",
+     "objectives": [
+      "Leer una tabla con SELECT",
+      "Elegir columnas",
+      "Comprobar resultados"
+     ],
+     "schedule": [
+      {
+       "label": "Tema 1",
+       "minutes": 70
+      },
+      {
+       "label": "Tema 2",
+       "minutes": 70
+      },
+      {
+       "label": "Práctica en el laboratorio",
+       "minutes": 70
+      },
+      {
+       "label": "Evaluación",
+       "minutes": 30
+      }
+     ],
+     "topics": [
+      {
+       "title": "CASE",
+       "concept": "**CASE** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre, precio\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "nombre                     | precio\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   6500\nCafé en grano Naranjo 1 kg |  12500\nCafé molido Orosi 250 g    |   3800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      },
+      {
+       "title": "COALESCE",
+       "concept": "**COALESCE** es una idea clave de hoy.\n\nCon `SELECT` le pides a la base las columnas que quieres ver. Este es un texto de prueba con un segundo párrafo para comprobar los párrafos.",
+       "tip": "Escribe primero el FROM mentalmente y luego elige las columnas.",
+       "example": "SELECT nombre AS producto, precio - costo AS margen\nFROM productos\nLIMIT 3;",
+       "language": "sql",
+       "exampleOutput": "producto                   | margen\n---------------------------+-------\nCafé molido Tarrazú 500 g  |   2900\nCafé en grano Naranjo 1 kg |   5250\nCafé molido Orosi 250 g    |   1800\n(3 filas)",
+       "steps": [
+        {
+         "title": "Abre el laboratorio",
+         "body": "Ve al laboratorio SQL y mira las tablas a la izquierda: cada una tiene sus columnas.",
+         "code": "",
+         "language": "sql"
+        },
+        {
+         "title": "Consulta una tabla",
+         "body": "Escribe una consulta corta y ejecútala con Ctrl + Enter para ver el resultado abajo.",
+         "code": "SELECT nombre FROM provincias;",
+         "language": "sql"
+        },
+        {
+         "title": "Cambia las columnas",
+         "body": "Agrega o quita columnas y vuelve a ejecutar para ver la diferencia.",
+         "code": "SELECT id, nombre FROM provincias;",
+         "language": "sql"
+        }
+       ],
+       "commonErrors": [
+        {
+         "error": "no such column: nombres",
+         "cause": "La columna se escribe distinto.",
+         "fix": "Revisa el nombre en el explorador."
+        },
+        {
+         "error": "no such table: producto",
+         "cause": "Las tablas van en plural.",
+         "fix": "Usa productos."
+        }
+       ]
+      }
+     ],
+     "exercises": [
+      {
+       "id": "2026-10-20-1",
+       "title": "Promedio de precios",
+       "prompt": "Muestra el precio promedio de los productos redondeado a 2 decimales.",
+       "hint": "Empieza por el FROM.",
+       "solution": "SELECT ROUND(AVG(precio), 2) FROM productos;",
+       "check": "",
+       "setup": "",
+       "starter": "",
+       "orderMatters": false
+      }
+     ],
+     "tasks": [],
+     "taskHints": [],
+     "challenge": {
+      "title": "Reto de prueba",
+      "description": "Muestra las 3 provincias con el nombre más largo.",
+      "hint": "Usa LENGTH.",
+      "solution": "SELECT nombre FROM provincias ORDER BY LENGTH(nombre) DESC, nombre LIMIT 3;",
+      "language": "sql"
+     },
+     "glossary": [
+      {
+       "term": "tabla",
+       "definition": "Conjunto de filas con las mismas columnas."
+      },
+      {
+       "term": "columna",
+       "definition": "Un dato de cada fila, con nombre y tipo."
+      },
+      {
+       "term": "consulta",
+       "definition": "Una pregunta a la base de datos escrita en SQL."
+      },
+      {
+       "term": "fila",
+       "definition": "Un registro de la tabla."
+      }
+     ],
+     "resources": [
+      {
+       "title": "SELECT en SQLite",
+       "url": "https://www.sqlite.org/lang_select.html"
+      },
+      {
+       "title": "Expresiones en SQLite",
+       "url": "https://www.sqlite.org/lang_expr.html"
+      }
+     ],
+     "questions": [
+      {
+       "type": "choice",
+       "prompt": "¿Qué hace SELECT?",
+       "code": "",
+       "options": [
+        "Muestra columnas",
+        "Borra filas",
+        "Crea tablas",
+        "Nada"
+       ],
+       "correctIndex": 0,
+       "accepted": [],
+       "optionFeedback": [
+        "Correcto.",
+        "No borra.",
+        "No crea.",
+        "Sí hace algo."
+       ],
+       "explanation": "SELECT muestra columnas de una tabla.",
+       "hint": "Piensa en ver datos."
+      },
+      {
+       "type": "boolean",
+       "prompt": "Una consulta SELECT cambia los datos de la tabla.",
+       "code": "",
+       "options": [
+        "Verdadero",
+        "Falso"
+       ],
+       "correctIndex": 1,
+       "accepted": [],
+       "optionFeedback": [
+        "No: SELECT solo lee.",
+        "Correcto: solo lee."
+       ],
+       "explanation": "SELECT solo lee los datos.",
+       "hint": "¿Lees o escribes?"
+      },
+      {
+       "type": "output",
+       "prompt": "¿Qué devuelve esta consulta?",
+       "code": "SELECT COUNT(*) FROM provincias;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "7"
+       ],
+       "optionFeedback": [],
+       "explanation": "Hay 7 provincias.",
+       "hint": "Cuenta las provincias de Costa Rica."
+      },
+      {
+       "type": "fill",
+       "prompt": "Completa para traer todas las columnas.",
+       "code": "SELECT ___ FROM productos;",
+       "options": [],
+       "correctIndex": 0,
+       "accepted": [
+        "*"
+       ],
+       "optionFeedback": [],
+       "explanation": "El asterisco trae todas las columnas.",
+       "hint": "Un solo carácter."
+      }
+     ]
+    }
+   ],
+   "deliverable": {
+    "dueDate": "2026-10-24",
+    "kind": "weekly",
+    "path": "semana-02/reporte.py",
+    "description": "Un reporte corto hecho en tu computador.",
+    "criteria": [
+     "El programa corre",
+     "Muestra el resultado",
+     "El código está ordenado"
+    ],
+    "steps": [
+     "Crea el archivo.",
+     "Escribe el código.",
+     "Pruébalo."
+    ],
+    "tips": [
+     "Nombra bien las variables.",
+     "Prueba con datos reales."
+    ],
+    "stretch": "Agrega una gráfica.",
+    "checklist": [
+     "Corre sin errores",
+     "Pegaste la salida",
+     "Probaste otro caso"
+    ]
+   }
+  }
+ ]
+}

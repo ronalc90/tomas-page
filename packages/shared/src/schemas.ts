@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isIsoDate } from "./dates";
+import { SQL_MAX_LENGTH } from "./sqlcheck";
 
 /** Validaciones de las peticiones. Las usa la API y los formularios de la web. */
 
@@ -41,6 +42,27 @@ export const quizAttemptSchema = z.object({
   answers: z.array(z.union([z.number().int().min(0).max(9), z.string().max(ANSWER_MAX)])).min(1).max(20),
   /** Posiciones de las preguntas en las que se destapó la pista. */
   hints: z.array(z.number().int().min(0).max(19)).max(20).default([]),
+});
+
+export const exerciseCheckSchema = z.object({
+  sql: z
+    .string()
+    .max(SQL_MAX_LENGTH, `El SQL puede tener hasta ${SQL_MAX_LENGTH.toLocaleString("es-CR")} caracteres`)
+    .refine((v) => v.trim().length > 0, "Escribe tu consulta antes de comprobar"),
+});
+
+export const EXERCISE_ID = /^[a-z0-9-]{1,40}$/;
+
+export const sqlExerciseSchema = z.object({
+  id: z.string().trim().regex(EXERCISE_ID, "El id solo puede tener minúsculas, números y guiones"),
+  title: z.string().trim().min(1, "El ejercicio necesita un título").max(120),
+  prompt: z.string().trim().min(1, "Escribe el enunciado").max(3_000),
+  hint: z.string().trim().max(1_000).default(""),
+  solution: z.string().trim().min(1, "Escribe la solución").max(SQL_MAX_LENGTH),
+  check: z.string().max(SQL_MAX_LENGTH).default(""),
+  setup: z.string().max(SQL_MAX_LENGTH).default(""),
+  starter: z.string().max(4_000).default(""),
+  orderMatters: z.boolean().default(false),
 });
 
 export const submissionDraftSchema = z
@@ -160,6 +182,7 @@ export const adminDaySchema = z.object({
   glossary: z.array(z.object({ term: z.string().trim().min(1).max(80), definition: z.string().trim().min(1).max(800) })).max(10).default([]),
   resources: z.array(z.object({ title: z.string().trim().min(1).max(150), url: z.string().trim().url("Escribe una dirección válida").max(400) })).max(6).default([]),
   questions: z.array(adminQuestionSchema).max(10),
+  exercises: z.array(sqlExerciseSchema).max(12).default([]),
 });
 
 export const adminDeliverableSchema = z.object({
@@ -170,6 +193,8 @@ export const adminDeliverableSchema = z.object({
   tips: z.array(z.string().trim().min(1).max(800)).max(6).default([]),
   stretch: z.string().trim().max(1_000).default(""),
   checklist: z.array(z.string().trim().min(1).max(400)).max(8).default([]),
+  /** Si no se envía, los ejercicios del entregable no cambian. */
+  exercises: z.array(sqlExerciseSchema).max(12).optional(),
 });
 
 export const settingsSchema = z.object({
@@ -188,3 +213,5 @@ export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type AdminDayInput = z.infer<typeof adminDaySchema>;
 export type AdminDeliverableInput = z.infer<typeof adminDeliverableSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;
+export type ExerciseCheckInput = z.infer<typeof exerciseCheckSchema>;
+export type SqlExerciseInput = z.infer<typeof sqlExerciseSchema>;

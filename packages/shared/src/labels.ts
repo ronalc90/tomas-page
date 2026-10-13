@@ -46,6 +46,8 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   workshop_completed: "completó el taller",
   quiz_attempt: "presentó la evaluación",
   challenge_done: "hizo el reto extra",
+  exercise_solved: "resolvió el ejercicio",
+  solution_revealed: "vio la solución del ejercicio",
   submission_submitted: "envió el entregable",
   submission_withdrawn: "retiró el entregable",
   submission_reviewed: "revisó el entregable",
@@ -64,3 +66,12 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   output: "¿Qué muestra?",
   fill: "Completa el código",
 };
+
+/** "45 min", "2 h", "3 h 20 min" */
+export function formatMinutes(minutes: number): string {
+  const m = Math.max(0, Math.round(minutes));
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? `${h} h ${r} min` : `${h} h`;
+}

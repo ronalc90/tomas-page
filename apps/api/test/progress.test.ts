@@ -80,6 +80,45 @@ describe("computeProgress", () => {
   });
 });
 
+describe("ejercicios y minutos de estudio", () => {
+  const withExercises: ProgressPlanInput = {
+    phases: [{ id: 1, name: "SQL" }],
+    weeks: [{ id: "s01", phaseId: 1 }],
+    days: [
+      { date: "2026-10-13", weekId: "s01", kind: "workshop", title: "SELECT", taskCount: 0, questionCount: 4, exerciseIds: ["a", "b"] },
+      { date: "2026-10-14", weekId: "s01", kind: "workshop", title: "WHERE", taskCount: 1, questionCount: 4, exerciseIds: ["c"] },
+    ],
+    deliverables: [{ id: "s01", weekId: "s01", dueDate: "2026-10-17", title: "Entregable", exerciseIds: ["d"] }],
+  };
+  const passed = { attempts: 1, best: 4, first: 4 };
+
+  it("no completa el taller hasta resolver todos sus ejercicios", () => {
+    const base = { days: {}, quizzes: { "2026-10-13": passed }, submissions: {} };
+    const partial = computeProgress(withExercises, { ...base, exercises: { a: { attempts: 2, solved: true }, b: { attempts: 1, solved: false } } }, "2026-10-13", 3);
+    expect(partial.days["2026-10-13"]).toMatchObject({ status: "in_progress", exercisesDone: 1, exercisesTotal: 2 });
+    const full = computeProgress(withExercises, { ...base, exercises: { a: { attempts: 2, solved: true }, b: { attempts: 3, solved: true } } }, "2026-10-13", 3);
+    expect(full.days["2026-10-13"].status).toBe("done");
+    expect(full.totals).toMatchObject({ exercisesSolved: 2, exercisesTotal: 4, workshopsDone: 1 });
+  });
+
+  it("un taller sin tareas solo con ejercicios también exige la evaluación", () => {
+    const p = computeProgress(withExercises, { days: {}, quizzes: {}, submissions: {}, exercises: { a: { attempts: 1, solved: true }, b: { attempts: 1, solved: true } } }, "2026-10-13", 3);
+    expect(p.days["2026-10-13"].status).toBe("in_progress");
+  });
+
+  it("un intento de ejercicio ya cuenta como empezado, también en el entregable", () => {
+    const p = computeProgress(withExercises, { days: {}, quizzes: {}, submissions: {}, exercises: { c: { attempts: 1, solved: false }, d: { attempts: 1, solved: true } } }, "2026-10-14", 3);
+    expect(p.days["2026-10-14"].status).toBe("in_progress");
+    expect(p.deliverables.s01).toMatchObject({ status: "in_progress", exercisesDone: 1, exercisesTotal: 1 });
+  });
+
+  it("suma los minutos de estudio", () => {
+    const p = computeProgress(withExercises, { days: {}, quizzes: {}, submissions: {}, study: { "2026-10-13": 45, "2026-10-14": 30 } }, "2026-10-14", 3);
+    expect(p.totals.studyMinutes).toBe(75);
+    expect(p.study["2026-10-13"]).toBe(45);
+  });
+});
+
 describe("fechas", () => {
   it("usa la zona horaria de Costa Rica para decidir qué día es hoy", () => {
     // 2026-10-01 05:00 UTC es todavía 30 de septiembre en Costa Rica (UTC-6).
