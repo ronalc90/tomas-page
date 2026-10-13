@@ -2,7 +2,7 @@
   "name": "tomas-page",
   "version": "1.0.0",
   "private": true,
-  "description": "Plan de Tomás: aprende Python y SQL con talleres diarios, evaluaciones y entregables.",
+  "description": "Plan de Tomás Sandí: SQL y Python con talleres diarios, ejercicios que se califican solos, laboratorio SQL, evaluaciones y entregables.",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -20,9 +20,7 @@
     "e2e": "playwright test",
     "db:migrate": "npm run db:migrate -w @tomas/api",
     "db:seed": "npm run db:seed -w @tomas/api",
-    "db:generate": "npm run db:generate -w @tomas/api",
-    "build:pages": "VITE_DATA_MODE=local VITE_BASE=/tomas-page/ npm run build -w @tomas/web",
-    "e2e:pages": "playwright test -c playwright.pages.config.ts"
+    "db:generate": "npm run db:generate -w @tomas/api"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

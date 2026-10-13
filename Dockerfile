@@ -29,7 +29,11 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/drizzle ./apps/api/drizzle
 COPY --from=build /app/apps/web/dist ./apps/web/dist
+# Los ejercicios SQL se califican con sql.js (su .wasm viene en node_modules/sql.js/dist, una
+# dependencia de producción de la API) sobre la base de práctica tienda.sql.
+COPY --from=build /app/packages/shared/src/data/tienda.sql ./packages/shared/src/data/tienda.sql
 COPY package.json VERSION ./
+RUN test -f node_modules/sql.js/dist/sql-wasm.wasm && test -f apps/api/dist/sql-worker.mjs
 USER node
 EXPOSE 3000
 CMD ["node", "apps/api/dist/server.js"]

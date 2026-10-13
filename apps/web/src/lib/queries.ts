@@ -29,7 +29,6 @@ import type {
   UserRow,
 } from "@tomas/shared";
 import { api, ApiError, serial } from "./api";
-import { BASENAME } from "./mode";
 
 export const keys = {
   me: ["me"] as const,
@@ -91,7 +90,7 @@ export function useLogout() {
     },
     onSettled: () => {
       qc.clear();
-      window.location.replace(`${BASENAME}/login`);
+      window.location.replace("/login");
     },
   });
 }

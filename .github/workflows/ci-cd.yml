@@ -87,53 +87,20 @@ jobs:
             -e DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres \
             -e SEED_ADMIN_PASSWORD=ci-admin-password -e SEED_STUDENT_PASSWORD=1234 \
             tomas-page:${{ github.sha }}
-          for i in $(seq 1 30); do curl -fsS localhost:3000/api/health && exit 0; sleep 2; done
+          for i in $(seq 1 30); do
+            # La salud incluye el motor de SQL de los ejercicios (sql.js + tienda.sql).
+            if curl -fsS localhost:3000/api/health | tee /dev/stderr | grep -q '"sql":"ok"'; then exit 0; fi
+            sleep 2
+          done
           docker logs app
           exit 1
 
-  pages:
-    name: Versión GitHub Pages
+  # La versión sin servidor ya no existe: el progreso vive solo en el backend. Si la variable APP_URL
+  # existe, GitHub Pages publica una página mínima que lleva a la app (también desde enlaces viejos).
+  pages-redirect:
+    name: GitHub Pages redirige a la app
     needs: [verify]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Instalar dependencias
-        run: npm ci
-
-      - name: Compilar la versión sin servidor
-        run: VITE_APP_VERSION="${GITHUB_SHA::7}" npm run build:pages
-
-      - name: Instalar Chromium para Playwright
-        run: npx playwright install --with-deps chromium
-
-      - name: Probar la versión sin servidor
-        run: npm run e2e:pages
-
-      - name: Guardar el reporte de Playwright
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report-pages
-          path: playwright-report-pages
-          retention-days: 7
-
-      - name: Preparar la publicación
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: apps/web/dist
-
-  publish-pages:
-    name: Publicar en GitHub Pages
-    needs: [pages]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.APP_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -146,6 +113,56 @@ jobs:
       group: pages
       cancel-in-progress: false
     steps:
+      - name: Crear la página que redirige
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          mkdir -p redirect
+          python3 - <<'PY'
+          import html, json, os
+          url = os.environ["APP_URL"].rstrip("/") + "/"
+          repo = os.environ["REPO"]
+          page = rf"""<!doctype html>
+          <html lang="es">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>El plan se mudó</title>
+            <meta http-equiv="refresh" content="0; url={html.escape(url)}">
+            <link rel="canonical" href="{html.escape(url)}">
+            <style>
+              body {{ font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; background: #f3f5f7; color: #16202b; }}
+              main {{ max-width: 32rem; padding: 2rem; text-align: center; }}
+              a {{ color: #1d6b59; font-weight: 700; overflow-wrap: anywhere; }}
+              @media (prefers-color-scheme: dark) {{ body {{ background: #0f151c; color: #e4eaf0; }} a {{ color: #4cb597; }} }}
+            </style>
+          </head>
+          <body>
+            <main>
+              <h1>El plan se mudó</h1>
+              <p>El plan se mudó a <a id="destino" href="{html.escape(url)}">{html.escape(url)}</a>. Tu avance está guardado allá.</p>
+            </main>
+            <script>
+              // Conserva la ruta de los enlaces viejos: /{repo}/dia/2026-10-13 → APP_URL/dia/2026-10-13
+              var base = {json.dumps(url)};
+              var path = location.pathname.replace(new RegExp("^/" + {json.dumps(repo)} + "/?"), "").replace(/^\//, "");
+              var destino = base + path + location.search + location.hash;
+              document.getElementById("destino").href = destino;
+              location.replace(destino);
+            </script>
+          </body>
+          </html>
+          """
+          open("redirect/index.html", "w", encoding="utf-8").write(page)
+          PY
+          cp redirect/index.html redirect/404.html
+
+      - name: Preparar la publicación
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: redirect
+
       - name: Publicar
         id: deployment
         uses: actions/deploy-pages@v5
@@ -153,7 +170,7 @@ jobs:
       - name: Verificar que la página responde
         run: |
           for i in $(seq 1 20); do
-            if curl -fsS "${{ steps.deployment.outputs.page_url }}" | grep -q "Plan de Tomás"; then
+            if curl -fsS "${{ steps.deployment.outputs.page_url }}" | grep -q "El plan se mudó"; then
               echo "Página en línea: ${{ steps.deployment.outputs.page_url }}"
               exit 0
             fi

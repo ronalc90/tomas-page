@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { ROLE_LABEL, type MeResponse } from "@tomas/shared";
 import { initials } from "../lib/format";
-import { LOCAL_MODE } from "../lib/mode";
 import { useLogout, useOverview } from "../lib/queries";
 import { applyTheme, getTheme, type Theme } from "../lib/theme";
 import { useStudyPing } from "../lib/useStudyPing";
@@ -129,12 +128,6 @@ export function AppShell({ me }: { me: MeResponse }) {
         </nav>
 
         <div className="sidebar-footer">
-          {LOCAL_MODE && (
-            <NavLink to="/cuenta" className="local-note" title="Los datos se guardan en este navegador. Descarga una copia desde Mi cuenta.">
-              <span className="dot" aria-hidden="true" />
-              Datos guardados en este navegador
-            </NavLink>
-          )}
           <div className="user-card">
             <span className="avatar" aria-hidden="true">
               {initials(me.user.displayName)}

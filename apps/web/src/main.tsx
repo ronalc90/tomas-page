@@ -18,7 +18,6 @@ import { App } from "./App";
 import { ToastProvider } from "./components/Toast";
 import { ApiError } from "./lib/api";
 import { keys } from "./lib/queries";
-import { BASENAME, LOCAL_MODE } from "./lib/mode";
 import { applyTheme, getTheme } from "./lib/theme";
 
 applyTheme(getTheme());
@@ -40,22 +39,10 @@ const queryClient = new QueryClient({
   },
 });
 
-if (LOCAL_MODE) {
-  // Si los datos cambian en otra pestaña, se recargan aquí.
-  window.addEventListener("storage", (event) => {
-    if (event.key?.startsWith("tp-local")) {
-      void import("./local/store").then(({ resetCache }) => {
-        resetCache();
-        void queryClient.invalidateQueries();
-      });
-    }
-  });
-}
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename={BASENAME || undefined}>
+      <BrowserRouter>
         <ToastProvider>
           <App />
         </ToastProvider>

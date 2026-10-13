@@ -1,10 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { ROLE_LABEL } from "@tomas/shared";
-import { LocalBackup } from "../../components/LocalBackup";
 import { useToast } from "../../components/Toast";
 import { Field, PageHeader } from "../../components/ui";
 import { ApiError, errorMessage } from "../../lib/api";
-import { LOCAL_MODE } from "../../lib/mode";
 import { useChangePassword, useMe } from "../../lib/queries";
 import { applyTheme, getTheme, type Theme } from "../../lib/theme";
 
@@ -93,7 +91,6 @@ export function AccountPage() {
           ))}
         </div>
       </div>
-      {LOCAL_MODE && <LocalBackup />}
     </div>
   );
 }

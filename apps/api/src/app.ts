@@ -111,10 +111,22 @@ export async function buildApp(config: Config, db: Database): Promise<{ app: Fas
     return reply.status(500).send({ error: "internal", message: "Algo falló de nuestro lado. Inténtalo de nuevo." });
   });
 
+  /** El motor de SQL de los ejercicios (sql.js + tienda.sql) responde: se comprueba una vez. */
+  let sqlEngine: Promise<"ok" | "error"> | null = null;
+  const checkSqlEngine = () =>
+    (sqlEngine ??= ctx.sql
+      .run({ sql: "SELECT count(*) FROM provincias" })
+      .then((out) => (out.ok && out.result?.rows[0]?.[0] === 7 ? ("ok" as const) : ("error" as const)))
+      .catch(() => "error" as const)
+      .then((r) => {
+        if (r === "error") sqlEngine = null;
+        return r;
+      }));
+
   app.get("/api/health", async (_request, reply) => {
     try {
       await db.execute(sql`select 1`);
-      return { status: "ok", database: "ok", version: VERSION };
+      return { status: "ok", database: "ok", sql: await checkSqlEngine(), version: VERSION };
     } catch {
       return reply.status(503).send({ status: "error", database: "unreachable", version: VERSION });
     }

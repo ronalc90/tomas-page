@@ -7,7 +7,7 @@ describe("autenticación", () => {
   it("responde el estado de salud con la base conectada", async () => {
     const res = await env.app.inject({ method: "GET", url: "/api/health" });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ status: "ok", database: "ok" });
+    expect(res.json()).toMatchObject({ status: "ok", database: "ok", sql: "ok" });
   });
 
   it("rechaza una contraseña incorrecta sin revelar si el usuario existe", async () => {

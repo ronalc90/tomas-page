@@ -1,5 +1,4 @@
 import type { ApiErrorBody } from "@tomas/shared";
-import { LOCAL_MODE } from "./mode";
 
 export class ApiError extends Error {
   constructor(
@@ -13,18 +12,8 @@ export class ApiError extends Error {
 }
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-type LocalHandler = <T>(method: string, path: string, body?: unknown) => Promise<T>;
-
-let localHandler: LocalHandler | undefined;
 
 export async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
-  if (LOCAL_MODE) {
-    // Sin servidor: la misma API se atiende dentro del navegador (se carga solo en ese modo).
-    // Se guarda la referencia tras la primera carga: así un guardado lanzado al cerrar o recargar
-    // la pestaña termina de inmediato, sin esperar otra importación.
-    localHandler ??= (await import("../local/server")).handleLocal;
-    return localHandler<T>(method, path, body);
-  }
   let res: Response;
   try {
     const payload = body !== undefined ? JSON.stringify(body) : undefined;
