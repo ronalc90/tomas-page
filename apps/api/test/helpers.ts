@@ -6,7 +6,8 @@ import { buildApp } from "../src/app";
 import { loadConfig } from "../src/config";
 import type { AppContext } from "../src/context";
 import { createDb, type DbHandle } from "../src/db/client";
-import { seedUsers } from "../src/db/seed";
+import { loadPlan, seedContent, seedUsers } from "../src/db/seed";
+import { FIXTURE_PLAN } from "./fixture";
 
 export const ADMIN = { username: "admin", password: "admin-password-123" };
 export const STUDENT = { username: "tomas", password: "1234" };
@@ -17,8 +18,8 @@ export interface TestEnv {
   handle: DbHandle;
 }
 
-/** Crea la app con una fecha fija de "hoy" y usuarios nuevos para cada archivo de pruebas. */
-export function useTestApp(today = "2026-10-01"): TestEnv {
+/** Crea la app con una fecha fija de "hoy", el plan de prueba y usuarios nuevos para cada archivo de pruebas. */
+export function useTestApp(today = "2026-10-14"): TestEnv {
   const env = {} as TestEnv;
   beforeAll(async () => {
     const config = loadConfig({
@@ -28,7 +29,9 @@ export function useTestApp(today = "2026-10-01"): TestEnv {
       SEED_STUDENT_PASSWORD: STUDENT.password,
     });
     env.handle = createDb(config.databaseUrl);
-    await env.handle.db.execute(sql`TRUNCATE users, activity RESTART IDENTITY CASCADE`);
+    await env.handle.db.execute(sql`TRUNCATE users, activity, exercise_progress, study_time RESTART IDENTITY CASCADE`);
+    // Cada archivo empieza con el plan de prueba intacto (otros archivos lo editan).
+    await seedContent(env.handle.db, { reset: true, plan: loadPlan(FIXTURE_PLAN) });
     await env.handle.db.execute(sql`UPDATE settings SET value = '5'::jsonb WHERE key = 'passScore'`);
     await seedUsers(env.handle.db, config.seed);
     const built = await buildApp(config, env.handle.db);
@@ -72,3 +75,11 @@ export async function correctAnswers(env: TestEnv, date: string): Promise<Answer
 
 /** Una respuesta equivocada por pregunta (válida en forma, incorrecta en contenido). */
 export const wrongAnswers = (answers: Answer[]): Answer[] => answers.map((a) => (typeof a === "number" ? (a + 1) % 2 : "respuesta mala"));
+
+/** La solución de un ejercicio, leída de la base (para comprobarla como si la escribiera el estudiante). */
+export async function solutionOf(env: TestEnv, id: string): Promise<string> {
+  const plan = await env.ctx.plan.get();
+  const found = plan.exercises.get(id);
+  if (!found) throw new Error(`No existe el ejercicio ${id}`);
+  return found.exercise.solution;
+}

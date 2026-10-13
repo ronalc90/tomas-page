@@ -15,6 +15,7 @@ import { HttpError } from "./lib/errors";
 import { loadSession } from "./plugins/auth";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
+import { exerciseRoutes } from "./routes/exercises";
 import { studentRoutes } from "./routes/student";
 
 function readVersion(): string {
@@ -60,7 +61,10 @@ export async function buildApp(config: Config, db: Database): Promise<{ app: Fas
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        // 'wasm-unsafe-eval' permite compilar WebAssembly (sql.js) sin permitir eval de JavaScript.
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
+        // El laboratorio SQL corre en un Web Worker.
+        workerSrc: ["'self'", "blob:"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:"],
         fontSrc: ["'self'", "data:"],
@@ -73,6 +77,9 @@ export async function buildApp(config: Config, db: Database): Promise<{ app: Fas
       },
     },
     hsts: config.production,
+  });
+  app.addHook("onClose", async () => {
+    await ctx.sql.close();
   });
   await app.register(cookie);
   await app.register(rateLimit, {
@@ -115,6 +122,7 @@ export async function buildApp(config: Config, db: Database): Promise<{ app: Fas
 
   await authRoutes(app, ctx);
   await studentRoutes(app, ctx);
+  await exerciseRoutes(app, ctx);
   await adminRoutes(app, ctx);
 
   const webDist = resolveWebDist(config.webDist);

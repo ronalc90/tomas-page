@@ -5,6 +5,7 @@ import {
   type DeliverableKind,
   type PlanResponse,
   type ProgressPlanInput,
+  type SqlExercise,
 } from "@tomas/shared";
 import type { Database } from "../db/client";
 import { days, deliverables, phases, questions, weeks } from "../db/schema";
@@ -16,6 +17,7 @@ export interface IndexedDay {
   title: string;
   taskCount: number;
   questionCount: number;
+  exerciseIds: string[];
 }
 
 export interface IndexedWeek {
@@ -33,6 +35,14 @@ export interface IndexedDeliverable {
   kind: DeliverableKind;
   path: string;
   title: string;
+  exerciseIds: string[];
+}
+
+/** Dónde está cada ejercicio: en un taller (date) o en un entregable (deliverableId). */
+export interface IndexedExercise {
+  exercise: SqlExercise;
+  date: string | null;
+  deliverableId: string | null;
 }
 
 export interface PlanIndex {
@@ -43,6 +53,7 @@ export interface PlanIndex {
   phases: Map<number, { id: number; name: string }>;
   deliverables: Map<string, IndexedDeliverable>;
   deliverableByDate: Map<string, IndexedDeliverable>;
+  exercises: Map<string, IndexedExercise>;
   /** Todas las fechas con algo en el calendario (talleres, festivos y entregables), ordenadas. */
   dates: string[];
 }
@@ -70,7 +81,16 @@ export class PlanCache {
       this.db.select().from(phases).orderBy(asc(phases.id)),
       this.db.select().from(weeks).orderBy(asc(weeks.number)),
       this.db
-        .select({ date: days.date, weekId: days.weekId, kind: days.kind, title: days.title, tasks: days.tasks, summary: days.summary, topics: days.topics })
+        .select({
+          date: days.date,
+          weekId: days.weekId,
+          kind: days.kind,
+          title: days.title,
+          tasks: days.tasks,
+          summary: days.summary,
+          topics: days.topics,
+          exercises: days.exercises,
+        })
         .from(days)
         .orderBy(asc(days.date)),
       this.db.select().from(deliverables),
@@ -89,9 +109,13 @@ export class PlanCache {
           title: d.title,
           taskCount: d.tasks.length,
           questionCount: qCount.get(d.date) ?? 0,
+          exerciseIds: d.exercises.map((e) => e.id),
         },
       ]),
     );
+    const exerciseMap = new Map<string, IndexedExercise>();
+    for (const d of dayRows) for (const e of d.exercises) exerciseMap.set(e.id, { exercise: e, date: d.date, deliverableId: null });
+    for (const d of deliverableRows) for (const e of d.exercises) exerciseMap.set(e.id, { exercise: e, date: null, deliverableId: d.id });
     const deliverableMap = new Map<string, IndexedDeliverable>();
     const byDate = new Map<string, IndexedDeliverable>();
     for (const d of deliverableRows) {
@@ -103,6 +127,7 @@ export class PlanCache {
         kind: d.kind as DeliverableKind,
         path: d.path,
         title: deliverableTitle(d.kind as DeliverableKind, week?.number ?? 0),
+        exerciseIds: d.exercises.map((e) => e.id),
       };
       deliverableMap.set(d.id, item);
       byDate.set(d.dueDate, item);
@@ -119,7 +144,15 @@ export class PlanCache {
           ...w,
           days: dayRows
             .filter((d) => d.weekId === w.id)
-            .map((d) => ({ date: d.date, kind: d.kind, title: d.title, summary: d.summary, topics: d.topics.map((t) => t.title), taskCount: d.tasks.length })),
+            .map((d) => ({
+              date: d.date,
+              kind: d.kind,
+              title: d.title,
+              summary: d.summary,
+              topics: d.topics.map((t) => t.title),
+              taskCount: d.tasks.length,
+              exerciseCount: d.exercises.length,
+            })),
           deliverable: deliverable ? deliverableMap.get(deliverable.id)! : null,
         };
       }),
@@ -136,6 +169,7 @@ export class PlanCache {
           weekId: d.weekId,
           dueDate: d.dueDate,
           title: d.title,
+          exerciseIds: d.exerciseIds,
         })),
       },
       days: dayMap,
@@ -143,6 +177,7 @@ export class PlanCache {
       phases: new Map(phaseRows.map((p) => [p.id, { id: p.id, name: p.name }])),
       deliverables: deliverableMap,
       deliverableByDate: byDate,
+      exercises: exerciseMap,
       dates,
     };
   }

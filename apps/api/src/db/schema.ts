@@ -14,7 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import type { Answer, Challenge, GlossaryItem, QuestionType, Resource, ScheduleBlock, Topic } from "@tomas/shared";
+import type { Answer, Challenge, GlossaryItem, QuestionType, Resource, ScheduleBlock, SqlExercise, Topic } from "@tomas/shared";
 
 export const roleEnum = pgEnum("role", ["student", "admin"]);
 export const dayKindEnum = pgEnum("day_kind", ["workshop", "holiday", "free"]);
@@ -101,6 +101,8 @@ export const days = pgTable(
     challenge: jsonb("challenge").$type<Challenge | null>(),
     glossary: jsonb("glossary").$type<GlossaryItem[]>().notNull().default([]),
     resources: jsonb("resources").$type<Resource[]>().notNull().default([]),
+    /** Ejercicios SQL que se califican solos (con su solución). */
+    exercises: jsonb("exercises").$type<SqlExercise[]>().notNull().default([]),
     updatedAt: updatedAt(),
   },
   (t) => [index("days_week_idx").on(t.weekId)],
@@ -142,6 +144,7 @@ export const deliverables = pgTable("deliverables", {
   tips: jsonb("tips").$type<string[]>().notNull().default([]),
   stretch: text("stretch").notNull().default(""),
   checklist: jsonb("checklist").$type<string[]>().notNull().default([]),
+  exercises: jsonb("exercises").$type<SqlExercise[]>().notNull().default([]),
 });
 
 // ---------- Avance de cada estudiante ----------
@@ -202,6 +205,43 @@ export const submissions = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.deliverableId] }), index("submissions_status_idx").on(t.status)],
+);
+
+/**
+ * Avance de cada estudiante en cada ejercicio SQL. El ejercicio se identifica por su id
+ * (único en todo el plan); `date` o `deliverable_id` dicen de dónde es, como referencia.
+ */
+export const exerciseProgress = pgTable(
+  "exercise_progress",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    exerciseId: text("exercise_id").notNull(),
+    date: date("date", { mode: "string" }),
+    deliverableId: text("deliverable_id"),
+    attempts: integer("attempts").notNull().default(0),
+    solved: boolean("solved").notNull().default(false),
+    solvedAt: isoTimestamp("solved_at"),
+    revealed: boolean("revealed").notNull().default(false),
+    lastSql: text("last_sql"),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.exerciseId] }), index("exercise_progress_solved_idx").on(t.solvedAt)],
+);
+
+/** Minutos de estudio por día (se suma 1 por minuto con la página abierta y en uso). */
+export const studyTime = pgTable(
+  "study_time",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: date("date", { mode: "string" }).notNull(),
+    minutes: integer("minutes").notNull().default(0),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.date] })],
 );
 
 // ---------- Registro y ajustes ----------

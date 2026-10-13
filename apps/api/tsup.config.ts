@@ -1,3 +1,4 @@
+import { copyFileSync } from "node:fs";
 import { defineConfig } from "tsup";
 
 export default defineConfig({
@@ -15,4 +16,8 @@ export default defineConfig({
   splitting: true,
   // El paquete compartido es TypeScript sin compilar: se incluye en el bundle.
   noExternal: ["@tomas/shared"],
+  // El worker de SQL es JavaScript sin compilar: se copia junto al bundle.
+  onSuccess: async () => {
+    copyFileSync("src/sql/sql-worker.mjs", "dist/sql-worker.mjs");
+  },
 });

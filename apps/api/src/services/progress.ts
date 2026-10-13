@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import {
   computeProgress,
+  exerciseCounts,
   isWorkshopDone,
   type DeliverableView,
   type ProgressUserInput,
@@ -8,7 +9,7 @@ import {
   type SubmissionStatus,
 } from "@tomas/shared";
 import type { AppContext } from "../context";
-import { dayProgress, deliverables, quizAttempts, submissions, users } from "../db/schema";
+import { dayProgress, deliverables, exerciseProgress, quizAttempts, studyTime, submissions, users } from "../db/schema";
 import { logActivity } from "./activity";
 
 export interface QuizStats {
@@ -34,13 +35,34 @@ export async function quizStatsByDate(ctx: AppContext, userId: string): Promise<
   return Object.fromEntries(rows.map((r) => [r.date, { attempts: r.attempts, best: r.best, first: r.first, hints: r.hints }]));
 }
 
+/** Intentos y estado de cada ejercicio del usuario. */
+export async function exerciseStats(ctx: AppContext, userId: string): Promise<Record<string, { attempts: number; solved: boolean }>> {
+  const rows = await ctx.db
+    .select({ id: exerciseProgress.exerciseId, attempts: exerciseProgress.attempts, solved: exerciseProgress.solved })
+    .from(exerciseProgress)
+    .where(eq(exerciseProgress.userId, userId));
+  return Object.fromEntries(rows.map((r) => [r.id, { attempts: r.attempts, solved: r.solved }]));
+}
+
+export async function studyByDate(ctx: AppContext, userId: string): Promise<Record<string, number>> {
+  const rows = await ctx.db
+    .select({ date: studyTime.date, minutes: studyTime.minutes })
+    .from(studyTime)
+    .where(eq(studyTime.userId, userId));
+  return Object.fromEntries(rows.map((r) => [r.date, r.minutes]));
+}
+
 export async function loadProgressInput(ctx: AppContext, userId: string): Promise<ProgressUserInput> {
-  const [dayRows, quizzes, subRows] = await Promise.all([
+  const [dayRows, quizzes, subRows, exercises, study] = await Promise.all([
     ctx.db.select().from(dayProgress).where(eq(dayProgress.userId, userId)),
     quizStatsByDate(ctx, userId),
     ctx.db.select().from(submissions).where(eq(submissions.userId, userId)),
+    exerciseStats(ctx, userId),
+    studyByDate(ctx, userId),
   ]);
   return {
+    exercises,
+    study,
     days: Object.fromEntries(
       dayRows.map((r) => [
         r.date,
@@ -78,7 +100,16 @@ export async function refreshWorkshopCompletion(ctx: AppContext, userId: string,
     .where(and(eq(dayProgress.userId, userId), eq(dayProgress.date, date)));
   const stats = (await quizStatsByDate(ctx, userId))[date];
   const { passScore } = await ctx.settings.get();
-  const done = isWorkshopDone(day.taskCount, row?.tasks, stats?.best, day.questionCount, passScore);
+  const ex = exerciseCounts(day.exerciseIds, await exerciseStats(ctx, userId));
+  const done = isWorkshopDone({
+    taskCount: day.taskCount,
+    tasks: row?.tasks,
+    questionCount: day.questionCount,
+    best: stats?.best,
+    passScore,
+    exercisesTotal: ex.total,
+    exercisesSolved: ex.solved,
+  });
 
   if (done && !row?.completedAt) {
     await ctx.db
@@ -120,9 +151,10 @@ export async function deliverableViews(ctx: AppContext, userId: string, onlyId?:
         : eq(submissions.userId, userId),
     );
   const subMap = new Map(subs.map((s) => [s.deliverableId, s]));
+  const exerciseViews = await Promise.all(rows.map((d) => ctx.exercises.views(userId, d.exercises)));
 
   return rows
-    .map((d): DeliverableView => {
+    .map((d, i): DeliverableView => {
       const week = plan.weeks.get(d.weekId)!;
       const indexed = plan.deliverables.get(d.id)!;
       const sub = subMap.get(d.id);
@@ -142,7 +174,8 @@ export async function deliverableViews(ctx: AppContext, userId: string, onlyId?:
         tips: d.tips,
         stretch: d.stretch,
         checklist: d.checklist,
-        state: progress.deliverables[d.id] ?? { status: "pending", submission: null },
+        exercises: exerciseViews[i],
+        state: progress.deliverables[d.id] ?? { status: "pending", submission: null, exercisesDone: 0, exercisesTotal: 0 },
         submission: sub
           ? {
               status: sub.status as SubmissionStatus,

@@ -1,10 +1,11 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { AdminDay, AdminOverview, ReviewQueueItem, StudentDetail, UserRow } from "@tomas/shared";
 import { sql } from "drizzle-orm";
-import { syncContentVersion } from "../src/db/seed";
-import { ADMIN, client, login, STUDENT, useTestApp } from "./helpers";
+import { CONTENT_VERSION, loadPlan, syncContentVersion } from "../src/db/seed";
+import { FIXTURE_PLAN } from "./fixture";
+import { ADMIN, client, login, solutionOf, STUDENT, useTestApp } from "./helpers";
 
-const env = useTestApp("2026-10-05");
+const env = useTestApp("2026-10-20");
 let admin: ReturnType<typeof client>;
 let student: ReturnType<typeof client>;
 let studentId: string;
@@ -13,27 +14,45 @@ beforeAll(async () => {
   admin = client(env.app, await login(env.app, ADMIN.username, ADMIN.password));
   student = client(env.app, await login(env.app, STUDENT.username, STUDENT.password));
   studentId = (await student.get("/api/auth/me")).json().user.id;
-  await student.put("/api/deliverables/s00", { criteria: [true, true, true, true], evidence: "hola.py listo" });
-  await student.post("/api/deliverables/s00/submit");
+  // Algo de avance: un ejercicio con dos intentos, otro con la solución vista, minutos de estudio y un entregable enviado.
+  await student.post("/api/exercises/2026-10-13-1/check", { sql: "SELECT nombre FROM productos" });
+  await student.post("/api/exercises/2026-10-13-1/check", { sql: await solutionOf(env, "2026-10-13-1") });
+  for (let i = 0; i < 3; i++) await student.post("/api/exercises/2026-10-13-2/check", { sql: "SELECT 1, 2" });
+  await student.post("/api/exercises/2026-10-13-2/reveal");
+  await student.post("/api/activity/ping");
+  await student.put("/api/deliverables/s02", { criteria: [true, true, true], evidence: "reporte.py listo" });
+  await student.post("/api/deliverables/s02/submit");
 });
 
 describe("resumen y estudiantes", () => {
-  it("muestra el resumen con estudiantes, revisiones pendientes y actividad", async () => {
+  it("muestra el resumen con estudiantes, revisiones pendientes, actividad, ejercicios y minutos", async () => {
     const res = await admin.get("/api/admin/overview");
     expect(res.statusCode).toBe(200);
     const overview: AdminOverview = res.json();
     expect(overview.students.map((s) => s.username)).toEqual(["prueba", "tomas"]);
-    expect(overview.students.find((s) => s.username === "tomas")).toMatchObject({ pace: "behind" });
+    const tomas = overview.students.find((s) => s.username === "tomas")!;
+    expect(tomas).toMatchObject({ pace: "behind", weekMinutes: 1, displayName: "Tomás Sandí" });
+    expect(tomas.totals).toMatchObject({ exercisesSolved: 1, exercisesTotal: 9, studyMinutes: 1 });
     expect(overview.pendingReviews).toBe(1);
     expect(overview.activity.some((a) => a.type === "submission_submitted")).toBe(true);
-    expect(overview.weeklyActivity.length).toBeGreaterThan(0);
+    expect(overview.activity.some((a) => a.type === "exercise_solved")).toBe(true);
+    expect(overview.weeklyActivity.map((w) => w.week)).toEqual(["2026-10-12", "2026-10-19"]);
+    const total = overview.weeklyActivity.reduce((a, w) => ({ exercises: a.exercises + w.exercises, minutes: a.minutes + w.minutes }), { exercises: 0, minutes: 0 });
+    expect(total).toEqual({ exercises: 1, minutes: 1 });
   });
 
-  it("muestra el detalle de un estudiante", async () => {
+  it("muestra el detalle de un estudiante con sus ejercicios", async () => {
     const detail: StudentDetail = (await admin.get(`/api/admin/students/${studentId}`)).json();
     expect(detail.student.username).toBe("tomas");
-    expect(detail.days).toHaveLength(64);
-    expect(detail.deliverables).toHaveLength(15);
+    expect(detail.days).toHaveLength(5);
+    const day = detail.days.find((d) => d.date === "2026-10-13")!;
+    expect(day).toMatchObject({ exerciseAttempts: 5, solutionsRevealed: 1, state: { exercisesDone: 1, exercisesTotal: 3 } });
+    expect(detail.days.find((d) => d.date === "2026-10-20")?.studyMinutes).toBe(1);
+    expect(detail.exercises.map((e) => e.id)).toEqual(["2026-10-13-1", "2026-10-13-2"]);
+    expect(detail.exercises[0]).toMatchObject({ title: "Catálogo básico", date: "2026-10-13", state: { attempts: 2, solved: true } });
+    expect(detail.exercises[0].state.lastSql).toBe("SELECT nombre, precio FROM productos;");
+    expect(detail.exercises[1].state).toMatchObject({ revealed: true, solved: false, lastSql: "SELECT 1, 2" });
+    expect(detail.deliverables).toHaveLength(2);
     expect((await admin.get("/api/admin/students/no-existe")).statusCode).toBe(404);
   });
 });
@@ -42,165 +61,179 @@ describe("revisión de entregables", () => {
   it("lista lo que está pendiente de revisar", async () => {
     const queue: ReviewQueueItem[] = (await admin.get("/api/admin/reviews")).json();
     expect(queue).toHaveLength(1);
-    expect(queue[0]).toMatchObject({ deliverableId: "s00", userName: "Tomás", status: "submitted" });
+    expect(queue[0]).toMatchObject({ deliverableId: "s02", userName: "Tomás Sandí", status: "submitted" });
   });
 
   it("exige comentarios al pedir cambios", async () => {
-    const res = await admin.post(`/api/admin/reviews/${studentId}/s00`, { decision: "changes_requested", feedback: "" });
+    const res = await admin.post(`/api/admin/reviews/${studentId}/s02`, { decision: "changes_requested", feedback: "" });
     expect(res.statusCode).toBe(400);
   });
 
   it("pide cambios, el estudiante corrige y reenvía, y luego se aprueba", async () => {
-    const changes = await admin.post(`/api/admin/reviews/${studentId}/s00`, {
+    const changes = await admin.post(`/api/admin/reviews/${studentId}/s02`, {
       decision: "changes_requested",
-      feedback: "Agrega tu edad al programa.",
+      feedback: "Agrega el total al final.",
     });
     expect(changes.statusCode).toBe(200);
-    expect(changes.json().submission).toMatchObject({ status: "changes_requested", feedback: "Agrega tu edad al programa." });
+    expect(changes.json().submission).toMatchObject({ status: "changes_requested", feedback: "Agrega el total al final." });
 
-    const mine = (await student.get("/api/deliverables")).json().find((d: { id: string }) => d.id === "s00");
+    const mine = (await student.get("/api/deliverables")).json().find((d: { id: string }) => d.id === "s02");
     expect(mine.submission.reviewerName).toBe("Administrador");
-    expect((await student.put("/api/deliverables/s00", { evidence: "hola.py con edad" })).statusCode).toBe(200);
-    expect((await student.post("/api/deliverables/s00/submit")).statusCode).toBe(200);
+    expect((await student.put("/api/deliverables/s02", { evidence: "reporte.py con total" })).statusCode).toBe(200);
+    expect((await student.post("/api/deliverables/s02/submit")).statusCode).toBe(200);
 
-    const approved = await admin.post(`/api/admin/reviews/${studentId}/s00`, { decision: "approved", feedback: "Muy bien." });
+    const approved = await admin.post(`/api/admin/reviews/${studentId}/s02`, { decision: "approved", feedback: "Muy bien." });
     expect(approved.json().submission.status).toBe("approved");
-    expect((await student.post("/api/deliverables/s00/withdraw")).statusCode).toBe(409);
+    expect((await student.post("/api/deliverables/s02/withdraw")).statusCode).toBe(409);
 
     const progress = (await student.get("/api/progress")).json();
     expect(progress.totals.deliverablesApproved).toBe(1);
   });
+
+  it("el detalle de la revisión trae los ejercicios del entregable con el último SQL del estudiante", async () => {
+    await student.post("/api/exercises/s01-1/check", { sql: "SELECT count(*) FROM provincias" });
+    const review = (await admin.get(`/api/admin/reviews/${studentId}/s01`)).json();
+    expect(review.deliverable.exercises[0].state).toMatchObject({ solved: true, lastSql: "SELECT count(*) FROM provincias" });
+  });
 });
 
-describe("lecciones completas", () => {
-  it("todos los talleres traen dos temas, agenda de unas 4 horas, pistas, reto y 8 preguntas", async () => {
-    const weeks = (await admin.get("/api/admin/content")).json() as { days: { date: string; kind: string }[] }[];
-    const workshops = weeks.flatMap((w) => w.days).filter((d) => d.kind === "workshop");
-    expect(workshops).toHaveLength(64);
-    for (const d of workshops) {
-      const day: AdminDay = (await admin.get(`/api/admin/days/${d.date}`)).json();
-      expect(day.topics.length, d.date).toBe(2);
-      const minutes = day.schedule.reduce((a, b) => a + b.minutes, 0);
-      expect(minutes, d.date).toBeGreaterThanOrEqual(220);
-      expect(minutes, d.date).toBeLessThanOrEqual(260);
-      expect(day.topics.every((t) => t.concept.length > 100 && t.steps.length >= 3 && t.commonErrors.length >= 2), d.date).toBe(true);
-      expect(day.taskHints.length, d.date).toBe(day.tasks.length);
-      expect(day.challenge?.solution.length, d.date).toBeGreaterThan(0);
-      expect(day.questions.map((q) => q.type), d.date).toEqual(["choice", "choice", "choice", "boolean", "output", "output", "fill", "fill"]);
-    }
-  });
-
-  it("actualiza el contenido de una versión anterior sin borrar el avance", async () => {
-    // Simula una base con contenido viejo: marca la versión como anterior y cambia un título.
-    await env.handle.db.execute(sql`UPDATE settings SET value = '2'::jsonb WHERE key = 'contentVersion'`);
-    await env.handle.db.execute(sql`UPDATE settings SET value = '4'::jsonb WHERE key = 'passScore'`);
-    await env.handle.db.execute(sql`UPDATE days SET title = 'Título viejo' WHERE date = '2026-10-06'`);
-    const saved = await student.put("/api/days/2026-10-06/progress", { tasks: [true, true, false, false, false], evidence: "avance previo" });
+describe("versiones del contenido", () => {
+  it("actualiza el contenido de una versión anterior sin borrar el avance y quita lo que ya no existe", async () => {
+    const db = env.handle.db;
+    await db.execute(sql`UPDATE settings SET value = '3'::jsonb WHERE key = 'contentVersion'`);
+    await db.execute(sql`INSERT INTO settings (key, value) VALUES ('programName', '"Plan de Tomás · Python y SQL"'::jsonb) ON CONFLICT (key) DO UPDATE SET value = excluded.value`);
+    await db.execute(sql`UPDATE days SET title = 'Título viejo', exercises = '[]'::jsonb WHERE date = '2026-10-14'`);
+    // Una semana vieja que ya no está en el plan, con su entregable y un día.
+    await db.execute(sql`INSERT INTO weeks (id, number, phase_id, title, range_label) VALUES ('s00', 0, 1, 'Vieja', '27 sep')`);
+    await db.execute(sql`INSERT INTO days (date, week_id, kind, title) VALUES ('2026-09-28', 's00', 'workshop', 'Día viejo')`);
+    await db.execute(sql`INSERT INTO deliverables (id, week_id, due_date, path, description) VALUES ('s00', 's00', '2026-09-27', 'x', 'y')`);
+    const saved = await student.put("/api/days/2026-10-14/progress", { tasks: [true, false], evidence: "avance previo" });
     expect(saved.statusCode).toBe(200);
-    expect(await syncContentVersion(env.handle.db)).toBe(true);
-    expect(await syncContentVersion(env.handle.db)).toBe(false);
-    const day = (await student.get("/api/days/2026-10-06")).json();
-    expect(day.day.title).toBe("for y range");
-    expect(day.progress.evidence).toBe("avance previo");
-    expect(day.progress.tasks).toEqual([true, true, false, false, false]);
+
+    const plan = loadPlan(FIXTURE_PLAN);
+    expect(await syncContentVersion(db, plan, env.ctx.config.seed)).toBe(true);
+    expect(await syncContentVersion(db, plan, env.ctx.config.seed)).toBe(false);
+    env.ctx.plan.invalidate();
     await env.ctx.settings.update({});
-    expect((await student.get("/api/auth/me")).json().settings.passScore).toBe(5);
-    await env.ctx.settings.update({ passScore: 5 });
+
+    const day = (await student.get("/api/days/2026-10-14")).json();
+    expect(day.day.title).toBe("Filtrar con WHERE");
+    expect(day.exercises).toHaveLength(2);
+    expect(day.progress.evidence).toBe("avance previo");
+    expect(day.progress.tasks).toEqual([true, false]);
+    const weeks = (await admin.get("/api/admin/content")).json() as { id: string }[];
+    expect(weeks.map((w) => w.id)).toEqual(["s01", "s02"]);
+    expect((await student.get("/api/days/2026-09-28")).statusCode).toBe(404);
+    const me = (await student.get("/api/auth/me")).json();
+    expect(me.settings.programName).toBe("Plan de Tomás Sandí · SQL y Python");
+    const [{ value }] = (await db.execute<{ value: number }>(sql`SELECT value FROM settings WHERE key = 'contentVersion'`)).rows;
+    expect(value).toBe(CONTENT_VERSION);
   });
 });
 
 describe("contenido", () => {
-  const DATE = "2026-10-05";
+  const DATE = "2026-10-14";
 
-  it("devuelve el taller con las respuestas correctas para editar", async () => {
+  it("devuelve el taller con las respuestas correctas y los ejercicios completos para editar", async () => {
     const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
-    expect(day.questions).toHaveLength(8);
+    expect(day.questions).toHaveLength(4);
     expect(typeof day.questions[0].correctIndex).toBe("number");
-    expect(day.questions[4].accepted.length).toBeGreaterThan(0);
-    expect(day.questions[0].optionFeedback).toHaveLength(day.questions[0].options.length);
+    expect(day.questions[2].accepted.length).toBeGreaterThan(0);
+    expect(day.exercises).toHaveLength(2);
+    expect(day.exercises[0]).toMatchObject({ id: "2026-10-14-1", orderMatters: false, check: "", setup: "" });
+    expect(day.exercises[0].solution).toContain("SELECT");
   });
 
   it("valida las preguntas antes de guardar", async () => {
     const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
-    const res = await admin.put(`/api/admin/days/${DATE}`, {
-      ...day,
-      questions: [{ ...day.questions[0], correctIndex: 7 }],
-    });
-    expect(res.statusCode).toBe(400);
-    const noAnswer = await admin.put(`/api/admin/days/${DATE}`, { ...day, questions: [{ ...day.questions[4], accepted: [] }] });
-    expect(noAnswer.statusCode).toBe(400);
-    const noBlank = await admin.put(`/api/admin/days/${DATE}`, { ...day, questions: [{ ...day.questions[7], code: "sin hueco" }] });
-    expect(noBlank.statusCode).toBe(400);
+    expect((await admin.put(`/api/admin/days/${DATE}`, { ...day, questions: [{ ...day.questions[0], correctIndex: 7 }] })).statusCode).toBe(400);
+    expect((await admin.put(`/api/admin/days/${DATE}`, { ...day, questions: [{ ...day.questions[2], accepted: [] }] })).statusCode).toBe(400);
   });
 
-  it("edita la lección completa: pasos, errores, pistas, reto y una pregunta de texto", async () => {
+  it("valida los ejercicios: solución que corre, que devuelve filas e ids únicos en el plan", async () => {
+    const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
+    const broken = await admin.put(`/api/admin/days/${DATE}`, { ...day, exercises: [{ ...day.exercises[0], solution: "SELECT nombres FROM productos" }] });
+    expect(broken.statusCode).toBe(400);
+    expect(broken.json().message).toContain("no such column");
+    const noRows = await admin.put(`/api/admin/days/${DATE}`, { ...day, exercises: [{ ...day.exercises[0], solution: "SELECT nombre FROM productos WHERE 0" }] });
+    expect(noRows.json().message).toContain("0 filas");
+    const taken = await admin.put(`/api/admin/days/${DATE}`, { ...day, exercises: [{ ...day.exercises[0], id: "2026-10-13-1" }] });
+    expect(taken.statusCode).toBe(400);
+    expect(taken.json().message).toContain("ya lo usa otro ejercicio");
+    const repeated = await admin.put(`/api/admin/days/${DATE}`, { ...day, exercises: [day.exercises[0], day.exercises[0]] });
+    expect(repeated.statusCode).toBe(400);
+  });
+
+  it("edita un ejercicio y el estudiante ve el nuevo resultado esperado", async () => {
     const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
     const res = await admin.put(`/api/admin/days/${DATE}`, {
       ...day,
-      topics: [
-        {
-          ...day.topics[0],
-          tip: "Consejo editado por el administrador.",
-          steps: [{ title: "Paso editado", body: "Cuerpo del paso.", code: "print(1)", language: "python" }],
-          commonErrors: [{ error: "NameError", cause: "Variable sin definir.", fix: "Defínela antes." }],
-        },
-        day.topics[1],
-      ],
-      schedule: [{ label: "Tema 1", minutes: 120 }, { label: "Tema 2", minutes: 120 }],
-      taskHints: day.tasks.map((_, i) => `Pista ${i + 1}`),
-      challenge: { title: "Reto editado", description: "Haz algo.", hint: "Piensa.", solution: "print(2)", language: "python" },
-      questions: [
-        ...day.questions.slice(0, 7),
-        { type: "fill", prompt: "Completa", code: "x = ____(3.7)", options: [], correctIndex: 0, accepted: ["int", "round"], optionFeedback: [], explanation: "int o round.", hint: "" },
+      exercises: [
+        { ...day.exercises[0], title: "Clientes de Cartago", prompt: "Muestra el nombre y el apellido de los clientes de Cartago (provincia 3).", solution: "SELECT nombre, apellido FROM clientes WHERE provincia_id = 3;" },
+        day.exercises[1],
+        { id: "2026-10-14-3", title: "Provincias", prompt: "Muestra el nombre de las provincias.", hint: "", solution: "SELECT nombre FROM provincias", check: "", setup: "", starter: "", orderMatters: false },
       ],
     });
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode, res.body).toBe(200);
     const seen = (await student.get(`/api/days/${DATE}`)).json();
-    expect(seen.day.topics[0].steps).toHaveLength(1);
-    expect(seen.day.topics[0].tip).toBe("Consejo editado por el administrador.");
-    expect(seen.day.topics[1].steps.length).toBeGreaterThanOrEqual(3);
-    expect(seen.day.schedule).toHaveLength(2);
-    expect(seen.day.challenge.title).toBe("Reto editado");
-    expect(seen.day.taskHints[0]).toBe("Pista 1");
-    expect(seen.questions[7]).toMatchObject({ type: "fill", prompt: "Completa" });
-    // Las preguntas de texto aceptan cualquiera de las respuestas.
-    const answers = seen.questions.map((q: { type: string }, i: number) => (i === 7 ? "ROUND" : q.type === "output" || q.type === "fill" ? "" : 0));
-    const graded = (await student.post(`/api/days/${DATE}/quiz`, { answers })).json();
-    expect(graded.review[7].isCorrect).toBe(true);
+    expect(seen.exercises).toHaveLength(3);
+    expect(seen.exercises[0].title).toBe("Clientes de Cartago");
+    expect(seen.exercises[2].expectedRowCount).toBe(7);
+    const graded = (await student.post("/api/exercises/2026-10-14-1/check", { sql: "SELECT nombre, apellido FROM clientes WHERE provincia_id = 3" })).json();
+    expect(graded.correct).toBe(true);
+    const plan = (await student.get("/api/plan")).json();
+    expect(plan.weeks[0].days[1].exerciseCount).toBe(3);
   });
 
-  it("guarda los cambios y el estudiante los ve", async () => {
+  it("edita la lección completa y el estudiante la ve", async () => {
     const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
     const res = await admin.put(`/api/admin/days/${DATE}`, {
       ...day,
-      title: "while (editado)",
+      title: "WHERE (editado)",
+      topics: [{ ...day.topics[0], tip: "Consejo editado por el administrador." }, day.topics[1]],
       tasks: [...day.tasks, "Tarea extra de práctica."],
       taskHints: [...day.taskHints, ""],
+      challenge: { title: "Reto editado", description: "Haz algo.", hint: "Piensa.", solution: "SELECT 1;", language: "sql" },
     });
     expect(res.statusCode).toBe(200);
     const seen = (await student.get(`/api/days/${DATE}`)).json();
-    expect(seen.day.title).toBe("while (editado)");
+    expect(seen.day.title).toBe("WHERE (editado)");
+    expect(seen.day.topics[0].tip).toBe("Consejo editado por el administrador.");
     expect(seen.day.tasks).toHaveLength(day.tasks.length + 1);
-    const plan = (await student.get("/api/plan")).json();
-    const planDay = plan.weeks.flatMap((w: { days: { date: string; title: string }[] }) => w.days).find((d: { date: string }) => d.date === DATE);
-    expect(planDay.title).toBe("while (editado)");
+    expect(seen.day.challenge.title).toBe("Reto editado");
   });
 
-  it("edita los criterios de un entregable", async () => {
+  it("un taller necesita al menos una tarea o un ejercicio", async () => {
+    const day: AdminDay = (await admin.get(`/api/admin/days/${DATE}`)).json();
+    const res = await admin.put(`/api/admin/days/${DATE}`, { ...day, tasks: [], taskHints: [], exercises: [] });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("edita los criterios y los ejercicios de un entregable", async () => {
+    const weeks = (await admin.get("/api/admin/content")).json();
+    const d = weeks[1].deliverable;
     const res = await admin.put("/api/admin/deliverables/s02", {
-      path: "semana-02/parqueadero.py",
-      description: "Calcula cuánto se paga en un parqueadero.",
-      criteria: ["Cobra bien", "Tiene pruebas"],
+      path: "semana-02/reporte.py",
+      description: "Calcula el total de ventas.",
+      criteria: ["Suma bien", "Tiene pruebas"],
+      exercises: [{ id: "s02-1", title: "Repaso", prompt: "Cuenta los productos.", hint: "", solution: "SELECT COUNT(*) FROM productos", check: "", setup: "", starter: "", orderMatters: false }],
     });
-    expect(res.statusCode).toBe(200);
-    const view = (await student.get("/api/deliverables")).json().find((d: { id: string }) => d.id === "s02");
-    expect(view.criteria).toEqual(["Cobra bien", "Tiene pruebas"]);
+    expect(res.statusCode, res.body).toBe(200);
+    expect(d.exercises).toEqual([]);
+    const view = (await student.get("/api/deliverables")).json().find((x: { id: string }) => x.id === "s02");
+    expect(view.criteria).toEqual(["Suma bien", "Tiene pruebas"]);
+    expect(view.exercises[0]).toMatchObject({ id: "s02-1", expectedRowCount: 1 });
+    // Sin `exercises`, los ejercicios no cambian.
+    await admin.put("/api/admin/deliverables/s02", { path: "semana-02/reporte.py", description: "Otra descripción.", criteria: ["Suma bien"] });
+    const again = (await student.get("/api/deliverables")).json().find((x: { id: string }) => x.id === "s02");
+    expect(again.exercises).toHaveLength(1);
   });
 
   it("lista el contenido por semanas", async () => {
     const weeks = (await admin.get("/api/admin/content")).json();
-    expect(weeks).toHaveLength(15);
-    expect(weeks[1].deliverable.criteria.length).toBeGreaterThan(0);
+    expect(weeks).toHaveLength(2);
+    expect(weeks[0].days[0]).toMatchObject({ date: "2026-10-13", exerciseCount: 3, questionCount: 4 });
+    expect(weeks[0].deliverable.exercises).toHaveLength(2);
   });
 });
 
@@ -259,6 +292,7 @@ describe("usuarios y ajustes", () => {
     expect(res.json()).toMatchObject({ passScore: 4, programName: "Plan de Tomás" });
     const me = (await student.get("/api/auth/me")).json();
     expect(me.settings.passScore).toBe(4);
+    await admin.put("/api/admin/settings", { passScore: 5, programName: "Plan de Tomás Sandí · SQL y Python" });
     expect((await admin.put("/api/admin/settings", { passScore: 0, programName: "x" })).statusCode).toBe(400);
   });
 });

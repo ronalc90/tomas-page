@@ -18,13 +18,15 @@ import {
   type ContentWeek,
   type DeliverableKind,
   type ReviewDetail,
+  type SqlExercise,
+  type StudentExerciseRow,
   type ReviewQueueItem,
   type StudentDetail,
   type StudentRow,
   type UserRow,
 } from "@tomas/shared";
 import type { AppContext } from "../context";
-import { activity, dayProgress, days, deliverables, questions, quizAttempts, submissions, users } from "../db/schema";
+import { activity, dayProgress, days, deliverables, exerciseProgress, questions, quizAttempts, studyTime, submissions, users } from "../db/schema";
 import { assertUuid, badRequest, conflict, notFound, parse } from "../lib/errors";
 import { hashPassword } from "../lib/password";
 import { requireAdmin, revokeUserSessions } from "../plugins/auth";
@@ -47,6 +49,13 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
   });
 
   async function studentRows(onlyId?: string): Promise<StudentRow[]> {
+    const today = await ctx.today();
+    const weekRows = await ctx.db
+      .select({ userId: studyTime.userId, minutes: sql<number>`sum(${studyTime.minutes})::int` })
+      .from(studyTime)
+      .where(sql`${studyTime.date} > ${addDays(today, -7)} and ${studyTime.date} <= ${today}`)
+      .groupBy(studyTime.userId);
+    const weekMap = new Map(weekRows.map((r) => [r.userId, r.minutes]));
     const rows = await ctx.db
       .select(USER_COLUMNS)
       .from(users)
@@ -70,6 +79,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
           lastActivityAt: lastMap.get(u.id) ? new Date(lastMap.get(u.id)!).toISOString() : null,
           totals: progress.totals,
           pace: progress.pace,
+          weekMinutes: weekMap.get(u.id) ?? 0,
         };
       }),
     );
@@ -91,9 +101,9 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
     ]);
 
     const tz = settings.timeZone;
-    const localDay = (col: typeof dayProgress.completedAt | typeof quizAttempts.createdAt) =>
+    const localDay = (col: typeof dayProgress.completedAt | typeof quizAttempts.createdAt | typeof exerciseProgress.solvedAt) =>
       sql<string>`to_char((${col} at time zone ${tz})::date, 'YYYY-MM-DD')`;
-    const [completedRows, quizRows] = await Promise.all([
+    const [completedRows, quizRows, solvedRows, minuteRows] = await Promise.all([
       ctx.db
         .select({ day: localDay(dayProgress.completedAt), n: sql<number>`count(*)::int` })
         .from(dayProgress)
@@ -103,12 +113,23 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
         .select({ day: localDay(quizAttempts.createdAt), n: sql<number>`count(*)::int` })
         .from(quizAttempts)
         .groupBy(sql`1`),
+      ctx.db
+        .select({ day: localDay(exerciseProgress.solvedAt), n: sql<number>`count(*)::int` })
+        .from(exerciseProgress)
+        .where(sql`${exerciseProgress.solvedAt} is not null`)
+        .groupBy(sql`1`),
+      ctx.db
+        .select({ day: sql<string>`to_char(${studyTime.date}, 'YYYY-MM-DD')`, n: sql<number>`sum(${studyTime.minutes})::int` })
+        .from(studyTime)
+        .groupBy(sql`1`),
     ]);
 
-    const buckets = new Map<string, { workshops: number; quizzes: number }>();
-    const lastMonday = mondayOf(today < plan.response.end ? today : plan.response.end);
-    for (let m = mondayOf(plan.response.start); m <= lastMonday; m = addDays(m, 7)) {
-      buckets.set(m, { workshops: 0, quizzes: 0 });
+    const buckets = new Map<string, { workshops: number; quizzes: number; exercises: number; minutes: number }>();
+    const start = plan.response.start || today;
+    const end = plan.response.end || today;
+    const lastMonday = mondayOf(today < end ? today : end);
+    for (let m = mondayOf(start); m <= lastMonday; m = addDays(m, 7)) {
+      buckets.set(m, { workshops: 0, quizzes: 0, exercises: 0, minutes: 0 });
     }
     for (const r of completedRows) {
       const b = buckets.get(mondayOf(r.day));
@@ -117,6 +138,14 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
     for (const r of quizRows) {
       const b = buckets.get(mondayOf(r.day));
       if (b) b.quizzes += r.n;
+    }
+    for (const r of solvedRows) {
+      const b = buckets.get(mondayOf(r.day));
+      if (b) b.exercises += r.n;
+    }
+    for (const r of minuteRows) {
+      const b = buckets.get(mondayOf(r.day));
+      if (b) b.minutes += r.n;
     }
 
     return {
@@ -139,7 +168,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
   app.get<{ Params: { id: string } }>("/api/admin/students/:id", async (request): Promise<StudentDetail> => {
     const [student] = await studentRows(assertUuid(request.params.id, "Ese estudiante no existe."));
     if (!student) throw notFound("Ese estudiante no existe.");
-    const [plan, progress, quizStats, evidenceRows, deliverablesList, activityItems] = await Promise.all([
+    const [plan, progress, quizStats, evidenceRows, deliverablesList, activityItems, exerciseRows] = await Promise.all([
       ctx.plan.get(),
       progressFor(ctx, student.id),
       quizStatsByDate(ctx, student.id),
@@ -149,8 +178,24 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
         .where(eq(dayProgress.userId, student.id)),
       deliverableViews(ctx, student.id),
       recentActivity(ctx, { userId: student.id, limit: 40 }),
+      ctx.db.select().from(exerciseProgress).where(eq(exerciseProgress.userId, student.id)),
     ]);
     const evidence = new Map(evidenceRows.map((r) => [r.date, r]));
+    const byExercise = new Map(exerciseRows.map((r) => [r.exerciseId, r]));
+    const exercisesOf = (ids: string[]) => ids.map((id) => byExercise.get(id)).filter((r) => r !== undefined);
+    const exercises: StudentExerciseRow[] = exerciseRows
+      .filter((r) => plan.exercises.has(r.exerciseId))
+      .map((r) => {
+        const where = plan.exercises.get(r.exerciseId)!;
+        return {
+          id: r.exerciseId,
+          title: where.exercise.title,
+          date: where.date,
+          deliverableId: where.deliverableId,
+          state: { attempts: r.attempts, solved: r.solved, solvedAt: r.solvedAt, revealed: r.revealed, lastSql: r.lastSql },
+        };
+      })
+      .sort((a, b) => a.id.localeCompare(b.id, "es", { numeric: true }));
     return {
       student,
       progress,
@@ -166,7 +211,11 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
           evidence: evidence.get(d.date)?.evidence ?? "",
           challengeDone: evidence.get(d.date)?.challengeDone ?? false,
           hintsUsed: quizStats[d.date]?.hints ?? 0,
+          exerciseAttempts: exercisesOf(d.exerciseIds).reduce((a, r) => a + r.attempts, 0),
+          solutionsRevealed: exercisesOf(d.exerciseIds).filter((r) => r.revealed).length,
+          studyMinutes: progress.study[d.date] ?? 0,
         })),
+      exercises,
       deliverables: deliverablesList,
       activity: activityItems,
     };
@@ -276,6 +325,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
           kind: day.kind,
           title: day.title,
           questionCount: plan.days.get(day.date)?.questionCount ?? 0,
+          exerciseCount: day.exerciseCount,
           updatedAt: updated.get(day.date) ?? null,
         })),
         deliverable: d
@@ -291,11 +341,36 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
               tips: d.tips,
               stretch: d.stretch,
               checklist: d.checklist,
+              exercises: d.exercises,
             }
           : null,
       };
     });
   });
+
+  /**
+   * Revisa los ejercicios que el administrador quiere guardar: ids únicos en todo el plan y una
+   * solución que corre y devuelve filas (si no, no se podrían calificar).
+   */
+  async function validateExercises(list: SqlExercise[], owner: { date?: string; deliverableId?: string }) {
+    const plan = await ctx.plan.get();
+    const fields: Record<string, string> = {};
+    const seen = new Set<string>();
+    for (const [i, e] of list.entries()) {
+      if (seen.has(e.id)) fields[`exercises.${i}.id`] = `El id ${e.id} está repetido en este día.`;
+      seen.add(e.id);
+      const other = plan.exercises.get(e.id);
+      const sameOwner = owner.date ? other?.date === owner.date : other?.deliverableId === owner.deliverableId;
+      if (other && !sameOwner) {
+        fields[`exercises.${i}.id`] = `El id ${e.id} ya lo usa otro ejercicio (${other.date ?? other.deliverableId}).`;
+      }
+    }
+    const problems = await Promise.all(list.map((e) => ctx.exercises.validate(e)));
+    problems.forEach((p, i) => {
+      if (p) fields[`exercises.${i}.solution`] = `Ejercicio ${i + 1}: ${p}.`;
+    });
+    if (Object.keys(fields).length) throw badRequest(Object.values(fields)[0], { fields });
+  }
 
   app.get<{ Params: { date: string } }>("/api/admin/days/:date", async (request): Promise<AdminDay> => {
     const plan = await ctx.plan.get();
@@ -323,6 +398,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
       challenge: day.challenge,
       glossary: day.glossary,
       resources: day.resources,
+      exercises: day.exercises,
       questions: qs.map((q) => ({
         type: q.type,
         prompt: q.prompt,
@@ -344,7 +420,11 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
       ? await ctx.db.select().from(days).where(eq(days.date, request.params.date))
       : [];
     if (!day) throw notFound("Ese día no existe.");
-    if (day.kind === "workshop" && input.tasks.length === 0) throw badRequest("Un taller necesita al menos una tarea.");
+    if (day.kind === "workshop" && input.tasks.length === 0 && input.exercises.length === 0) {
+      throw badRequest("Un taller necesita al menos una tarea o un ejercicio.");
+    }
+    if (input.taskHints.length > input.tasks.length) throw badRequest("Hay más pistas que tareas.");
+    await validateExercises(input.exercises, { date: day.date });
     await ctx.db.transaction(async (tx) => {
       await tx
         .update(days)
@@ -359,6 +439,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
           challenge: input.challenge,
           glossary: input.glossary,
           resources: input.resources,
+          exercises: input.exercises,
           updatedAt: sql`now()`,
         })
         .where(eq(days.date, day.date));
@@ -368,11 +449,13 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
       }
     });
     ctx.plan.invalidate();
+    ctx.exercises.invalidate();
     return { ok: true };
   });
 
   app.put<{ Params: { id: string } }>("/api/admin/deliverables/:id", async (request) => {
     const input = parse(adminDeliverableSchema, request.body);
+    if (input.exercises) await validateExercises(input.exercises, { deliverableId: request.params.id });
     const updated = await ctx.db
       .update(deliverables)
       .set(input)
@@ -380,6 +463,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
       .returning({ id: deliverables.id });
     if (!updated.length) throw notFound("Ese entregable no existe.");
     ctx.plan.invalidate();
+    ctx.exercises.invalidate();
     return { ok: true };
   });
 

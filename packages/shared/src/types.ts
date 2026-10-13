@@ -376,6 +376,8 @@ export interface ExerciseCheckResult {
   message: string;
   /** Lo que devolvió el SQL del estudiante (o el `check` en ejercicios que modifican datos). */
   result: SqlResult | null;
+  /** Cuántas filas devolvió en total (result trae como máximo 200). */
+  resultRowCount: number;
   /** Error de SQLite explicado en español, con el mensaje original. */
   error: string | null;
   state: ExerciseState;

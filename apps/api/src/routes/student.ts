@@ -91,6 +91,7 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext) {
       .limit(1);
     const progress = await progressFor(ctx, user.id);
     const deliverable = due ? (await deliverableViews(ctx, user.id, due.id))[0] ?? null : null;
+    const exercises = dayRow ? await ctx.exercises.views(user.id, dayRow.exercises) : [];
 
     const week = plan.weeks.get(dayRow?.weekId ?? due!.weekId)!;
     const phase = plan.phases.get(week.phaseId)!;
@@ -99,6 +100,8 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext) {
       status: "rest",
       tasksDone: 0,
       tasksTotal: 0,
+      exercisesDone: 0,
+      exercisesTotal: 0,
       attempts: 0,
       best: 0,
       total: 0,
@@ -129,6 +132,7 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext) {
           }
         : null,
       questions: qs.map((q) => ({ position: q.position, type: q.type, prompt: q.prompt, code: q.code, options: q.options, hint: q.hint })),
+      exercises,
       progress: {
         tasks: dayRow ? dayRow.tasks.map((_, i) => progressRow?.tasks[i] ?? false) : [],
         evidence: progressRow?.evidence ?? "",
@@ -251,6 +255,13 @@ export async function studentRoutes(app: FastifyInstance, ctx: AppContext) {
     }
     if (!sub.evidence.trim()) {
       throw badRequest("Agrega tu evidencia antes de enviar.", { fields: { evidence: "Falta la evidencia" } });
+    }
+    const missing = view.exercises.filter((e) => !e.state.solved).length;
+    if (missing > 0) {
+      throw badRequest(
+        `Resuelve los ejercicios del entregable antes de enviarlo: ${missing === 1 ? "falta 1" : `faltan ${missing}`} de ${view.exercises.length}.`,
+        { fields: { exercises: "Faltan ejercicios" } },
+      );
     }
     await ctx.db
       .update(submissions)

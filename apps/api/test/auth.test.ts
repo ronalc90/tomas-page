@@ -21,7 +21,7 @@ describe("autenticación", () => {
   it("inicia sesión sin importar mayúsculas y pone una cookie httpOnly", async () => {
     const res = await client(env.app).post("/api/auth/login", { username: "Tomas", password: STUDENT.password });
     expect(res.statusCode).toBe(200);
-    expect(res.json().user).toMatchObject({ username: "tomas", role: "student", displayName: "Tomás" });
+    expect(res.json().user).toMatchObject({ username: "tomas", role: "student", displayName: "Tomás Sandí" });
     const cookie = res.cookies.find((c) => c.name === "tp_session");
     expect(cookie?.httpOnly).toBe(true);
     expect(cookie?.sameSite).toBe("Lax");
@@ -31,7 +31,7 @@ describe("autenticación", () => {
     const cookie = await login(env.app, STUDENT.username, STUDENT.password);
     const res = await client(env.app, cookie).get("/api/auth/me");
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ user: { username: "tomas" }, today: "2026-10-01", settings: { passScore: 5 } });
+    expect(res.json()).toMatchObject({ user: { username: "tomas" }, today: "2026-10-14", settings: { passScore: 5 } });
   });
 
   it("responde 204 en /me cuando no hay sesión", async () => {

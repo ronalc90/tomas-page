@@ -289,7 +289,7 @@ export function QuestionEditor({
       </Field>
       <Field
         id={`q${index}-code`}
-        label={question.type === "fill" ? "Código con el hueco marcado como ____" : isText ? "Código" : "Código (opcional)"}
+        label={question.type === "fill" ? "Código con el hueco marcado como ___" : isText ? "Código" : "Código (opcional)"}
         error={e("code")}
       >
         <textarea id={`q${index}-code`} className="textarea code" rows={3} value={question.code} onChange={(ev) => onChange({ ...question, code: ev.target.value })} />

@@ -132,8 +132,8 @@ export const adminQuestionSchema = z
     } else {
       if (q.accepted.length === 0) ctx.addIssue({ code: "custom", path: ["accepted"], message: "Escribe al menos una respuesta aceptada" });
       if (!q.code.trim()) ctx.addIssue({ code: "custom", path: ["code"], message: "Esta pregunta necesita código" });
-      if (q.type === "fill" && q.code.split("____").length !== 2) {
-        ctx.addIssue({ code: "custom", path: ["code"], message: "Marca el hueco con ____ (una sola vez)" });
+      if (q.type === "fill" && (q.code.match(/_{3,}/g) ?? []).length !== 1) {
+        ctx.addIssue({ code: "custom", path: ["code"], message: "Marca el hueco con ___ (una sola vez)" });
       }
     }
   });

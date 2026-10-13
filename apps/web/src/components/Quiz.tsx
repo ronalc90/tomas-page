@@ -17,7 +17,7 @@ const TYPE_HELP: Record<QuestionView["type"], string> = {
   choice: "Elige una opción.",
   boolean: "¿Verdadero o falso?",
   output: "Escribe exactamente lo que muestra el programa (una línea por cada print).",
-  fill: "Escribe solo lo que va en el hueco ____.",
+  fill: "Escribe solo lo que va en el hueco ___.",
 };
 
 /**

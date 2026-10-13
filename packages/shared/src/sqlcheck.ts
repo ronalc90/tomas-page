@@ -1,4 +1,4 @@
-import type { SqlResult, SqlValue } from "./types";
+import type { SqlExercise, SqlResult, SqlValue } from "./types";
 
 /**
  * Calificación de ejercicios SQL. Es una función pura: compara el resultado esperado
@@ -171,4 +171,19 @@ export function stripSqlComments(sql: string): string {
 /** INSERT, UPDATE, DELETE o REPLACE (las que cuentan "filas modificadas"). */
 export function isDataChange(statement: string): boolean {
   return /^(with\b[\s\S]*?\)\s*)?(insert|update|delete|replace)\b/i.test(stripSqlComments(statement));
+}
+
+/** Lleva un ejercicio del contenido a la forma completa (los campos opcionales quedan en ""). */
+export function normalizeExercise(e: Partial<SqlExercise>): SqlExercise {
+  return {
+    id: String(e.id ?? ""),
+    title: e.title ?? "",
+    prompt: e.prompt ?? "",
+    hint: e.hint ?? "",
+    solution: e.solution ?? "",
+    check: e.check ?? "",
+    setup: e.setup ?? "",
+    starter: e.starter ?? "",
+    orderMatters: Boolean(e.orderMatters),
+  };
 }

@@ -19,13 +19,17 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).optional(),
   WEB_DIST: z.string().optional(),
   MIGRATIONS_DIR: z.string().optional(),
+  /** Archivo del plan (JSON) que se carga en la base. Por defecto, el plan.json del paquete compartido. */
+  PLAN_FILE: z.string().optional(),
+  /** Ruta de la base de práctica tienda.sql (si no está en el lugar de siempre). */
+  TIENDA_SQL: z.string().optional(),
   /** Solo para pruebas: fija la fecha de "hoy" (AAAA-MM-DD). Se ignora en producción. */
   FAKE_TODAY: z.string().optional(),
   SEED_ADMIN_USERNAME: z.string().default("admin"),
   SEED_ADMIN_NAME: z.string().default("Administrador"),
   SEED_ADMIN_PASSWORD: z.string().optional(),
   SEED_STUDENT_USERNAME: z.string().default("tomas"),
-  SEED_STUDENT_NAME: z.string().default("Tomás"),
+  SEED_STUDENT_NAME: z.string().default("Tomás Sandí"),
   SEED_STUDENT_PASSWORD: z.string().optional(),
   /** Si se define, crea también la cuenta "prueba" (estudiante) para probar sin tocar la de Tomás. */
   SEED_TEST_PASSWORD: z.string().optional(),
@@ -55,6 +59,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     logLevel: e.LOG_LEVEL ?? (e.NODE_ENV === "test" ? "silent" : "info"),
     webDist: e.WEB_DIST,
     migrationsDir: e.MIGRATIONS_DIR,
+    planFile: e.PLAN_FILE,
+    tiendaSql: e.TIENDA_SQL,
     fakeToday: production ? undefined : e.FAKE_TODAY,
     seed: {
       admin: {

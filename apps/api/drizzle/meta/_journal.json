@@ -29,6 +29,13 @@
       "when": 1790599722400,
       "tag": "0003_dos_temas_por_dia",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791913551683,
+      "tag": "0004_ejercicios_sql",
+      "breakpoints": true
     }
   ]
 }
