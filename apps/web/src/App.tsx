@@ -14,6 +14,8 @@ import { SyllabusPage } from "./pages/student/SyllabusPage";
 
 // El panel de administración se carga aparte: el estudiante nunca descarga ese código.
 const AdminRoutes = lazy(() => import("./pages/admin/AdminRoutes"));
+// El laboratorio trae el editor (CodeMirror): se descarga solo al abrirlo.
+const LabPage = lazy(() => import("./pages/LabPage"));
 // Las guías traen bastante texto: se descargan solo cuando alguien las abre.
 const GuidesPage = lazy(() => import("./pages/student/GuidesPage").then((m) => ({ default: m.GuidesPage })));
 const GuidePage = lazy(() => import("./pages/student/GuidesPage").then((m) => ({ default: m.GuidePage })));
@@ -45,6 +47,14 @@ export function App() {
         <Route path="dia/:date" element={<DayPage />} />
         <Route path="entregables" element={<DeliverablesPage />} />
         <Route path="temario" element={<SyllabusPage />} />
+        <Route
+          path="laboratorio"
+          element={
+            <Suspense fallback={<Loading label="Abriendo el laboratorio…" />}>
+              <LabPage />
+            </Suspense>
+          }
+        />
         <Route
           path="guias"
           element={

@@ -110,9 +110,9 @@ function Workshop({ data }: { data: DayResponse }) {
             <span className="step">{t + 2}</span>
             Tema {t + 1}: {topic.title}
           </h2>
-          <p className="concept">
-            <RichText text={topic.concept} />
-          </p>
+          <div className="concept">
+            <RichText text={topic.concept} block />
+          </div>
           {topic.example && <CodeBlock code={topic.example} language={topic.language} output={topic.exampleOutput} />}
           {topic.tip && (
             <aside className="tip" aria-label={`Consejo del tema ${t + 1}`}>

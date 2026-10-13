@@ -1,0 +1,750 @@
+/* ---------- SQL: editor, resultados, laboratorio y ejercicios ---------- */
+
+.rt-p {
+  display: block;
+}
+
+.rt-p + .rt-p {
+  margin-top: 0.7em;
+}
+
+.concept > p + p {
+  margin-top: 0.8em;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid var(--rule-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+  font-size: 0.82em;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.spinner.small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  display: inline-block;
+  vertical-align: -2px;
+}
+
+.stack.tight {
+  gap: 8px;
+}
+
+.small {
+  font-size: 14px;
+}
+
+/* Editor (CodeMirror) */
+
+.sql-editor {
+  min-width: 0;
+}
+
+.sql-editor .cm-editor {
+  max-height: 60vh;
+}
+
+.sql-editor .cm-scroller {
+  overflow: auto;
+}
+
+/* Tabla de resultados */
+
+.result-table {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.result-scroll {
+  overflow: auto;
+  max-height: min(520px, 62vh);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.result-table.compact .result-scroll {
+  max-height: 340px;
+}
+
+.result-scroll:focus-visible {
+  outline-offset: 0;
+}
+
+.result-table table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 100%;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.result-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule-strong);
+  text-align: left;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.result-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+
+.result-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.result-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
+}
+
+.result-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.result-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-table .rownum {
+  width: 1%;
+  color: var(--muted);
+  text-align: right;
+  font-weight: 400;
+  border-right: 1px solid var(--rule);
+  user-select: none;
+}
+
+.result-table th.rownum {
+  font-weight: 700;
+}
+
+.result-table .null {
+  font-style: italic;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--surface-3);
+}
+
+.result-table .empty-text {
+  font-style: italic;
+  color: var(--muted);
+}
+
+.result-empty {
+  padding: 14px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.result-more {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.run-output {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.run-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.run-note > svg {
+  color: var(--ok);
+}
+
+/* Error de SQLite */
+
+.sql-error {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
+  border-left: 4px solid var(--bad);
+  background: var(--bad-soft);
+  color: var(--ink);
+}
+
+.sql-error > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--bad);
+}
+
+.sql-error-title {
+  font-weight: 700;
+}
+
+.sql-error-original {
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.sql-error-original code {
+  background: color-mix(in srgb, var(--bad) 10%, var(--surface));
+}
+
+/* Ejemplos ejecutables */
+
+.code-block .code-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--font-body);
+}
+
+.code-block .code-actions .btn {
+  font-size: 13px;
+  min-height: 28px;
+  padding: 2px 10px;
+}
+
+.code-run {
+  border-top: 1px dashed var(--rule-strong);
+  background: var(--surface);
+}
+
+.code-run-body {
+  padding: 12px;
+}
+
+/* ---------- Laboratorio ---------- */
+
+.lab-page {
+  max-width: 1280px;
+}
+
+.lab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 20px;
+  align-items: start;
+}
+
+.lab-main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.lab-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.lab-editor-head h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.lab-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.lab-status {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab-results {
+  display: grid;
+  gap: 12px;
+  min-height: 160px;
+}
+
+.lab-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.lab-empty p {
+  max-width: 46ch;
+}
+
+.lab-side {
+  position: sticky;
+  top: 20px;
+  display: grid;
+  gap: 14px;
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 16px;
+}
+
+.explorer {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.explorer > li {
+  position: relative;
+}
+
+.explorer summary {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.explorer summary::-webkit-details-marker {
+  display: none;
+}
+
+.explorer summary:hover {
+  background: var(--surface-2);
+}
+
+.explorer summary > svg {
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+
+.explorer details[open] summary > svg {
+  transform: rotate(90deg);
+}
+
+.explorer-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.explorer-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.explorer-peek {
+  position: absolute;
+  top: 3px;
+  right: 2px;
+}
+
+.explorer-cols {
+  list-style: none;
+  margin: 2px 0 8px 22px;
+  padding: 0 0 0 10px;
+  border-left: 1px solid var(--rule);
+  display: grid;
+  gap: 2px;
+}
+
+.explorer-cols li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 2px 0;
+  font-size: 13px;
+}
+
+.explorer-cols .col-name {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.explorer-cols .col-type {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.key {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+
+.key.pk {
+  background: color-mix(in srgb, var(--c3) 18%, var(--surface));
+  color: var(--ink);
+}
+
+.key.fk {
+  background: color-mix(in srgb, var(--c1) 15%, var(--surface));
+  color: var(--ink);
+}
+
+.lab-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.lab-history button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lab-history button:hover {
+  border-color: var(--rule-strong);
+  background: var(--surface-2);
+}
+
+.lab-history code {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  font-size: 12px;
+  background: transparent;
+  padding: 0;
+}
+
+.lab-history .ok,
+.lab-history .bad {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.lab-history .ok {
+  color: var(--ok);
+}
+
+.lab-history .bad {
+  color: var(--bad);
+}
+
+@media (max-width: 1080px) {
+  .lab {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lab-side {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .lab-page .page-header .row {
+    width: 100%;
+  }
+  .lab-page .page-header .row .btn {
+    flex: 1 1 auto;
+  }
+  .lab-status {
+    margin-left: 0;
+    width: 100%;
+  }
+  .lab-toolbar .btn {
+    flex: 1 1 auto;
+  }
+}
+
+/* ---------- Ejercicios del taller y del entregable ---------- */
+
+.exercises {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+  counter-reset: exercise;
+}
+
+.exercise {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.exercise.solved {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--rule));
+  box-shadow: inset 4px 0 0 var(--ok);
+}
+
+.exercise-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.exercise-head h3 {
+  font-size: 1.12rem;
+  font-weight: 700;
+  margin-right: auto;
+}
+
+.exercise-n {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.exercise.solved .exercise-n {
+  background: var(--ok);
+  color: var(--on-accent);
+}
+
+.exercise-prompt {
+  max-width: 72ch;
+}
+
+.exercise-prompt > p + p {
+  margin-top: 0.6em;
+}
+
+.exercise-meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.exercise-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.exercise-actions .spacer {
+  flex: 1;
+}
+
+.verdict {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid;
+  font-size: 15px;
+}
+
+.verdict > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.verdict.ok {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+  color: var(--ink);
+}
+
+.verdict.ok > svg {
+  color: var(--ok);
+}
+
+.verdict.bad {
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+  color: var(--ink);
+}
+
+.verdict.bad > svg {
+  color: var(--warn-text);
+}
+
+.verdict b {
+  display: block;
+}
+
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.exercise-panel {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.solution-box {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.solution-box pre {
+  margin: 0;
+  overflow-x: auto;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.exercises-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.exercises-summary .bar {
+  flex: 1 1 160px;
+}
+
+/* Progreso del día */
+
+.day-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.day-progress > div {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.day-progress .label {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day-progress .value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-progress .value .muted {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.day-progress .ok-mark {
+  color: var(--ok);
+}
+
+/* Admin: último SQL */
+
+.sql-log {
+  display: grid;
+  gap: 12px;
+}
+
+.sql-log-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.sql-log-item pre {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--code-bg);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.ex-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}

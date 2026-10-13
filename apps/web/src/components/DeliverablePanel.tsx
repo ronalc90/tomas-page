@@ -67,9 +67,9 @@ export function DeliverablePanel({ deliverable, startStep = 1 }: { deliverable: 
           <span className="muted">Fecha: {formatLong(deliverable.dueDate)}</span>
         </div>
         <p className="path">{deliverable.path}</p>
-        <p className="concept">
-          <RichText text={deliverable.description} />
-        </p>
+        <div className="concept">
+          <RichText text={deliverable.description} block />
+        </div>
         {sub?.feedback && (sub.status === "changes_requested" || sub.status === "approved") && (
           <div className={`feedback ${sub.status}`}>
             <b>

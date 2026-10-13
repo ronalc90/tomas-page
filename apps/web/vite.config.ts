@@ -30,6 +30,9 @@ export default defineConfig({
     port: 5173,
     proxy: { "/api": { target: process.env.API_URL ?? "http://localhost:3000", changeOrigin: false } },
   },
+  worker: {
+    format: "es",
+  },
   build: {
     outDir: "dist",
     sourcemap: true,
@@ -39,6 +42,7 @@ export default defineConfig({
           react: ["react", "react-dom", "react-router"],
           query: ["@tanstack/react-query"],
           highlight: ["highlight.js/lib/core"],
+          codemirror: ["@codemirror/view", "@codemirror/state", "@codemirror/language", "@codemirror/lang-sql", "@codemirror/autocomplete", "@codemirror/commands"],
         },
       },
     },

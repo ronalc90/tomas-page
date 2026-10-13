@@ -29,6 +29,13 @@ const PATHS = {
   down: "M5 9l7 7 7-7",
   alert: "M12 9v4M12 17h.01M10.3 3.9 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z",
   compass: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm4-14-2.5 6.5L7 17l2.5-6.5z",
+  play: "M7 5v14l11-7z",
+  stop: "M7 7h10v10H7z",
+  undo: "M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11",
+  download: "M12 3v12M7 10l5 5 5-5M5 21h14",
+  table: "M4 5h16v14H4zM4 10h16M4 15h16M10 5v14",
+  flask: "M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3M7.5 15h9",
+  clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zm0-13v5l3 2",
 } as const;
 
 export type IconName = keyof typeof PATHS;
