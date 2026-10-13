@@ -748,3 +748,61 @@ kbd {
   gap: 8px;
   align-items: center;
 }
+
+.day-head .lede {
+  color: var(--muted);
+  max-width: 62ch;
+  font-size: 1.05rem;
+}
+
+/* Calendario: ejercicios resueltos de un día empezado y resumen de la semana */
+
+.cal-cell .cal-ex {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ink-2);
+  opacity: 0.75;
+}
+
+.week-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.stats.six {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .stats.six {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* `código` dentro de un tooltip (fondo oscuro en claro, claro en oscuro). */
+.tooltip code {
+  background: color-mix(in srgb, var(--bg) 18%, transparent);
+  color: inherit;
+}
+
+/* Las columnas se ajustan a su contenido; la última celda vacía llena el resto del ancho. */
+.result-table th.fill,
+.result-table td.fill {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+.exercise-tools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}

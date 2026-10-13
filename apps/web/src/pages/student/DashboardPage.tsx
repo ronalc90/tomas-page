@@ -1,6 +1,6 @@
 import { Link } from "react-router";
-import { formatLong, formatShort, capitalize, PACE_LABEL, type PlanResponse, type ProgressView } from "@tomas/shared";
-import { Calendar, CalendarLegend } from "../../components/Calendar";
+import { formatLong, formatMinutes, formatShort, capitalize, PACE_LABEL, type PlanResponse, type ProgressView } from "@tomas/shared";
+import { Calendar, CalendarLegend, weekSummary, WeekLine } from "../../components/Calendar";
 import { Icon } from "../../components/Icon";
 import { ErrorState, Loading, ProgressBar, Stat, StatusPill } from "../../components/ui";
 import { percent } from "../../lib/format";
@@ -35,11 +35,12 @@ function TodayCard({ plan, progress }: { plan: PlanResponse; progress: ProgressV
   const isToday = date === progress.today;
   const status = day ? progress.days[date]?.status : deliverable ? progress.deliverables[deliverable.id]?.status : undefined;
   const title = day?.kind === "workshop" ? day.title : deliverable ? deliverable.title : day?.title ?? "";
+  const parts = day?.kind === "workshop" ? ["dos temas", day.exerciseCount ? `${day.exerciseCount} ejercicios SQL` : "", day.taskCount ? `${day.taskCount} tareas` : "", "evaluación"].filter(Boolean) : [];
   const sub =
     day?.kind === "workshop"
       ? deliverable
         ? "Taller y entregable del día."
-        : "Taller de 1 hora: concepto, 3 tareas y evaluación."
+        : `Unas 4 horas: ${parts.slice(0, -1).join(", ")} y ${parts[parts.length - 1]}.`
       : deliverable
         ? `Entregable: ${deliverable.path}`
         : day?.kind === "holiday"
@@ -73,6 +74,7 @@ export function DashboardPage() {
   const p = progress.data!;
   const t = p.totals;
   const name = me.data?.user.displayName.split(" ")[0] ?? "";
+  const week = weekSummary(plan.data!, p, p.today);
 
   const paceText: Record<string, string> = {
     not_started: `El plan arranca el ${formatLong(p.start)}.`,
@@ -88,7 +90,7 @@ export function DashboardPage() {
         <h1>
           Hola, {name}. <span className="accent">{percent(t.completion)}</span> del plan listo.
         </h1>
-        <dl className="stats">
+        <dl className="stats six">
           <Stat
             label="Avance total"
             value={percent(t.completion)}
@@ -106,6 +108,16 @@ export function DashboardPage() {
             help="Talleres completos. La racha cuenta cuántos talleres seguidos, sin saltarte ninguno, llevas completos hasta el más reciente."
           />
           <Stat
+            label="Ejercicios SQL"
+            value={
+              <>
+                {t.exercisesSolved} <span className="muted">/ {t.exercisesTotal}</span>
+              </>
+            }
+            sub={week.total ? `${week.done} de ${week.total} esta semana` : "resueltos"}
+            help="Ejercicios SQL resueltos en los talleres y en los entregables. Un ejercicio queda resuelto cuando tu consulta devuelve el resultado esperado al comprobarla."
+          />
+          <Stat
             label="Evaluaciones"
             value={percent(t.quizAverage)}
             sub={t.quizzesTaken ? `${t.quizzesPassed} aprobadas de ${t.quizzesTaken}` : "aún no presentas ninguna"}
@@ -120,6 +132,12 @@ export function DashboardPage() {
             }
             sub={t.deliverablesApproved ? `${t.deliverablesApproved} aprobados` : "entregados"}
             help="Entregables que ya enviaste a revisión. Aprobados son los que el revisor ya dio por buenos; si pide cambios, puedes corregir y reenviar."
+          />
+          <Stat
+            label="Estudio esta semana"
+            value={formatMinutes(week.minutes)}
+            sub={`${formatMinutes(t.studyMinutes)} en total`}
+            help="Minutos con la página abierta y en uso (teclado, mouse o desplazamiento en los últimos 3 minutos). Se cuenta un minuto a la vez."
           />
         </dl>
         <ProgressBar value={t.completion} label="Avance total del plan" />
@@ -152,6 +170,7 @@ export function DashboardPage() {
           </div>
           <Calendar plan={plan.data!} progress={p} />
           <CalendarLegend />
+          <WeekLine plan={plan.data!} progress={p} />
           <p className="muted small" style={{ margin: "12px 0 0" }}>
             ¿Quieres ver todos los temas de un vistazo? Abre el <Link to="/temario">temario completo</Link>.
           </p>

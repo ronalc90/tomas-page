@@ -55,6 +55,7 @@ export function ResultTable({
                   {c}
                 </th>
               ))}
+              <th className="fill" aria-hidden="true" />
             </tr>
           </thead>
           <tbody>
@@ -66,6 +67,7 @@ export function ResultTable({
                     <Cell value={v} />
                   </td>
                 ))}
+                <td className="fill" aria-hidden="true" />
               </tr>
             ))}
           </tbody>

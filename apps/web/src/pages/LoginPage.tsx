@@ -35,26 +35,22 @@ export function LoginPage() {
           <span className="brand-mark" style={{ background: "rgba(255,255,255,.18)", color: "inherit" }}>
             <Icon name="code" size={18} />
           </span>
-          <span className="brand-name">Plan de Tomás</span>
+          <span className="brand-name">Plan de Tomás Sandí</span>
         </div>
         <div style={{ display: "grid", gap: 18 }}>
-          <h1>Python y SQL antes de 2027.</h1>
-          <p>Un taller por día, una evaluación al final de cada taller y un entregable cada sábado. Tu avance queda guardado.</p>
+          <h1>SQL primero. Python después.</h1>
+          <p>Un taller por día con ejercicios que se califican solos, un laboratorio SQL en el navegador y un entregable cada sábado. Tu avance queda guardado.</p>
         </div>
         <pre className="auth-code" aria-hidden="true">
-          <span className="c"># semana 11: SQL desde Python</span>
+          <span className="c">-- semana 3: ventas por provincia</span>
           {"\n"}
-          <span className="k">import</span> sqlite3{"\n"}
-          con = sqlite3.connect(<span className="s">"gastos.db"</span>){"\n"}
-          sql = <span className="s">"SELECT categoria, SUM(valor) FROM gastos"</span>
-          {"\n"}
-          {"      "}
-          <span className="s">"GROUP BY categoria"</span>
-          {"\n"}
-          <span className="k">for</span> cat, total <span className="k">in</span> con.execute(sql):{"\n"}
-          {"    "}print(<span className="s">f"</span>
-          {"{cat}: ${total:,}"}
-          <span className="s">"</span>)
+          <span className="k">SELECT</span> pr.nombre, <span className="k">SUM</span>(d.cantidad * d.precio_unitario) <span className="k">AS</span> total{"\n"}
+          <span className="k">FROM</span> pedidos p{"\n"}
+          <span className="k">JOIN</span> clientes c <span className="k">ON</span> c.id = p.cliente_id{"\n"}
+          <span className="k">JOIN</span> provincias pr <span className="k">ON</span> pr.id = c.provincia_id{"\n"}
+          <span className="k">JOIN</span> detalle_pedido d <span className="k">ON</span> d.pedido_id = p.id{"\n"}
+          <span className="k">GROUP BY</span> pr.nombre{"\n"}
+          <span className="k">ORDER BY</span> total <span className="k">DESC</span>;
         </pre>
       </section>
 

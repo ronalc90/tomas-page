@@ -9,6 +9,10 @@ import type {
   CreateUserInput,
   DayResponse,
   DeliverableView,
+  ExerciseCheckResult,
+  ExerciseRevealResult,
+  ExerciseState,
+  ExerciseView,
   MeResponse,
   PlanResponse,
   ProgressView,
@@ -174,6 +178,54 @@ export function useSubmissionAction(id: string) {
     onSuccess: (view) => {
       refreshDeliverable(qc, view);
       void qc.invalidateQueries({ queryKey: keys.deliverables });
+    },
+  });
+}
+
+// ---------- Ejercicios SQL ----------
+
+/** Dónde está el ejercicio: en el taller de una fecha o en un entregable. */
+export type ExerciseScope = { kind: "day"; date: string } | { kind: "deliverable"; id: string; dueDate: string };
+
+/** Actualiza un ejercicio en las vistas en caché (día y entregables) sin esperar a recargar. */
+function patchExercise(qc: ReturnType<typeof useQueryClient>, scope: ExerciseScope, id: string, state: ExerciseState, solution: string | null) {
+  const patch = (list: ExerciseView[]) => list.map((e) => (e.id === id ? { ...e, state, solution: solution ?? e.solution } : e));
+  if (scope.kind === "day") {
+    qc.setQueryData<DayResponse>(keys.day(scope.date), (d) => (d ? { ...d, exercises: patch(d.exercises) } : d));
+  } else {
+    qc.setQueryData<DayResponse>(keys.day(scope.dueDate), (d) =>
+      d?.deliverable ? { ...d, deliverable: { ...d.deliverable, exercises: patch(d.deliverable.exercises) } } : d,
+    );
+    qc.setQueryData<DeliverableView[]>(keys.deliverables, (list) =>
+      list?.map((d) => (d.id === scope.id ? { ...d, exercises: patch(d.exercises) } : d)),
+    );
+  }
+}
+
+function refreshAfterExercise(qc: ReturnType<typeof useQueryClient>, scope: ExerciseScope) {
+  void qc.invalidateQueries({ queryKey: keys.day(scope.kind === "day" ? scope.date : scope.dueDate) });
+  void qc.invalidateQueries({ queryKey: keys.progress });
+  if (scope.kind === "deliverable") void qc.invalidateQueries({ queryKey: keys.deliverables });
+}
+
+export function useCheckExercise(scope: ExerciseScope, id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sql: string) => serial(`exercise:${id}`, () => api.post<ExerciseCheckResult>(`/api/exercises/${id}/check`, { sql })),
+    onSuccess: (res) => {
+      patchExercise(qc, scope, id, res.state, res.solution);
+      refreshAfterExercise(qc, scope);
+    },
+  });
+}
+
+export function useRevealExercise(scope: ExerciseScope, id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<ExerciseRevealResult>(`/api/exercises/${id}/reveal`),
+    onSuccess: (res) => {
+      patchExercise(qc, scope, id, res.state, res.solution);
+      refreshAfterExercise(qc, scope);
     },
   });
 }

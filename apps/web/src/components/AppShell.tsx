@@ -5,6 +5,7 @@ import { initials } from "../lib/format";
 import { LOCAL_MODE } from "../lib/mode";
 import { useLogout, useOverview } from "../lib/queries";
 import { applyTheme, getTheme, type Theme } from "../lib/theme";
+import { useStudyPing } from "../lib/useStudyPing";
 import { Icon, type IconName } from "./Icon";
 
 interface NavItem {
@@ -45,6 +46,8 @@ export function AppShell({ me }: { me: MeResponse }) {
   const location = useLocation();
   const logout = useLogout();
   const isAdmin = me.user.role === "admin";
+  // El tiempo de estudio se cuenta solo para los estudiantes.
+  useStudyPing(!isAdmin);
 
   useEffect(() => setOpen(false), [location.pathname]);
 

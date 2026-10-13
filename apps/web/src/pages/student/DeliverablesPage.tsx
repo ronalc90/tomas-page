@@ -16,7 +16,7 @@ export function DeliverablesPage() {
       <PageHeader
         eyebrow="Entregables"
         title="Lo que entregas cada sábado"
-        lede={`Llevas ${submitted} de ${list.length}. Cada entregable tiene criterios de revisión; el administrador lo aprueba o te pide cambios.`}
+        lede={`Llevas ${submitted} de ${list.length}. En las semanas de SQL el entregable es un informe con preguntas que se califican solas y tu conclusión; el administrador lo aprueba o te pide cambios.`}
       />
       {withFeedback.length > 0 && (
         <div className="alert warn" role="status">
@@ -35,7 +35,11 @@ export function DeliverablesPage() {
                   <span className="when">{formatShort(d.dueDate)}</span>
                   <span className="what">
                     <b>{d.title}</b>
-                    <span>{d.path}</span>
+                    <span>
+                      {d.path}
+                      {d.exercises.length > 0 &&
+                        ` · ${d.exercises.filter((e) => e.state.solved).length} de ${d.exercises.length} preguntas resueltas`}
+                    </span>
                   </span>
                   <span className="row">
                     {d.submission ? <SubmissionPill status={d.submission.status} /> : <StatusPill status={d.state.status} />}

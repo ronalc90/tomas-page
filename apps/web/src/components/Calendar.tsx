@@ -1,6 +1,46 @@
 import { Fragment } from "react";
 import { Link } from "react-router";
-import { addDays, formatDayMonth, formatLong, mondayOf, STATUS_LABEL, type PlanResponse, type ProgressView } from "@tomas/shared";
+import { addDays, formatDayMonth, formatLong, formatMinutes, mondayOf, STATUS_LABEL, type PlanResponse, type ProgressView } from "@tomas/shared";
+
+/** Minutos de estudio y ejercicios de la semana (lunes a domingo) que contiene `date`. */
+export function weekSummary(plan: PlanResponse, progress: ProgressView, date: string) {
+  const monday = mondayOf(date);
+  const sunday = addDays(monday, 6);
+  const inWeek = (d: string) => d >= monday && d <= sunday;
+  let minutes = 0;
+  for (const [d, m] of Object.entries(progress.study)) if (inWeek(d)) minutes += m;
+  let done = 0;
+  let total = 0;
+  for (const w of plan.weeks) {
+    for (const d of w.days) {
+      if (!inWeek(d.date)) continue;
+      done += progress.days[d.date]?.exercisesDone ?? 0;
+      total += progress.days[d.date]?.exercisesTotal ?? 0;
+    }
+    if (w.deliverable && inWeek(w.deliverable.dueDate)) {
+      done += progress.deliverables[w.deliverable.id]?.exercisesDone ?? 0;
+      total += progress.deliverables[w.deliverable.id]?.exercisesTotal ?? 0;
+    }
+  }
+  return { minutes, done, total };
+}
+
+/** "Esta semana: 3 h 20 min de estudio · 12 de 30 ejercicios resueltos" */
+export function WeekLine({ plan, progress }: { plan: PlanResponse; progress: ProgressView }) {
+  const w = weekSummary(plan, progress, progress.today);
+  return (
+    <p className="week-line">
+      <span>
+        <b>Esta semana:</b> {formatMinutes(w.minutes)} de estudio
+      </span>
+      {w.total > 0 && (
+        <span>
+          {w.done} de {w.total} ejercicios resueltos
+        </span>
+      )}
+    </p>
+  );
+}
 
 const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -33,9 +73,13 @@ export function Calendar({
       {plan.weeks.map((week) => {
         const first = week.days[0]?.date ?? week.deliverable?.dueDate ?? plan.start;
         const monday = mondayOf(first);
+        const ws = weekSummary(plan, progress, first);
         return (
           <Fragment key={week.id}>
-            <span className={`wk p${week.phaseId}`}>
+            <span
+              className={`wk p${week.phaseId}`}
+              title={`Semana ${week.number}: ${formatMinutes(ws.minutes)} de estudio${ws.total ? `, ${ws.done} de ${ws.total} ejercicios` : ""}`}
+            >
               <b>S{week.number}</b>
               <span>{formatDayMonth(first)}</span>
             </span>
@@ -64,14 +108,25 @@ export function Calendar({
               if (!day && deliverable) cls.push("deliverable");
               if (status) cls.push(status);
               const title = day ? day.title : deliverable!.title;
-              const label = `${formatLong(date)}: ${title}. ${status === "rest" ? (day?.kind === "holiday" ? "Festivo" : "Día libre") : STATUS_LABEL[status ?? "pending"]}`;
+              const st = day ? progress.days[date] : undefined;
+              const dst = deliverable ? progress.deliverables[deliverable.id] : undefined;
+              const exDone = (st?.exercisesDone ?? 0) + (dst?.exercisesDone ?? 0);
+              const exTotal = (st?.exercisesTotal ?? 0) + (dst?.exercisesTotal ?? 0);
+              const minutes = progress.study[date] ?? 0;
+              const extra = [exTotal ? `${exDone} de ${exTotal} ejercicios` : "", minutes ? `${formatMinutes(minutes)} de estudio` : ""].filter(Boolean).join(", ");
+              const label = `${formatLong(date)}: ${title}. ${status === "rest" ? (day?.kind === "holiday" ? "Festivo" : "Día libre") : STATUS_LABEL[status ?? "pending"]}${extra ? `. ${extra}` : ""}`;
+              // Barra fina con la parte de los ejercicios resueltos (solo si está empezado y no completo).
+              const bar = exTotal > 0 && exDone > 0 && status !== "done" ? <i className="cal-ex" style={{ width: `calc((100% - 10px) * ${exDone / exTotal})` }} aria-hidden="true" /> : null;
+              const tip = extra ? `${title} · ${extra}` : title;
               return linkTo ? (
-                <Link key={date} to={linkTo(date)} className={cls.join(" ")} aria-label={label} title={title}>
+                <Link key={date} to={linkTo(date)} className={cls.join(" ")} aria-label={label} title={tip}>
                   {num}
+                  {bar}
                 </Link>
               ) : (
-                <span key={date} className={cls.join(" ")} aria-label={label} title={title}>
+                <span key={date} className={cls.join(" ")} aria-label={label} title={tip}>
                   {num}
+                  {bar}
                 </span>
               );
             })}
