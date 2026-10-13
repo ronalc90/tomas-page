@@ -198,7 +198,7 @@ export function DeliverablePanel({ deliverable, startStep = 1 }: { deliverable: 
           </div>
           <textarea
             id={`ev-${deliverable.id}`}
-            className="textarea code"
+            className={hasExercises ? "textarea" : "textarea code"}
             rows={6}
             value={evidence}
             readOnly={locked}
