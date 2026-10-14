@@ -1559,3 +1559,26 @@ ul.plain {
     grid-column: 1 / -1;
   }
 }
+
+/* Tarjeta de bienvenida del tablero */
+.welcome-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 24px;
+  background: var(--accent-soft);
+  border: 1.5px solid var(--accent);
+}
+
+.welcome-card h2 {
+  font-weight: 800;
+  font-size: 1.35rem;
+  margin: 2px 0 6px;
+}
+
+.welcome-card p {
+  margin: 0;
+  max-width: 60ch;
+}

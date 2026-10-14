@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { formatLong, formatMinutes, formatShort, capitalize, PACE_LABEL, type PlanResponse, type ProgressView } from "@tomas/shared";
 import { Calendar, CalendarLegend, weekSummary, WeekLine } from "../../components/Calendar";
@@ -5,6 +6,49 @@ import { Icon } from "../../components/Icon";
 import { ErrorState, Loading, ProgressBar, Stat, StatusPill } from "../../components/ui";
 import { percent } from "../../lib/format";
 import { useMe, usePlan, useProgress } from "../../lib/queries";
+
+const WELCOME_KEY = "bienvenida-vista";
+
+/** Tarjeta que invita a leer la guía de bienvenida hasta que el estudiante la descarta. */
+function WelcomeCard() {
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(WELCOME_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  if (hidden) return null;
+  const dismiss = () => {
+    try {
+      localStorage.setItem(WELCOME_KEY, "1");
+    } catch {
+      /* sin almacenamiento: se oculta solo en esta visita */
+    }
+    setHidden(true);
+  };
+  return (
+    <div className="card welcome-card" role="region" aria-label="Bienvenida">
+      <div>
+        <p className="eyebrow">Empieza aquí</p>
+        <h2>Recorrido por tu plataforma</h2>
+        <p>
+          En 12 minutos conoces todo: el tablero, cómo está armado cada día, los ejercicios SQL que se califican solos, el
+          laboratorio, la evaluación, los entregables y qué ve tu profesor de tu avance.
+        </p>
+      </div>
+      <div className="row">
+        <Link className="btn" to="/guias/bienvenida" onClick={dismiss}>
+          Abrir la guía de bienvenida
+          <Icon name="right" size={18} />
+        </Link>
+        <button type="button" className="btn ghost" onClick={dismiss}>
+          Ya la leí
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function nextItemDate(plan: PlanResponse, today: string): string | null {
   const dates = plan.weeks
@@ -95,7 +139,7 @@ export function DashboardPage() {
             label="Avance total"
             value={percent(t.completion)}
             sub="de talleres y entregables"
-            help="Porcentaje de talleres completos y entregables enviados sobre el total del plan. Un taller está completo cuando marcaste todas sus tareas y aprobaste la evaluación."
+            help="Porcentaje de talleres completos y entregables enviados sobre el total del plan. Un taller está completo cuando resolviste todos sus ejercicios, marcaste sus tareas (si tiene) y aprobaste la evaluación."
           />
           <Stat
             label="Talleres"
@@ -159,6 +203,8 @@ export function DashboardPage() {
           )}
         </div>
       </section>
+
+      {me.data?.user.role === "student" && <WelcomeCard />}
 
       <div className="grid-2">
         <div className="card">

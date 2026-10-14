@@ -1,5 +1,67 @@
 [
  {
+  "slug": "bienvenida",
+  "title": "Bienvenida: recorrido por tu plataforma",
+  "minutes": 12,
+  "summary": "Empieza aquí. Un recorrido por todo lo que tiene la página: el menú, tu tablero, cómo está armado cada día, los ejercicios SQL que se califican solos, el laboratorio, la evaluación, los entregables y qué ve tu profesor de tu avance.",
+  "sections": [
+   {
+    "heading": "Bienvenido, Tomás",
+    "body": "Esta página es tu plan de estudio completo, del **13 de octubre al 30 de diciembre de 2026**, de lunes a viernes, con unas **4 horas por día**. Empiezas con **SQL**, que es el eje del curso (seis semanas), sigues con Python y terminas uniendo los dos en un proyecto final propio.\n\nTodo tu avance se guarda en el servidor: puedes estudiar desde cualquier computador o desde el celular y vas a encontrar todo como lo dejaste. Entras con tu usuario `tomas`. Lo primero que conviene hacer es cambiar la contraseña en **Mi cuenta** por una que solo tú conozcas.",
+    "code": "",
+    "language": "sql"
+   },
+   {
+    "heading": "El menú, de un vistazo",
+    "body": "A la izquierda (en el celular, en el botón de menú arriba) tienes siete lugares:\n\n**Inicio** es tu tablero: cuánto llevas, el calendario y lo que toca hoy. **Hoy** te lleva directo al taller del día. **Laboratorio SQL** es el editor donde practicas con la base de la tienda. **Temario** muestra el plan completo, semana por semana. **Entregables** reúne los trabajos de cada sábado. **Guías**, donde estás ahora, tiene material de consulta rápida. **Mi cuenta** sirve para cambiar tu contraseña y la apariencia (modo claro u oscuro, también con el botón del sol abajo a la izquierda).",
+    "code": "",
+    "language": "sql"
+   },
+   {
+    "heading": "Tu tablero",
+    "body": "Arriba ves seis cifras: avance total del plan, talleres completos, ejercicios SQL resueltos, promedio de las evaluaciones, entregables enviados y minutos de estudio de la semana. Si pasas el mouse (o tocas) el signo de pregunta junto a cada una, te explica cómo se calcula.\n\nDebajo está el **calendario**: cada fila es una semana y cada fase tiene su color. Un día completo se pinta con el color de su fase, uno empezado se ve a medio pintar y uno **atrasado** se marca con un borde de alerta (la leyenda debajo del calendario lo explica). Los círculos de los sábados son los entregables. Puedes tocar cualquier día para abrirlo, incluso días futuros, para adelantar lectura. A la derecha, la tarjeta **Hoy** te dice qué toca y te lleva con el botón Empezar.",
+    "code": "",
+    "language": "sql"
+   },
+   {
+    "heading": "Cómo está armado un día de taller",
+    "body": "Cada día sigue el mismo orden, con secciones numeradas: **Hoy** (los objetivos y la agenda de 4 horas), **Tema 1** y **Tema 2**, **Práctica** (ejercicios SQL), a veces **Taller** (tareas en tu computador, sobre todo en las semanas de Python), **Reto extra** (opcional) y **Evaluación del día**. Al final, **Para profundizar** trae enlaces a documentación confiable.\n\nCada tema trae el concepto, un consejo, un ejemplo, una guía paso a paso y los errores comunes con su causa y su arreglo. Los ejemplos de SQL tienen el botón **Ejecutar**, que corre la consulta ahí mismo y te muestra la tabla, y **Abrir en el laboratorio**, para jugar con ella. Las palabras subrayadas con puntos son del glosario: pasa el mouse o tócalas y verás su definición.\n\nUn día queda **completo** cuando resolviste todos sus ejercicios, marcaste sus tareas (si tiene) y aprobaste la evaluación.",
+    "code": "",
+    "language": "sql"
+   },
+   {
+    "heading": "Los ejercicios SQL que se califican solos",
+    "body": "Cada ejercicio tiene un enunciado con una pregunta real de la tienda y un editor. Debajo del enunciado ves cuántas filas y columnas debe tener el resultado y si importa el orden.\n\n**Ejecutar** corre tu consulta sin calificarla: úsalo todas las veces que quieras. **Comprobar** la envía a calificar al servidor: si está bien, el ejercicio queda resuelto y ves una solución de referencia para comparar; si no, te dice qué no coincide (columnas de más, filas de menos, el orden…). **Pista** te orienta sin darte la respuesta y **Ver resultado esperado** te muestra la tabla a la que tienes que llegar.\n\n**Ver solución** se habilita después de 3 intentos. Úsalo solo si de verdad te trabaste: queda registrado. Y aunque la veas, tienes que escribir tu consulta y comprobarla para que el ejercicio cuente como resuelto. Los nombres de las columnas no importan (puedes usar los alias que quieras); lo que se compara son los valores.",
+    "code": "",
+    "language": "sql"
+   },
+   {
+    "heading": "El laboratorio SQL",
+    "body": "El laboratorio es tu cancha de práctica. Trae cargada la base **Tienda Pura Vida**: 8 tablas con clientes por provincia, productos en colones, pedidos, empleados y reseñas. Escribes la consulta, la ejecutas con **Ctrl + Enter** (Cmd + Enter en Mac) y el resultado aparece abajo.\n\nA la derecha está el explorador de tablas: toca el ojo de una tabla para ver sus primeras filas, o despliégala para ver sus columnas. Puedes cambiar datos y crear tablas sin miedo: los cambios duran mientras la pestaña esté abierta y el botón **Restaurar la base** la deja como nueva. Desde la semana 9 vas a usar el botón **Descargar tienda.db** para trabajar la base desde Python. Todos los detalles están en la guía «El laboratorio SQL».",
+    "code": "-- Prueba esto en el laboratorio\nSELECT nombre, precio\nFROM productos\nORDER BY precio DESC\nLIMIT 5;",
+    "language": "sql"
+   },
+   {
+    "heading": "La evaluación y los entregables",
+    "body": "La **evaluación del día** tiene 8 preguntas de cuatro tipos: opción múltiple, verdadero o falso, «¿qué devuelve?» y completar código. Se aprueba con **5 de 8**. Cada pregunta tiene una pista; después de presentar ves la explicación de cada respuesta. Puedes repetirla las veces que quieras y cuenta tu mejor nota, pero la del primer intento también queda guardada, así que dale en serio desde la primera vez.\n\nCada **sábado** hay un **entregable** que junta la semana. En las semanas de SQL son 8 a 10 preguntas de negocio que se califican solas, más una conclusión escrita con lo que descubriste en los datos. Lo envías cuando todos sus ejercicios están resueltos; tu profesor lo revisa y lo aprueba o te pide cambios con comentarios. Si te pide cambios, corriges y lo vuelves a enviar.",
+    "code": "",
+    "language": "sql"
+   },
+   {
+    "heading": "Qué ve tu profesor",
+    "body": "Para que no haya sorpresas: tu profesor ve en su panel tu avance por día, tus notas (la mejor y la del primer intento), cuántos intentos hiciste en cada ejercicio, si viste alguna solución, el último SQL que enviaste, tus entregables y tus **minutos de estudio**.\n\nLos minutos cuentan solo mientras tienes la página abierta **y la estás usando** (escribir, hacer clic, desplazarte). Si la dejas abierta y te vas, a los 3 minutos deja de contar. No hace falta «inflar» nada: lo que importa es avanzar de verdad y pedir ayuda a tiempo cuando algo no sale.",
+    "code": "",
+    "language": "sql"
+   },
+   {
+    "heading": "Tu primera hora",
+    "body": "Para arrancar con buen pie, en este orden:\n\n1. Entra a **Mi cuenta** y cambia tu contraseña.\n2. Lee la guía «Cómo estudiar este curso» (15 minutos): explica la rutina diaria y qué hacer si te atrasas.\n3. Abre el **Laboratorio SQL**, ejecuta la consulta de ejemplo y toca el ojo de dos o tres tablas para ver qué guardan.\n4. Ve a **Hoy** y empieza el taller con el Tema 1.\n\nTen a mano las guías «La base Tienda Pura Vida» (qué significa cada columna), «Chuleta de SQL» y «Leer un error de SQL»: te van a acompañar todo el curso. ¡Mucho éxito, Tomás!",
+    "code": "",
+    "language": "sql"
+   }
+  ]
+ },
+ {
   "slug": "como-estudiar-este-curso",
   "title": "Cómo estudiar este curso",
   "summary": "La rutina de 4 horas con dos temas por día, cómo funcionan los ejercicios que se califican solos, el reto, la evaluación, el entregable del sábado, qué hacer si te atrasas y qué mide el tiempo de estudio de la página.",
