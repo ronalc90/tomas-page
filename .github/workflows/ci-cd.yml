@@ -95,12 +95,12 @@ jobs:
           docker logs app
           exit 1
 
-  # La versión sin servidor ya no existe: el progreso vive solo en el backend. Si la variable APP_URL
-  # existe, GitHub Pages publica una página mínima que lleva a la app (también desde enlaces viejos).
+  # La versión sin servidor ya no existe: el progreso vive solo en el backend. La variable APP_URL (o la dirección de Railway por defecto)
+  # indica a dónde; GitHub Pages publica una página mínima que lleva a la app (también desde enlaces viejos).
   pages-redirect:
     name: GitHub Pages redirige a la app
     needs: [verify]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.APP_URL != ''
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -115,7 +115,7 @@ jobs:
     steps:
       - name: Crear la página que redirige
         env:
-          APP_URL: ${{ vars.APP_URL }}
+          APP_URL: ${{ vars.APP_URL || 'https://tomas-page-production.up.railway.app' }}
           REPO: ${{ github.event.repository.name }}
         run: |
           mkdir -p redirect
@@ -190,7 +190,7 @@ jobs:
       RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE || 'tomas-page' }}
     environment:
       name: production
-      url: ${{ vars.APP_URL }}
+      url: ${{ vars.APP_URL || 'https://tomas-page-production.up.railway.app' }}
     concurrency:
       group: deploy-production
       cancel-in-progress: false
@@ -212,7 +212,7 @@ jobs:
         id: url
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          APP_URL: ${{ vars.APP_URL }}
+          APP_URL: ${{ vars.APP_URL || 'https://tomas-page-production.up.railway.app' }}
         run: |
           # Si todavía no hay APP_URL, Railway genera (o devuelve) el dominio público del servicio.
           url="$APP_URL"
