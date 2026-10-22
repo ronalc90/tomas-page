@@ -142,9 +142,9 @@ export async function buildApp(config: Config, db: Database): Promise<{ app: Fas
     await app.register(fastifyStatic, {
       root: webDist,
       wildcard: false,
-      setHeaders: (res, filePath) => {
+      setHeaders: (reply, filePath) => {
         const immutable = filePath.includes(`${path.sep}assets${path.sep}`);
-        res.setHeader("Cache-Control", immutable ? "public, max-age=31536000, immutable" : "no-cache");
+        reply.header("Cache-Control", immutable ? "public, max-age=31536000, immutable" : "no-cache");
       },
     });
     app.get("/*", (request, reply) => {
