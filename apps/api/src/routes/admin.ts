@@ -45,7 +45,9 @@ const USER_COLUMNS = {
 
 export async function adminRoutes(app: FastifyInstance, ctx: AppContext) {
   app.addHook("preHandler", async (request) => {
-    if (request.url.startsWith("/api/admin")) requireAdmin(request);
+    // Se mira la ruta que eligió Fastify, no request.url: el enrutador decodifica %XX y request.url
+    // llega tal cual, así que /api/%61dmin/... entraba a estas rutas sin pasar por el control.
+    if (request.routeOptions.url?.startsWith("/api/admin")) requireAdmin(request);
   });
 
   async function studentRows(onlyId?: string): Promise<StudentRow[]> {

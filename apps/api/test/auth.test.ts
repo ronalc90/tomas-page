@@ -50,6 +50,18 @@ describe("autenticación", () => {
     expect(res.statusCode).toBe(403);
   });
 
+  it("protege el panel de administración aunque la ruta llegue con caracteres codificados", async () => {
+    // El enrutador decodifica %XX (%61 = "a"), así que estas URLs llegan a las rutas de /api/admin.
+    const encoded = ["/api/%61dmin/users", "/%61pi/admin/users"];
+    const student = client(env.app, await login(env.app, STUDENT.username, STUDENT.password));
+    const admin = client(env.app, await login(env.app, ADMIN.username, ADMIN.password));
+    for (const url of encoded) {
+      expect((await client(env.app).get(url)).statusCode).toBe(401);
+      expect((await student.get(url)).statusCode).toBe(403);
+    }
+    expect((await admin.get("/api/%61dmin/users")).statusCode).toBe(200);
+  });
+
   it("cierra la sesión y la invalida en el servidor", async () => {
     const cookie = await login(env.app, STUDENT.username, STUDENT.password);
     const api = client(env.app, cookie);
