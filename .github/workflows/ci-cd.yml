@@ -200,8 +200,10 @@ jobs:
       - name: Marcar la versión
         run: echo "${GITHUB_SHA::7}" > VERSION
 
+      # Versión exacta: la CLI corre después con el secreto RAILWAY_TOKEN, así que una versión nueva
+      # del paquete no entra sin revisarla. Para actualizar: npm view @railway/cli version.
       - name: Instalar Railway CLI
-        run: npm install -g @railway/cli
+        run: npm install -g @railway/cli@5.71.0
 
       - name: Desplegar
         env:
