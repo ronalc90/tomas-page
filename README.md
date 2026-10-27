@@ -1,11 +1,44 @@
 # Plan de Tomás Sandí · SQL y Python
 
-Plataforma para que Tomás Sandí (Costa Rica) aprenda **SQL** primero y luego Python, del **13 de octubre al 30 de diciembre de 2026**, con unas 4 horas de estudio al día de lunes a viernes (sin los feriados de Costa Rica). Cada taller trae dos temas (concepto, ejemplo, consejo, guía paso a paso y errores comunes), **ejercicios SQL que se califican solos**, reto extra, glosario con tooltips y una evaluación de 8 preguntas; cada sábado hay un entregable. Incluye un **laboratorio SQL** que corre en el navegador sobre la base de práctica «Tienda Pura Vida» y un panel de administración para seguir el avance, revisar entregas, editar el contenido y gestionar cuentas.
+[![CI/CD](https://github.com/ronalc90/tomas-page/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/ronalc90/tomas-page/actions/workflows/ci-cd.yml)
+
+Plataforma web para que Tomás Sandí (Costa Rica) aprenda **SQL** primero y luego **Python**, del **13 de octubre al 30 de diciembre de 2026**, con unas 4 horas de estudio al día de lunes a viernes (sin los feriados de Costa Rica). Es para un estudiante que empieza de cero y para quien lo acompaña: el estudiante sigue su plan día a día y el administrador ve su avance, revisa las entregas y edita el contenido.
+
+- **Estudiar el taller del día:** dos temas con concepto, ejemplo, consejo, guía paso a paso y errores comunes, más glosario con tooltips y reto extra.
+- **Practicar SQL de verdad:** ejercicios que **se califican solos** y un **laboratorio SQL** que corre en el navegador sobre la base de práctica «Tienda Pura Vida».
+- **Demostrar lo aprendido:** una evaluación de 8 preguntas por taller y un entregable cada sábado.
+- **Seguir el avance:** tablero con calendario, minutos de estudio y racha; panel de administración con métricas, el último SQL enviado en cada ejercicio, cola de revisión, editor de contenido y cuentas.
+
+**App en línea:** https://tomas-page-production.up.railway.app (se entra con usuario y contraseña). La dirección vieja de GitHub Pages, https://ronalc90.github.io/tomas-page/, redirige ahí.
+
+## Capturas
+
+Tomadas con Playwright sobre la app corriendo en local, con el plan real, `FAKE_TODAY=2026-10-27` y cuentas de prueba (sin datos reales).
+
+![Tablero del estudiante: avance, ejercicios, evaluaciones, entregables, minutos de estudio y calendario por colores](docs/capturas/tablero.webp)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/capturas/taller-ejercicio.webp" alt="Ejercicio SQL del taller del día calificado como correcto, con la solución de referencia"><br><sub><b>Taller del día:</b> el ejercicio se califica en el servidor y luego aparece la solución de referencia.</sub></td>
+    <td width="50%"><img src="docs/capturas/laboratorio.webp" alt="Laboratorio SQL con una consulta JOIN y su resultado, y el explorador de tablas"><br><sub><b>Laboratorio SQL:</b> SQLite en el navegador, explorador de tablas e historial.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/capturas/admin-resumen.webp" alt="Resumen de administración con métricas y la tabla de estudiantes"><br><sub><b>Administración:</b> métricas, ritmo de cada estudiante y entregables por revisar.</sub></td>
+    <td width="50%"><img src="docs/capturas/admin-sql-enviado.webp" alt="Detalle de un estudiante con el último SQL enviado en cada ejercicio"><br><sub><b>Detalle por estudiante:</b> el último SQL que envió en cada ejercicio.</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/capturas/movil-taller.webp" width="260" alt="Taller del día en un celular de 390 px de ancho"><br>
+  <sub><b>En el celular</b> (390 × 844): el mismo taller con el menú plegado.</sub>
+</p>
+
+## Qué incluye
 
 | | |
 |---|---|
 | **Contenido** | 12 semanas en 4 fases: SQL consultas → SQL avanzado y diseño → Python → Python + SQL y proyecto final. Se escribe en `content/semanas/sNN.json` (ver `content/GUIA_DE_CONTENIDO.md`) y `scripts/plan.py` lo valida y arma `packages/shared/src/data/plan.json` |
-| **Estudiante** | Tablero (avance, ejercicios, minutos de estudio de la semana), calendario por colores, taller del día con ejercicios SQL, laboratorio SQL, evaluación calificada en el servidor, entregables con preguntas que se califican solas y comentarios del revisor |
+| **Estudiante** | Tablero (avance, ejercicios, minutos de estudio de la semana), calendario por colores, taller del día con ejercicios SQL, laboratorio SQL, evaluación calificada en el servidor, entregables con preguntas que se califican solas y comentarios del revisor, temario y guías |
 | **Administración** | Resumen con métricas, ejercicios y minutos por semana; detalle por estudiante con el último SQL enviado en cada ejercicio; cola de revisión; editor de talleres, preguntas y ejercicios; usuarios y ajustes |
 | **Stack** | React 19 + Vite + TypeScript + CodeMirror 6 · Fastify 5 + Drizzle ORM · PostgreSQL 16 · sql.js (SQLite en WebAssembly) · Railway |
 
@@ -18,6 +51,27 @@ Plataforma para que Tomás Sandí (Costa Rica) aprenda **SQL** primero y luego P
 - **Tiempo de estudio**: con la pestaña visible y actividad (teclado, mouse o desplazamiento) en los últimos 3 minutos, la página envía un aviso por minuto y el servidor suma 1 minuto al día (como máximo uno cada 50 s).
 
 ## Arquitectura
+
+```mermaid
+flowchart LR
+  subgraph nav["Navegador"]
+    web["React 19 + Vite<br/>apps/web"]
+    lab["sql.js en un Web Worker<br/>laboratorio y «Ejecutar»"]
+  end
+  subgraph rw["Railway"]
+    api["Fastify 5 + Drizzle<br/>apps/api: API REST y web compilada"]
+    calif["sql.js en un worker_thread<br/>califica «Comprobar»"]
+    db[("PostgreSQL 16<br/>cuentas, avance, contenido")]
+  end
+  shared["packages/shared<br/>tipos, reglas de avance,<br/>sqlcheck, plan.json, tienda.sql"]
+
+  web -- "/api/* con cookie de sesión" --> api
+  web --> lab
+  api --> calif
+  api --> db
+  shared -.-> web
+  shared -.-> api
+```
 
 ```
 apps/
@@ -34,6 +88,7 @@ content/      el contenido por semana (sNN.json), la guía para escribirlo y el 
 scripts/      plan.py (valida y construye el plan) y generar_tienda.py
 fixtures/     plan de prueba pequeño que usan las pruebas (no dependen del contenido real)
 e2e/          pruebas de punta a punta con Playwright
+docs/capturas/ capturas de este README
 ```
 
 Un solo servicio sirve la API (`/api/*`) y la aplicación web, así no hay problemas de CORS ni cookies entre dominios. Al arrancar, el servidor aplica las migraciones pendientes y carga el contenido y las cuentas iniciales si no existen.
@@ -45,7 +100,7 @@ Un solo servicio sirve la API (`/api/*`) y la aplicación web, así no hay probl
 - **Las reglas de avance viven en `packages/shared/src/progress.ts`**, así el estudiante y el administrador ven exactamente lo mismo.
 - **Sesiones con cookie `httpOnly`, `SameSite=Lax` y `Secure`** en producción; en la base solo se guarda el hash del token. Contraseñas con bcrypt. Límite de intentos de inicio de sesión por IP y usuario. Cabeceras de seguridad con Helmet (CSP estricta; solo se abre `'wasm-unsafe-eval'` para WebAssembly y `worker-src 'self' blob:` para el worker de SQL).
 - **Las ediciones del administrador se respetan:** el contenido inicial solo se carga si la base está vacía. Para recargarlo a propósito: `npm run db:seed -- --reset-content`. Cuando cambia la estructura del plan (`CONTENT_VERSION` en `apps/api/src/db/seed.ts`, hoy 4), al arrancar se reemplaza el contenido conservando el avance de los estudiantes en las fechas y entregables que siguen existiendo; lo que ya no está en el plan se borra.
-- **El progreso vive solo en el backend.** La antigua versión sin servidor (GitHub Pages) se retiró; si existe la variable `APP_URL`, GitHub Pages publica solo una página que redirige a la app.
+- **El progreso vive solo en el backend.** La antigua versión sin servidor (GitHub Pages) se retiró; GitHub Pages publica solo una página que redirige a la app.
 
 ## Cuentas iniciales
 
@@ -53,7 +108,7 @@ Se crean la primera vez que arranca el servidor, con las variables `SEED_*`:
 
 | Usuario | Rol | Contraseña |
 |---|---|---|
-| `tomas` (Tomás Sandí) | Estudiante | `SEED_STUDENT_PASSWORD` (en producción: `1234`) |
+| `tomas` (Tomás Sandí) | Estudiante | `SEED_STUDENT_PASSWORD` (variable secreta en Railway) |
 | `admin` | Administrador | `SEED_ADMIN_PASSWORD` (variable secreta en Railway) |
 | `prueba` | Estudiante de prueba | `SEED_TEST_PASSWORD` (en desarrollo: `prueba123`; en producción solo se crea si defines la variable) |
 
@@ -71,7 +126,9 @@ export $(grep -v '^#' .env | xargs)
 npm run dev                      # migra, carga datos y abre API (3000) + web (5173)
 ```
 
-Abre http://localhost:5173. Para ver el plan como si fuera otro día, define `FAKE_TODAY=2026-10-15` (se ignora en producción). Para cargar otro archivo de plan (por ejemplo el de prueba), define `PLAN_FILE=fixtures/plan.json` antes de crear la base.
+¿Sin PostgreSQL instalado? Con Docker basta: `docker run -d --name tomas-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=tomas_dev -p 5432:5432 postgres:16` (ya crea `tomas_dev`, así que te saltas el `createdb`).
+
+Abre http://localhost:5173 y entra con `prueba` / `prueba123` (estudiante) o con `admin` y la clave de `SEED_ADMIN_PASSWORD` del `.env`. Para ver el plan como si fuera otro día, define `FAKE_TODAY=2026-10-15` (se ignora en producción). Para cargar otro archivo de plan (por ejemplo el de prueba), define `PLAN_FILE=fixtures/plan.json` antes de crear la base.
 
 Para reconstruir el plan desde el contenido: `python3 scripts/plan.py construir` (valida todas las semanas y escribe `plan.json`).
 
@@ -94,16 +151,16 @@ Las pruebas usan el plan pequeño de `fixtures/plan.json`, no el contenido real;
 
 1. **Calidad y pruebas:** lint, tipos, pruebas con PostgreSQL 16, compilación y Playwright.
 2. **Imagen Docker:** construye la imagen de producción, la arranca contra PostgreSQL y verifica `/api/health` (incluye el motor de SQL de los ejercicios: `"sql":"ok"`).
-3. **GitHub Pages redirige a la app:** solo en `main` y solo cuando la variable `APP_URL` existe; publica una página mínima que lleva a `APP_URL` (con un enlace visible «El plan se mudó a …» y conservando la ruta de los enlaces viejos).
-4. **Desplegar en Railway:** solo en `main` y solo cuando la variable `RAILWAY_SERVICE` existe en GitHub. Sube el código con `railway up`, espera la compilación y comprueba que `/api/health` responde con la versión (commit) recién desplegada.
+3. **GitHub Pages redirige a la app:** solo en `main` (o a mano); publica una página mínima que lleva a `APP_URL` (con un enlace visible «El plan se mudó a …» y conservando la ruta de los enlaces viejos).
+4. **Desplegar en Railway:** solo en `main` (o a mano), después de las pruebas y la imagen Docker. Sube el código con `railway up`, espera la compilación y comprueba que `/api/health` responde con la versión (commit) recién desplegada.
 
 Configuración que usa el despliegue (en GitHub → Settings):
 
 | Tipo | Nombre | Valor |
 |---|---|---|
-| Secret | `RAILWAY_TOKEN` | Token de proyecto de Railway (entorno `production`) |
-| Variable | `RAILWAY_SERVICE` | Nombre del servicio de la app en Railway |
-| Variable | `APP_URL` | URL pública, por ejemplo `https://tomas-page-production.up.railway.app` (también activa la página de GitHub Pages que redirige) |
+| Secret (entorno `production`) | `RAILWAY_TOKEN` | Token de proyecto de Railway (entorno `production`) |
+| Variable (opcional) | `RAILWAY_SERVICE` | Nombre del servicio de la app en Railway; si no existe, se usa `tomas-page` |
+| Variable (opcional) | `APP_URL` | URL pública; si no existe, se usa `https://tomas-page-production.up.railway.app` (también es el destino de la página de GitHub Pages) |
 
 ## Railway
 
@@ -115,7 +172,7 @@ Variables de la app:
 |---|---|
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (referencia a la base) |
 | `NODE_ENV` | `production` |
-| `SEED_STUDENT_PASSWORD` | `1234` |
+| `SEED_STUDENT_PASSWORD` | la contraseña inicial de Tomás (secreta; él la cambia desde **Mi cuenta**) |
 | `SEED_ADMIN_PASSWORD` | una contraseña larga y secreta |
 
 ## API
