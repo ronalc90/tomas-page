@@ -94,7 +94,9 @@ export async function buildApp(config: Config, db: Database): Promise<{ app: Fas
   app.decorateRequest("user", null);
   app.decorateRequest("sessionId", null);
   app.addHook("preHandler", async (request) => {
-    if (request.url.startsWith("/api/") && request.url !== "/api/health") await loadSession(ctx, request);
+    // La ruta elegida por Fastify (ya decodificada), igual que el control de /api/admin.
+    const route = request.routeOptions.url;
+    if (route?.startsWith("/api/") && route !== "/api/health") await loadSession(ctx, request);
   });
 
   app.setErrorHandler((error, request, reply) => {
