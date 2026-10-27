@@ -108,7 +108,7 @@ Se crean la primera vez que arranca el servidor, con las variables `SEED_*`:
 
 | Usuario | Rol | Contraseña |
 |---|---|---|
-| `tomas` (Tomás Sandí) | Estudiante | `SEED_STUDENT_PASSWORD` (en producción: `1234`) |
+| `tomas` (Tomás Sandí) | Estudiante | `SEED_STUDENT_PASSWORD` (variable secreta en Railway) |
 | `admin` | Administrador | `SEED_ADMIN_PASSWORD` (variable secreta en Railway) |
 | `prueba` | Estudiante de prueba | `SEED_TEST_PASSWORD` (en desarrollo: `prueba123`; en producción solo se crea si defines la variable) |
 
@@ -172,7 +172,7 @@ Variables de la app:
 |---|---|
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (referencia a la base) |
 | `NODE_ENV` | `production` |
-| `SEED_STUDENT_PASSWORD` | `1234` |
+| `SEED_STUDENT_PASSWORD` | la contraseña inicial de Tomás (secreta; él la cambia desde **Mi cuenta**) |
 | `SEED_ADMIN_PASSWORD` | una contraseña larga y secreta |
 
 ## API
