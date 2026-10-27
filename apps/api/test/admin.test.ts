@@ -22,6 +22,10 @@ beforeAll(async () => {
   await student.post("/api/activity/ping");
   await student.put("/api/deliverables/s02", { criteria: [true, true, true], evidence: "reporte.py listo" });
   await student.post("/api/deliverables/s02/submit");
+  // Postgres guarda solved_at con now() (la hora real), pero la app corre con FAKE_TODAY = 2026-10-20 y el
+  // resumen semanal solo llega hasta esa semana. Se fija dentro de ese día para que la prueba no dependa
+  // de la fecha en que se ejecuta (desde el 26-10-2026 el ejercicio caía fuera de la ventana).
+  await env.handle.db.execute(sql`UPDATE exercise_progress SET solved_at = '2026-10-20T12:00:00Z' WHERE solved_at IS NOT NULL`);
 });
 
 describe("resumen y estudiantes", () => {
